@@ -1,0 +1,12 @@
+{
+  "env": {
+    "AKSHARE_PYTHON": "F:/Anaconda3/envs/Python_3_12_3/python.exe"
+  },
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(F:/Anaconda3/envs/Python_3_12_3/python.exe *)"
+    ]
+  },
+  "skillOverrides": {}
+}
