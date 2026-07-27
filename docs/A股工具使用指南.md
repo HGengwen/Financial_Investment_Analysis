@@ -6,6 +6,8 @@
 
 ## 工具列表
 
+### 核心数据工具
+
 | 工具文件 | 功能 | 命令示例 |
 |---------|------|---------|
 | `stock_info.py` | A股信息查询 | `python tools/stock_info.py --search 新易盛` |
@@ -13,6 +15,13 @@
 | `stock_financial.py` | A股财务指标 | `python tools/stock_financial.py --code 300502` |
 | `stock_screen.py` | 质量筛选7条指标 | `python tools/stock_screen.py --code 300502` |
 | `stock_equity.py` | 股权结构与财报下载 | `python tools/stock_equity.py --code 601899` |
+
+### 辅助计算工具
+
+| 工具文件 | 功能 | 命令示例 |
+|---------|------|---------|
+| `financial_rigor.py` | 精确金融计算（PE、ROE、市值校验） | `python tools/financial_rigor.py verify-valuation --help` |
+| `report_audit.py` | 研究报告审核 | `python tools/report_audit.py --help` |
 
 ---
 
@@ -434,7 +443,100 @@ python tools/stock_equity.py --code 601899 --download-report --report-dir ./repo
 
 ---
 
-## 六、A股代码格式说明
+## 六、financial_rigor.py - 精确金融计算
+
+### 功能说明
+
+提供精确的金融计算功能，包括PE、ROE、市值校验、三情景估值等。所有计算结果经过精确算术验证，避免LLM心算错误。
+
+### 使用方法
+
+#### 1. 验证估值数据
+
+```bash
+python tools/financial_rigor.py verify-valuation \
+  --price 420.5 \
+  --eps 23.36 \
+  --bvps 105.3 \
+  --fcf-per-share 15.6
+```
+
+#### 2. 验证市值计算
+
+```bash
+python tools/financial_rigor.py verify-market-cap \
+  --price 420.5 \
+  --shares 95.2 \
+  --reported 40000 \
+  --currency HKD
+```
+
+#### 3. 数据交叉验证
+
+```bash
+python tools/financial_rigor.py cross-validate \
+  --field ROE \
+  --values '{"东方财富": 25.06, "新浪": 24.8}' \
+  --unit '%'
+```
+
+#### 4. 三情景估值
+
+```bash
+python tools/financial_rigor.py three-scenario \
+  --price 420.5 \
+  --eps 23.36 \
+  --shares 95.2 \
+  --growth 15 10 5 \
+  --pe 25 20 15
+```
+
+#### 5. 精确计算
+
+```bash
+python tools/financial_rigor.py calc --expr "420.5 / 23.36"
+```
+
+### 应用场景
+
+- 估值数据验证
+- 市值计算校验
+- 多数据源交叉验证
+- 三情景估值分析
+- 精确算术计算
+
+---
+
+## 七、report_audit.py - 研究报告审核
+
+### 功能说明
+
+对研究报告进行数据审核，检查数据准确性、来源标注、估值计算等。
+
+### 使用方法
+
+#### 1. 审核报告文件
+
+```bash
+python tools/report_audit.py --file reports/腾讯-20260722.md
+```
+
+#### 2. 指定采样数量
+
+```bash
+python tools/report_audit.py --file reports/腾讯-20260722.md --sample 10
+```
+
+### 审核内容
+
+1. **数据准确性**: 验证财务数据的准确性
+2. **来源标注**: 检查数据来源是否标注
+3. **估值计算**: 验证估值数据的计算过程
+4. **偏差分析**: 分析不同数据源之间的偏差
+
+---
+
+## 八、A股代码格式说明
 
 A股代码统一使用**6位数字字符串**:
 
@@ -455,7 +557,7 @@ A股代码统一使用**6位数字字符串**:
 
 ---
 
-## 七、数据源说明
+## 九、数据源说明
 
 ### stock_info_a_code_name()
 
@@ -553,7 +655,7 @@ A股代码统一使用**6位数字字符串**:
 
 ---
 
-## 八、注意事项
+## 十、注意事项
 
 ### 1. 代码格式
 
@@ -571,7 +673,7 @@ A股代码必须为6位数字字符串，如 `300502`，不要添加 `.SH` 或 `
 
 不同接口的字段名可能不同（中文/英文），工具已做适配。
 
-### 5. **数据源选择（重要）**
+### 5. 数据源选择
 
 **东方财富接口**:
 - 优点：数据实时、字段丰富、支持自定义日期范围
@@ -588,23 +690,22 @@ A股代码必须为6位数字字符串，如 `300502`，不要添加 `.SH` 或 `
 
 ---
 
-## 九、与港股工具的区别
+## 十一、与港股/美股工具的区别
 
-| 特性 | A股工具 | 港股工具 |
-|------|---------|---------|
-| 代码长度 | 6位 | 5位 |
-| 市场标识 | "a" | "hk" |
-| 行业筛选 | 支持 | 暂不支持 |
-| 财务指标 | 支持（stock_financial.py） | 支持（stock_info_hk.py --financial） |
-| 质量筛选 | 支持（stock_screen.py） | 待开发 |
-| 股权结构 | 支持（stock_equity.py） | 待开发 |
-| 财报下载 | 支持（stock_equity.py） | 待开发 |
-| 数据源 | 东方财富、新浪 | 东方财富、新浪 |
-| 网络稳定性 | 稳定 | 东方财富接口需重试机制 |
+| 特性 | A股工具 | 港股工具 | 美股工具 |
+|------|---------|---------|---------|
+| 代码长度 | 6位 | 5位 | 标准格式（如AAPL） |
+| 市场标识 | "a" | "hk" | "us" |
+| 行业筛选 | 支持 | 暂不支持 | 暂不支持 |
+| 财务指标 | 支持 | 支持 | 支持（yfinance） |
+| 质量筛选 | 支持 | 支持 | 暂不支持 |
+| 股权结构 | 支持 | 暂不支持 | 暂不支持 |
+| 财报下载 | 支持 | 暂不支持 | 暂不支持 |
+| 数据源 | 东方财富、新浪、巨潮 | 东方财富、新浪 | Yahoo Finance |
 
 ---
 
-## 十、Python路径
+## 十二、Python路径
 
 ```bash
 F:\Anaconda3\envs\Python_3_12_3\python.exe
@@ -612,7 +713,7 @@ F:\Anaconda3\envs\Python_3_12_3\python.exe
 
 ---
 
-## 十一、常见使用场景
+## 十三、常见使用场景
 
 ### 场景1: 快速查询公司信息
 
@@ -679,7 +780,7 @@ python tools/stock_equity.py --code 601899 --download-report --report-type quart
 
 ---
 
-## 十二、局限性说明
+## 十四、局限性说明
 
 1. **数据窗口**：部分公司上市时间较短，财务数据可能不足10年
 2. **周期性行业**：周期性行业需用完整周期平均值判断，避免单一年份误导
@@ -688,5 +789,6 @@ python tools/stock_equity.py --code 601899 --download-report --report-type quart
 
 ---
 
-**文档版本**: v1.0
-**更新日期**: 2026-07-13
+**文档版本**: v2.0
+**更新日期**: 2026-07-27
+**变更记录**: 添加辅助工具（financial_rigor.py、report_audit.py）说明
