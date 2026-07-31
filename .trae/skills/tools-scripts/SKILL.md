@@ -153,7 +153,7 @@ pdftoppm -png -r 300 -f 100 -l 120 601899_2025年报.pdf financial_statements/pa
 
 ```bash
 # 步骤1：下载年报PDF（使用A股工具）
-python tools/stock_equity.py --code 601899 --download-report
+python tools/a_share/stock_equity.py --code 601899 --download-report
 
 # 下载的文件默认保存在 ./cninfo_reports/ 目录
 # 文件命名：{股票代码}_{年份}年报.pdf，如 601899_2025年报.pdf
@@ -176,7 +176,7 @@ grep -n "净利润\|营业收入\|毛利率\|ROE" 601899_2025年报.txt
 
 # 步骤5：数据交叉验证
 # 将提取的数据与其他来源（东方财富、巨潮资讯）进行对比
-python tools/stock_financial.py --code 601899
+python tools/a_share/stock_financial.py --code 601899
 ```
 
 ### 针对不同类型PDF的处理策略
@@ -299,14 +299,14 @@ done
 
 ```bash
 # 步骤1：下载年报PDF
-python tools/stock_equity.py --code 601899 --download-report
+python tools/a_share/stock_equity.py --code 601899 --download-report
 
 # 步骤2：提取PDF中的关键财务数据
 pdftotext -layout 601899_2025年报.pdf 601899_2025年报.txt
 grep -n "净利润\|营业收入" 601899_2025年报.txt
 
 # 步骤3：与其他数据源进行交叉验证
-python tools/stock_financial.py --code 601899
+python tools/a_share/stock_financial.py --code 601899
 
 # 步骤4：对比两个来源的数据，计算误差率
 # 如果误差>1%，按照 financial-data 技能规范进行标记

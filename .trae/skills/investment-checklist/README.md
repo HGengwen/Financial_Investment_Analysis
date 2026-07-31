@@ -149,34 +149,34 @@
 
 | 工具 | 功能 |
 |------|------|
-| `tools/stock_info.py` | A股信息查询 |
-| `tools/stock_quote.py` | A股行情数据 |
-| `tools/stock_financial.py` | A股财务指标 |
-| `tools/stock_screen.py` | 质量筛选7条指标 |
+| `tools/a_share/stock_info.py` | A股信息查询 |
+| `tools/a_share/stock_quote.py` | A股行情数据 |
+| `tools/a_share/stock_financial.py` | A股财务指标 |
+| `tools/a_share/stock_screen.py` | 质量筛选7条指标 |
 
 ### 港股数据
 
 | 工具 | 功能 |
 |------|------|
-| `tools/stock_info_hk.py` | 港股信息查询、财务指标 |
-| `tools/stock_quote_hk.py` | 港股历史K线、指数数据 |
-| `tools/stock_screen_hk.py` | 港股质量筛选7条指标 |
+| `tools/hk_stock/stock_info.py` | 港股信息查询、财务指标 |
+| `tools/hk_stock/stock_quote.py` | 港股历史K线、指数数据 |
+| `tools/hk_stock/stock_screen.py` | 港股质量筛选7条指标 |
 
 ### 精确计算工具
 
 | 工具 | 功能 |
 |------|------|
-| `tools/financial_rigor.py` | 估值指标验证、三情景估值模型（PE、ROE、市值校验等） |
+| `tools/common/financial_rigor.py` | 估值指标验证、三情景估值模型（PE、ROE、市值校验等） |
 
 **关键计算命令**：
 
 ```bash
 # 估值指标验证
-python tools/financial_rigor.py verify-valuation \
+python tools/common/financial_rigor.py verify-valuation \
   --price {股价} --eps {EPS} --bvps {每股净资产} --fcf-per-share {每股FCF}
 
 # 三情景估值模型
-python tools/financial_rigor.py three-scenario \
+python tools/common/financial_rigor.py three-scenario \
   --price {股价} --eps {EPS} --shares {股本亿} \
   --growth {乐观} {中性} {悲观} --pe {乐观PE} {中性PE} {悲观PE}
 ```
@@ -185,8 +185,8 @@ python tools/financial_rigor.py three-scenario \
 
 | 工具 | 适用范围 |
 |------|---------|
-| `tools/web_search.py` | A股公司（阿里云百炼） |
-| `tools/tavily_search.py` | 港股/美股公司（优先使用，质量更高） |
+| `tools/common/web_search.py` | A股公司（阿里云百炼） |
+| `tools/common/tavily_search.py` | 港股/美股公司（优先使用，质量更高） |
 
 **重要约束**：
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
@@ -213,7 +213,7 @@ python tools/financial_rigor.py three-scenario \
 - 所有估计值必须明确标注"估计"
 - 市值必须手算校验：股价 × 总股本
 - 货币单位要明确（港币/人民币/美元），防止混淆
-- PE/ROE等指标用 `tools/financial_rigor.py` 精确计算，禁止心算
+- PE/ROE等指标用 `tools/common/financial_rigor.py` 精确计算，禁止心算
 - 所有评分必须使用★符号（★1-5），不含半星
 - 数据必须标注来源时间
 - 报告头部必须明确标注数据截止日期

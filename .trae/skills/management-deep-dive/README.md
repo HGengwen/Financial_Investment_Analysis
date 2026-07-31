@@ -146,31 +146,31 @@
 
 | 工具 | 功能 |
 |------|------|
-| `tools/stock_equity.py` | **财报PDF下载** + 股权结构数据 + 导出Excel |
-| `tools/stock_info.py` | A股股票代码查询 |
-| `tools/stock_financial.py` | A股财务指标查询 |
-| `tools/stock_quote.py` | A股实时行情与历史K线 |
-| `tools/stock_screen.py` | 质量筛选7条指标 |
+| `tools/a_share/stock_equity.py` | **财报PDF下载** + 股权结构数据 + 导出Excel |
+| `tools/a_share/stock_info.py` | A股股票代码查询 |
+| `tools/a_share/stock_financial.py` | A股财务指标查询 |
+| `tools/a_share/stock_quote.py` | A股实时行情与历史K线 |
+| `tools/a_share/stock_screen.py` | 质量筛选7条指标 |
 
 ### 港股数据
 
 | 工具 | 功能 |
 |------|------|
-| `tools/stock_info_hk.py` | 港股信息查询与财务指标 |
-| `tools/stock_quote_hk.py` | 港股实时行情与历史K线 |
-| `tools/stock_screen_hk.py` | 港股质量筛选7条指标 |
+| `tools/hk_stock/stock_info.py` | 港股信息查询与财务指标 |
+| `tools/hk_stock/stock_quote.py` | 港股实时行情与历史K线 |
+| `tools/hk_stock/stock_screen.py` | 港股质量筛选7条指标 |
 
 ### 财务计算
 
 | 工具 | 功能 |
 |------|------|
-| `tools/financial_rigor.py` | 精确财务计算（PE、ROE、市值验证、回购估值等） |
+| `tools/common/financial_rigor.py` | 精确财务计算（PE、ROE、市值验证、回购估值等） |
 
 ### 网络信息获取
 
 | 工具 | 功能 |
 |------|------|
-| `tools/web_search.py` | 网络信息搜索（阿里云百炼，A股+美股信息搜集） |
+| `tools/common/web_search.py` | 网络信息搜索（阿里云百炼，A股+美股信息搜集） |
 
 ### PDF文档内容提取（Poppler 工具集）
 

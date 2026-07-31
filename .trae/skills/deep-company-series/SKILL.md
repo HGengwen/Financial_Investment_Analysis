@@ -106,12 +106,12 @@ disable-model-invocation: true
 ### 阶段 1：调研（写 01-02 篇前完成）
 
 1. **阅读公司近 5 年年报、最新季报**
-   - A股公司：使用 `tools/stock_screen.py` 获取财务数据
-   - 港股公司：使用 `tools/stock_screen_hk.py` 获取财务数据
+   - A股公司：使用 `tools/a_share/stock_screen.py` 获取财务数据
+   - 港股公司：使用 `tools/hk_stock/stock_screen.py` 获取财务数据
    - 非A股公司：使用 WebSearch 获取年报信息
 
 2. **阅读至少 3 份独立卖方研报**（找共识 + 反共识）
-   - 使用 `tools/web_search.py` 搜索券商研报
+   - 使用 `tools/common/web_search.py` 搜索券商研报
    - 或用户提供研报材料
 
 3. **使用 `/quality-screen` 先生成内部筛选底稿**
@@ -153,9 +153,9 @@ grep -r "<本机用户名>\|/Users/\|<个人身份信息>" reports/ | head
 ### 1. 先核查事实（不要直接改）
 
 如果用户说"X 数据不对"，先用工具找原始数据交叉验证：
-- A股公司：使用 `tools/stock_screen.py` 或 `tools/stock_financial.py`
-- 港股公司：使用 `tools/stock_screen_hk.py` 或 `tools/stock_info_hk.py`
-- 非A股公司：使用 `tools/web_search.py` 搜索官方披露
+- A股公司：使用 `tools/a_share/stock_screen.py` 或 `tools/a_share/stock_financial.py`
+- 港股公司：使用 `tools/hk_stock/stock_screen.py` 或 `tools/hk_stock/stock_info.py`
+- 非A股公司：使用 `tools/common/web_search.py` 搜索官方披露
 - 给出"用户说的数据 vs 我查到的数据 vs 我之前用的数据"三方对比
 
 ### 2. 判断修订级别
@@ -194,9 +194,9 @@ grep -r "<本机用户名>\|/Users/\|<个人身份信息>" reports/ | head
 
 | 工具 | 用途 | 命令示例 |
 |------|------|---------|
-| `tools/stock_info.py` | 股票代码查询 | `python tools/stock_info.py --search 腾讯` |
-| `tools/stock_financial.py` | 财务指标查询 | `python tools/stock_financial.py --code 300502` |
-| `tools/stock_screen.py` | 质量筛选7条指标 | `python tools/stock_screen.py --code 300502` |
+| `tools/a_share/stock_info.py` | 股票代码查询 | `python tools/a_share/stock_info.py --search 腾讯` |
+| `tools/a_share/stock_financial.py` | 财务指标查询 | `python tools/a_share/stock_financial.py --code 300502` |
+| `tools/a_share/stock_screen.py` | 质量筛选7条指标 | `python tools/a_share/stock_screen.py --code 300502` |
 
 **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
@@ -204,25 +204,25 @@ grep -r "<本机用户名>\|/Users/\|<个人身份信息>" reports/ | head
 
 | 工具 | 用途 | 命令示例 |
 |------|------|---------|
-| `tools/stock_info_hk.py` | 港股信息查询 | `python tools/stock_info_hk.py --search 腾讯` |
-| `tools/stock_info_hk.py` | 港股财务指标 | `python tools/stock_info_hk.py --financial 00700` |
-| `tools/stock_quote_hk.py` | 港股历史K线 | `python tools/stock_quote_hk.py --code 00700` |
-| `tools/stock_quote_hk.py` | 港股指数 | `python tools/stock_quote_hk.py --index HSI` |
-| `tools/stock_screen_hk.py` | 港股质量筛选7条指标 | `python tools/stock_screen_hk.py --code 00700` |
+| `tools/hk_stock/stock_info.py` | 港股信息查询 | `python tools/hk_stock/stock_info.py --search 腾讯` |
+| `tools/hk_stock/stock_financial.py` | 港股财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
+| `tools/hk_stock/stock_quote.py` | 港股指数 | `python tools/hk_stock/stock_quote.py --index HSI` |
+| `tools/hk_stock/stock_screen.py` | 港股质量筛选7条指标 | `python tools/hk_stock/stock_screen.py --code 00700` |
 
 ### 网络信息搜索（使用本地 WebSearch 工具）
 
-Anthropic 官方 WebSearch/WebFetch 在中国大陆被地域封锁，不可用。使用本地 `tools/web_search.py` 工具替代。
+Anthropic 官方 WebSearch/WebFetch 在中国大陆被地域封锁，不可用。使用本地 `tools/common/web_search.py` 工具替代。
 
 | 工具 | 用途 | 命令示例 |
 |------|------|---------|
-| `tools/web_search.py` | 网络信息搜索 | `python tools/web_search.py "腾讯控股 股价"` |
+| `tools/common/web_search.py` | 网络信息搜索 | `python tools/common/web_search.py "腾讯控股 股价"` |
 
 ### 财务计算工具
 
 | 工具 | 用途 | 命令示例 |
 |------|------|---------|
-| `tools/financial_rigor.py` | 精确财务计算（市值、PE、ROE等） | `python tools/financial_rigor.py --help` |
+| `tools/common/financial_rigor.py` | 精确财务计算（市值、PE、ROE等） | `python tools/common/financial_rigor.py --help` |
 
 ---
 
@@ -299,7 +299,7 @@ git push
 
 - 市值必须手算校验：股价 × 总股本，与报告市值对比
 - 货币单位要明确（港币/人民币/美元），防止混淆
-- PE/ROE等指标用 `tools/financial_rigor.py` 精确计算
+- PE/ROE等指标用 `tools/common/financial_rigor.py` 精确计算
 - A股/港股财务数据优先使用本地工具（akshare）
 - 网络信息需交叉验证，不要依赖单一来源
 - 报告写完后主动询问是否推送到GitHub

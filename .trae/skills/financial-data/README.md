@@ -137,10 +137,10 @@
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `tools/stock_info.py` | A股信息查询 | `python tools/stock_info.py --search 紫金矿业` |
-| `tools/stock_financial.py` | A股财务指标（ROE、毛利率等） | `python tools/stock_financial.py --code 601899` |
-| `tools/stock_quote.py` | A股历史股价 | `python tools/stock_quote.py --code 601899` |
-| `tools/stock_equity.py` | 股权结构与年报下载 | `python tools/stock_equity.py --code 601899` |
+| `tools/a_share/stock_info.py` | A股信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
+| `tools/a_share/stock_financial.py` | A股财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
+| `tools/a_share/stock_quote.py` | A股历史股价 | `python tools/a_share/stock_quote.py --code 601899` |
+| `tools/a_share/stock_equity.py` | 股权结构与年报下载 | `python tools/a_share/stock_equity.py --code 601899` |
 
 **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
@@ -148,16 +148,16 @@
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `tools/stock_info_hk.py` | 港股信息查询、财务指标 | `python tools/stock_info_hk.py --financial 00700` |
-| `tools/stock_quote_hk.py` | 港股历史K线 | `python tools/stock_quote_hk.py --code 00700` |
-| `tools/stock_screen_hk.py` | 港股质量筛选 | `python tools/stock_screen_hk.py --code 00700` |
+| `tools/hk_stock/stock_financial.py` | 港股信息查询、财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
+| `tools/hk_stock/stock_screen.py` | 港股质量筛选 | `python tools/hk_stock/stock_screen.py --code 00700` |
 
 ### 精确计算与网络搜索
 
 | 工具 | 功能 |
 |------|------|
-| `tools/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证） |
-| `tools/web_search.py` | 网络信息搜索（阿里云百炼） |
+| `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证） |
+| `tools/common/web_search.py` | 网络信息搜索（阿里云百炼） |
 
 ### PDF文档内容提取（Poppler 工具集）
 

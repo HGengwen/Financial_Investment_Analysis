@@ -34,13 +34,13 @@ disable-model-invocation: true
 
 ```bash
 # 下载最新年报PDF
-python tools/stock_equity.py --code {股票代码} --download-report --report-type annual
+python tools/a_share/stock_equity.py --code {股票代码} --download-report --report-type annual
 
 # 下载最新半年报PDF（如需分析半年报）
-python tools/stock_equity.py --code {股票代码} --download-report --report-type semiannual
+python tools/a_share/stock_equity.py --code {股票代码} --download-report --report-type semiannual
 
 # 下载最新季报PDF（如需分析季报）
-python tools/stock_equity.py --code {股票代码} --download-report --report-type quarterly
+python tools/a_share/stock_equity.py --code {股票代码} --download-report --report-type quarterly
 ```
 
 下载的PDF文件保存在 `cninfo_reports/` 目录，文件命名格式：
@@ -52,7 +52,7 @@ python tools/stock_equity.py --code {股票代码} --download-report --report-ty
 可使用 `--report-dir` 参数指定其他保存目录：
 
 ```bash
-python tools/stock_equity.py --code 601899 --download-report --report-type annual --report-dir ./reports/紫金矿业
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type annual --report-dir ./reports/紫金矿业
 ```
 
 **流程检查点**：确认PDF文件下载成功后，方可启动后续的4个研究Agent。
@@ -105,9 +105,9 @@ pdftoppm -png cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年
 
 **注意**：WebSearch/WebFetch 在中国大陆不可用，请使用以下替代方案：
 
-- A股数据：`tools/stock_info.py`、`tools/stock_financial.py`、`tools/stock_quote.py`、`tools/stock_equity.py`
-- 港股数据：`tools/stock_info_hk.py`、`tools/stock_quote_hk.py`
-- 网络信息：`tools/web_search.py`（阿里云百炼）
+- A股数据：`tools/a_share/stock_info.py`、`tools/a_share/stock_financial.py`、`tools/a_share/stock_quote.py`、`tools/a_share/stock_equity.py`
+- 港股数据：`tools/hk_stock/stock_info.py`、`tools/hk_stock/stock_quote.py`
+- 网络信息：`tools/common/web_search.py`（阿里云百炼）
 
 ### 第二步：向用户展示团队框架
 
@@ -179,7 +179,7 @@ pdftoppm -png cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年
    - 关键数据至少两个来源交叉验证
 
    ```bash
-   python tools/financial_rigor.py cross-validate \
+   python tools/common/financial_rigor.py cross-validate \
      --metric "revenue" --values {值1} {值2} --sources "来源1" "来源2"
    ```
 2. **现金流分析（最重要）**
@@ -203,11 +203,11 @@ pdftoppm -png cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年
 5. **估值与安全边际更新**
 
    ```bash
-   python tools/financial_rigor.py verify-market-cap \
+   python tools/common/financial_rigor.py verify-market-cap \
      --price {价格} --shares {股本} --reported {报告市值} --currency {币种}
-   python tools/financial_rigor.py verify-valuation \
+   python tools/common/financial_rigor.py verify-valuation \
      --price {价格} --eps {EPS} --bvps {每股净资产}
-   python tools/financial_rigor.py three-scenario \
+   python tools/common/financial_rigor.py three-scenario \
      --price {价格} --eps {EPS} --shares {股本亿} \
      --growth {乐观} {中性} {悲观} --pe {乐观PE} {中性PE} {悲观PE}
    ```
@@ -489,10 +489,10 @@ reports/{公司名}/
 对最终文章执行抽检：
 
 ```bash
-python tools/report_audit.py extract \
+python tools/common/report_audit.py extract \
   --report reports/{公司名}/{公司名}-earnings-{期间}.md
 
-python tools/report_audit.py verdict \
+python tools/common/report_audit.py verdict \
   --results '<填好的JSON>' \
   --report {报告文件名}
 ```
@@ -507,39 +507,39 @@ python tools/report_audit.py verdict \
 
 #### A股数据
 
-- 股票信息：`python tools/stock_info.py --search {公司名}`
-- 财务指标：`python tools/stock_financial.py --code {股票代码}`
-- 股票行情：`python tools/stock_quote.py --code {股票代码}`
-- 股权结构：`python tools/stock_equity.py --code {股票代码}`
-- 财务报表下载：`python tools/stock_equity.py --code {股票代码} --download-report --report-type {annual|semiannual|quarterly}`
+- 股票信息：`python tools/a_share/stock_info.py --search {公司名}`
+- 财务指标：`python tools/a_share/stock_financial.py --code {股票代码}`
+- 股票行情：`python tools/a_share/stock_quote.py --code {股票代码}`
+- 股权结构：`python tools/a_share/stock_equity.py --code {股票代码}`
+- 财务报表下载：`python tools/a_share/stock_equity.py --code {股票代码} --download-report --report-type {annual|semiannual|quarterly}`
   - 支持下载年报、半年报、季报（PDF格式，从巨潮资讯网获取）
-  - 年报示例：`python tools/stock_equity.py --code 601899 --download-report --report-type annual`
-  - 半年报示例：`python tools/stock_equity.py --code 601899 --download-report --report-type semiannual`
-  - 季报示例：`python tools/stock_equity.py --code 601899 --download-report --report-type quarterly`
+  - 年报示例：`python tools/a_share/stock_equity.py --code 601899 --download-report --report-type annual`
+  - 半年报示例：`python tools/a_share/stock_equity.py --code 601899 --download-report --report-type semiannual`
+  - 季报示例：`python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly`
 
 #### 港股数据
 
-- 股票信息与财务：`python tools/stock_info_hk.py --financial {股票代码}`
-- 股票行情：`python tools/stock_quote_hk.py --code {股票代码}`
+- 股票信息与财务：`python tools/hk_stock/stock_financial.py --financial {股票代码}`
+- 股票行情：`python tools/hk_stock/stock_quote.py --code {股票代码}`
 
 ### 财务计算与验证工具
 
-- 精确计算：`python tools/financial_rigor.py`（PE、ROE、市值校验等）
-- 报告审核：`python tools/report_audit.py`（数据抽检）
+- 精确计算：`python tools/common/financial_rigor.py`（PE、ROE、市值校验等）
+- 报告审核：`python tools/common/report_audit.py`（数据抽检）
 
 ### 网络信息获取
 
 #### A股公司
 
-- 网络搜索：`python tools/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
+- 网络搜索：`python tools/common/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
 
 #### 港股/美股公司（非国内上市）
 
-- **优先使用 Tavily 搜索**：`python tools/tavily_search.py "{搜索关键词}" --max-results 5`
+- **优先使用 Tavily 搜索**：`python tools/common/tavily_search.py "{搜索关键词}" --max-results 5`
   - Tavily 提供更高质量的内容和更详细的信息
   - 返回 title、url、content 三个字段
   - 支持高级搜索（search_depth="advanced"）
-- **备选 WebSearch**：`python tools/web_search.py "{搜索关键词}"`
+- **备选 WebSearch**：`python tools/common/web_search.py "{搜索关键词}"`
   - 作为补充信息源
 
 #### 重要内容（同时调用）
@@ -553,8 +553,8 @@ python tools/report_audit.py verdict \
 
 ```bash
 # 同时调用两个工具（并行执行）
-python tools/tavily_search.py "腾讯 2025Q4 财报 管理层讨论"
-python tools/web_search.py "腾讯 2025Q4 财报 管理层讨论"
+python tools/common/tavily_search.py "腾讯 2025Q4 财报 管理层讨论"
+python tools/common/web_search.py "腾讯 2025Q4 财报 管理层讨论"
 ```
 
 **注意**：WebSearch/WebFetch 在中国大陆不可用，所有网络信息必须使用本地工具。

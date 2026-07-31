@@ -2,6 +2,8 @@
 
 本文档介绍如何使用独立的A股数据工具获取A股市场数据。
 
+> **重构说明**：A股数据工具已重构到 `tools/a_share/` 目录下，辅助工具（精确金融计算、报告审核）重构到 `tools/common/` 目录下。请按本文档中的最新路径调用工具。
+
 ---
 
 ## 工具列表
@@ -10,18 +12,18 @@
 
 | 工具文件 | 功能 | 命令示例 |
 |---------|------|---------|
-| `stock_info.py` | A股信息查询 | `python tools/stock_info.py --search 新易盛` |
-| `stock_quote.py` | A股行情数据 | `python tools/stock_quote.py --code 300502` |
-| `stock_financial.py` | A股财务指标 | `python tools/stock_financial.py --code 300502` |
-| `stock_screen.py` | 质量筛选7条指标 | `python tools/stock_screen.py --code 300502` |
-| `stock_equity.py` | 股权结构与财报下载 | `python tools/stock_equity.py --code 601899` |
+| `stock_info.py` | A股信息查询 | `python tools/a_share/stock_info.py --search 新易盛` |
+| `stock_quote.py` | A股行情数据 | `python tools/a_share/stock_quote.py --code 300502` |
+| `stock_financial.py` | A股财务指标 | `python tools/a_share/stock_financial.py --code 300502` |
+| `stock_screen.py` | 质量筛选7条指标 | `python tools/a_share/stock_screen.py --code 300502` |
+| `stock_equity.py` | 股权结构与财报下载 | `python tools/a_share/stock_equity.py --code 601899` |
 
 ### 辅助计算工具
 
 | 工具文件 | 功能 | 命令示例 |
 |---------|------|---------|
-| `financial_rigor.py` | 精确金融计算（PE、ROE、市值校验） | `python tools/financial_rigor.py verify-valuation --help` |
-| `report_audit.py` | 研究报告审核 | `python tools/report_audit.py --help` |
+| `financial_rigor.py` | 精确金融计算（PE、ROE、市值校验） | `python tools/common/financial_rigor.py verify-valuation --help` |
+| `report_audit.py` | 研究报告审核 | `python tools/common/report_audit.py --help` |
 
 ---
 
@@ -36,7 +38,7 @@
 #### 1. 列出全部A股
 
 ```bash
-python tools/stock_info.py --list
+python tools/a_share/stock_info.py --list
 ```
 
 **输出示例**:
@@ -61,7 +63,7 @@ python tools/stock_info.py --list
 #### 2. 搜索A股
 
 ```bash
-python tools/stock_info.py --search 新易盛
+python tools/a_share/stock_info.py --search 新易盛
 ```
 
 **输出示例**:
@@ -91,7 +93,7 @@ python tools/stock_info.py --search 新易盛
 #### 3. 查询单只A股
 
 ```bash
-python tools/stock_info.py --code 300502
+python tools/a_share/stock_info.py --code 300502
 ```
 
 **输出字段说明**:
@@ -111,7 +113,7 @@ python tools/stock_info.py --code 300502
 #### 4. 按行业筛选
 
 ```bash
-python tools/stock_info.py --industry 光模块
+python tools/a_share/stock_info.py --industry 光模块
 ```
 
 **说明**: 仅支持A股行业筛选，港股暂不支持。
@@ -129,36 +131,36 @@ python tools/stock_info.py --industry 光模块
 #### 1. 获取最近30天数据
 
 ```bash
-python tools/stock_quote.py --code 300502
+python tools/a_share/stock_quote.py --code 300502
 ```
 
 #### 2. 指定日期范围
 
 ```bash
-python tools/stock_quote.py --code 300502 --start 20260101 --end 20260710
+python tools/a_share/stock_quote.py --code 300502 --start 20260101 --end 20260710
 ```
 
 #### 3. 选择复权方式
 
 ```bash
 # 未复权（默认）
-python tools/stock_quote.py --code 300502 --adjust ""
+python tools/a_share/stock_quote.py --code 300502 --adjust ""
 
 # 前复权
-python tools/stock_quote.py --code 300502 --adjust qfq
+python tools/a_share/stock_quote.py --code 300502 --adjust qfq
 
 # 后复权
-python tools/stock_quote.py --code 300502 --adjust hfq
+python tools/a_share/stock_quote.py --code 300502 --adjust hfq
 ```
 
 #### 4. 选择数据源
 
 ```bash
 # 东方财富（默认）
-python tools/stock_quote.py --code 300502 --source eastmoney
+python tools/a_share/stock_quote.py --code 300502 --source eastmoney
 
 # 新浪（国内可达）
-python tools/stock_quote.py --code 300502 --source sina
+python tools/a_share/stock_quote.py --code 300502 --source sina
 ```
 
 **输出示例**:
@@ -210,7 +212,7 @@ python tools/stock_quote.py --code 300502 --source sina
 #### 1. 获取关键财务指标
 
 ```bash
-python tools/stock_financial.py --code 300502
+python tools/a_share/stock_financial.py --code 300502
 ```
 
 **返回的关键指标**:
@@ -228,19 +230,19 @@ python tools/stock_financial.py --code 300502
 #### 2. 查询单个指标
 
 ```bash
-python tools/stock_financial.py --code 300502 --indicator ROE
+python tools/a_share/stock_financial.py --code 300502 --indicator ROE
 ```
 
 #### 3. 查询多个指标
 
 ```bash
-python tools/stock_financial.py --code 300502 --indicator 毛利率,净利率
+python tools/a_share/stock_financial.py --code 300502 --indicator 毛利率,净利率
 ```
 
 #### 4. 查询全部原始指标
 
 ```bash
-python tools/stock_financial.py --code 300502 --indicator all
+python tools/a_share/stock_financial.py --code 300502 --indicator all
 ```
 
 **输出示例**:
@@ -280,13 +282,13 @@ python tools/stock_financial.py --code 300502 --indicator all
 #### 1. 单只股票筛选
 
 ```bash
-python tools/stock_screen.py --code 300502
+python tools/a_share/stock_screen.py --code 300502
 ```
 
 #### 2. 多只股票筛选
 
 ```bash
-python tools/stock_screen.py --code 300502,600519,000858
+python tools/a_share/stock_screen.py --code 300502,600519,000858
 ```
 
 ### 7条去劣指标
@@ -341,7 +343,7 @@ python tools/stock_screen.py --code 300502,600519,000858
 #### 1. 获取股权结构数据
 
 ```bash
-python tools/stock_equity.py --code 601899
+python tools/a_share/stock_equity.py --code 601899
 ```
 
 **返回的数据**:
@@ -353,37 +355,37 @@ python tools/stock_equity.py --code 601899
 #### 2. 导出为Excel文件
 
 ```bash
-python tools/stock_equity.py --code 601899 --export
+python tools/a_share/stock_equity.py --code 601899 --export
 ```
 
 #### 3. JSON格式输出
 
 ```bash
-python tools/stock_equity.py --code 601899 --json
+python tools/a_share/stock_equity.py --code 601899 --json
 ```
 
 #### 4. 下载最新年报PDF
 
 ```bash
-python tools/stock_equity.py --code 601899 --download-report
+python tools/a_share/stock_equity.py --code 601899 --download-report
 ```
 
 #### 5. 下载最新半年报PDF
 
 ```bash
-python tools/stock_equity.py --code 601899 --download-report --report-type semiannual
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type semiannual
 ```
 
 #### 6. 下载最新季报PDF
 
 ```bash
-python tools/stock_equity.py --code 601899 --download-report --report-type quarterly
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly
 ```
 
 #### 7. 指定财报保存目录
 
 ```bash
-python tools/stock_equity.py --code 601899 --download-report --report-dir ./reports
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-dir ./reports
 ```
 
 ### 输出示例
@@ -454,7 +456,7 @@ python tools/stock_equity.py --code 601899 --download-report --report-dir ./repo
 #### 1. 验证估值数据
 
 ```bash
-python tools/financial_rigor.py verify-valuation \
+python tools/common/financial_rigor.py verify-valuation \
   --price 420.5 \
   --eps 23.36 \
   --bvps 105.3 \
@@ -464,7 +466,7 @@ python tools/financial_rigor.py verify-valuation \
 #### 2. 验证市值计算
 
 ```bash
-python tools/financial_rigor.py verify-market-cap \
+python tools/common/financial_rigor.py verify-market-cap \
   --price 420.5 \
   --shares 95.2 \
   --reported 40000 \
@@ -474,7 +476,7 @@ python tools/financial_rigor.py verify-market-cap \
 #### 3. 数据交叉验证
 
 ```bash
-python tools/financial_rigor.py cross-validate \
+python tools/common/financial_rigor.py cross-validate \
   --field ROE \
   --values '{"东方财富": 25.06, "新浪": 24.8}' \
   --unit '%'
@@ -483,7 +485,7 @@ python tools/financial_rigor.py cross-validate \
 #### 4. 三情景估值
 
 ```bash
-python tools/financial_rigor.py three-scenario \
+python tools/common/financial_rigor.py three-scenario \
   --price 420.5 \
   --eps 23.36 \
   --shares 95.2 \
@@ -494,7 +496,7 @@ python tools/financial_rigor.py three-scenario \
 #### 5. 精确计算
 
 ```bash
-python tools/financial_rigor.py calc --expr "420.5 / 23.36"
+python tools/common/financial_rigor.py calc --expr "420.5 / 23.36"
 ```
 
 ### 应用场景
@@ -518,13 +520,13 @@ python tools/financial_rigor.py calc --expr "420.5 / 23.36"
 #### 1. 审核报告文件
 
 ```bash
-python tools/report_audit.py --file reports/腾讯-20260722.md
+python tools/common/report_audit.py --file reports/腾讯-20260722.md
 ```
 
 #### 2. 指定采样数量
 
 ```bash
-python tools/report_audit.py --file reports/腾讯-20260722.md --sample 10
+python tools/common/report_audit.py --file reports/腾讯-20260722.md --sample 10
 ```
 
 ### 审核内容
@@ -719,63 +721,63 @@ F:\Anaconda3\envs\Python_3_12_3\python.exe
 
 ```bash
 # 搜索公司
-python tools/stock_info.py --search 新易盛
+python tools/a_share/stock_info.py --search 新易盛
 
 # 查询单只股票
-python tools/stock_info.py --code 300502
+python tools/a_share/stock_info.py --code 300502
 ```
 
 ### 场景2: 获取历史行情
 
 ```bash
 # 最近30天行情
-python tools/stock_quote.py --code 300502
+python tools/a_share/stock_quote.py --code 300502
 
 # 指定日期范围（前复权）
-python tools/stock_quote.py --code 300502 --start 20250101 --end 20260710 --adjust qfq
+python tools/a_share/stock_quote.py --code 300502 --start 20250101 --end 20260710 --adjust qfq
 ```
 
 ### 场景3: 查询财务指标
 
 ```bash
 # 全部关键指标
-python tools/stock_financial.py --code 300502
+python tools/a_share/stock_financial.py --code 300502
 
 # 单个指标
-python tools/stock_financial.py --code 300502 --indicator ROE
+python tools/a_share/stock_financial.py --code 300502 --indicator ROE
 ```
 
 ### 场景4: 执行质量筛选
 
 ```bash
 # 单只股票筛选
-python tools/stock_screen.py --code 300502
+python tools/a_share/stock_screen.py --code 300502
 
 # 多只股票对比筛选
-python tools/stock_screen.py --code 300502,600519,000858
+python tools/a_share/stock_screen.py --code 300502,600519,000858
 ```
 
 ### 场景5: 获取股权结构数据
 
 ```bash
 # 获取股权结构数据
-python tools/stock_equity.py --code 601899
+python tools/a_share/stock_equity.py --code 601899
 
 # 导出为Excel文件
-python tools/stock_equity.py --code 601899 --export
+python tools/a_share/stock_equity.py --code 601899 --export
 ```
 
 ### 场景6: 下载财报PDF
 
 ```bash
 # 下载最新年报
-python tools/stock_equity.py --code 601899 --download-report
+python tools/a_share/stock_equity.py --code 601899 --download-report
 
 # 下载最新半年报
-python tools/stock_equity.py --code 601899 --download-report --report-type semiannual
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type semiannual
 
 # 下载最新季报
-python tools/stock_equity.py --code 601899 --download-report --report-type quarterly
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly
 ```
 
 ---
@@ -790,5 +792,5 @@ python tools/stock_equity.py --code 601899 --download-report --report-type quart
 ---
 
 **文档版本**: v2.0
-**更新日期**: 2026-07-27
-**变更记录**: 添加辅助工具（financial_rigor.py、report_audit.py）说明
+**更新日期**: 2026-07-29
+**变更记录**: 工具重构到 tools/a_share/ 和 tools/common/ 目录，更新所有路径引用

@@ -60,8 +60,8 @@ disable-model-invocation: true
 ### 第一步：数据收集
 
 > **数据源规范**：参见 `financial-data` 技能。所有财务数据必须来自两个独立来源，误差>1%须标记。
-> - A股：使用 `tools/stock_financial.py`（主）+ 巨潮资讯年报（副）
-> - 港股：使用 `tools/stock_info_hk.py`（主）+ aastocks（副）
+> - A股：使用 `tools/a_share/stock_financial.py`（主）+ 巨潮资讯年报（副）
+> - 港股：使用 `tools/hk_stock/stock_info.py`（主）+ aastocks（副）
 > - 美股：通过浏览器访问 macrotrends（主）+ stockanalysis（副）
 
 使用 Task 工具启动后台 Agent，从网络收集以下数据：
@@ -79,7 +79,7 @@ disable-model-invocation: true
 
 #### 数据交叉验证（必须执行，使用金融严谨性工具）
 
-数据收集完成后，**必须调用 `tools/financial_rigor.py` 对关键数据进行程序化验证**，杜绝LLM心算误差。
+数据收集完成后，**必须调用 `tools/common/financial_rigor.py` 对关键数据进行程序化验证**，杜绝LLM心算误差。
 
 **必须验证的数据点**：
 - 总股本（从交易所、Yahoo Finance、StockAnalysis 等至少2个源确认）
@@ -92,20 +92,20 @@ disable-model-invocation: true
 
 Step 1 — 市值验算（精确十进制，非浮点）：
 ```bash
-python tools/financial_rigor.py verify-market-cap \
+python tools/common/financial_rigor.py verify-market-cap \
   --price {股价} --shares {总股本} --reported {报告市值} --currency {币种}
 ```
 
 Step 2 — 关键数据多源交叉验证：
 ```bash
-python tools/financial_rigor.py cross-validate \
+python tools/common/financial_rigor.py cross-validate \
   --field {字段名} --values '{"来源1": 数值, "来源2": 数值}' --unit {单位}
 ```
 对收入、净利润、现金储备分别执行。
 
 Step 3 — 估值指标精确验算（PE/PB/ROE/FCF Yield 等）：
 ```bash
-python tools/financial_rigor.py verify-valuation \
+python tools/common/financial_rigor.py verify-valuation \
   --price {股价} --eps {EPS} --bvps {每股净资产} --fcf-per-share {每股FCF} --dividend {每股股息}
 ```
 
@@ -187,7 +187,7 @@ python tools/financial_rigor.py verify-valuation \
 - 反向DCF：当前股价隐含了什么增长预期？
 - 三情景估值 —— **必须通过工具精确计算，禁止心算**：
 ```bash
-python tools/financial_rigor.py three-scenario \
+python tools/common/financial_rigor.py three-scenario \
   --price {股价} --eps {EPS} --shares {总股本亿} \
   --growth {乐观增速} {中性增速} {悲观增速} \
   --pe {乐观PE} {中性PE} {悲观PE} --years 3 --currency {币种}
@@ -243,7 +243,7 @@ python tools/financial_rigor.py three-scenario \
 
 **Step 1 — 提取抽检清单（15%随机抽样）：**
 ```bash
-python tools/report_audit.py extract \
+python tools/common/report_audit.py extract \
   --report <报告文件路径>
 ```
 输出 JSON 模板，每项含 `fetched_value`（待填）。
@@ -255,7 +255,7 @@ python tools/report_audit.py extract \
 
 **Step 3 — 输出判决：**
 ```bash
-python tools/report_audit.py verdict \
+python tools/common/report_audit.py verdict \
   --results '<填好的JSON>' \
   --report <报告文件名>
 ```
@@ -273,13 +273,13 @@ python tools/report_audit.py verdict \
 
 | 市场 | 工具 | 功能 | 命令示例 |
 |------|------|------|---------|
-| A股 | `tools/stock_info.py` | 股票信息查询 | `python tools/stock_info.py --search 紫金矿业` |
-| A股 | `tools/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/stock_financial.py --code 601899` |
-| A股 | `tools/stock_quote.py` | 历史股价 | `python tools/stock_quote.py --code 601899` |
-| A股 | `tools/stock_equity.py` | 股权结构与年报下载 | `python tools/stock_equity.py --code 601899` |
-| 港股 | `tools/stock_info_hk.py` | 港股信息与财务指标 | `python tools/stock_info_hk.py --financial 00700` |
-| 港股 | `tools/stock_quote_hk.py` | 港股历史K线 | `python tools/stock_quote_hk.py --code 00700` |
-| 港股 | `tools/stock_screen_hk.py` | 港股质量筛选 | `python tools/stock_screen_hk.py --code 00700` |
+| A股 | `tools/a_share/stock_info.py` | 股票信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
+| A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
+| A股 | `tools/a_share/stock_quote.py` | 历史股价 | `python tools/a_share/stock_quote.py --code 601899` |
+| A股 | `tools/a_share/stock_equity.py` | 股权结构与年报下载 | `python tools/a_share/stock_equity.py --code 601899` |
+| 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| 港股 | `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
+| 港股 | `tools/hk_stock/stock_screen.py` | 港股质量筛选 | `python tools/hk_stock/stock_screen.py --code 00700` |
 
 **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
@@ -293,7 +293,7 @@ python tools/report_audit.py verdict \
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `tools/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证、三情景估值） | `python tools/financial_rigor.py verify-valuation --pe 25.5 --eps 10.2` |
+| `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证、三情景估值） | `python tools/common/financial_rigor.py verify-valuation --pe 25.5 --eps 10.2` |
 
 ### 网络搜索工具
 
@@ -301,13 +301,13 @@ python tools/report_audit.py verdict \
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `tools/web_search.py` | 网络信息搜索（阿里云百炼） | `python tools/web_search.py "紫金矿业 2025年净利润"` |
+| `tools/common/web_search.py` | 网络信息搜索（阿里云百炼） | `python tools/common/web_search.py "紫金矿业 2025年净利润"` |
 
 ### 报告审核工具
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `tools/report_audit.py` | 报告数据抽检与审核 | `python tools/report_audit.py extract --report reports/xxx.md` |
+| `tools/common/report_audit.py` | 报告数据抽检与审核 | `python tools/common/report_audit.py extract --report reports/xxx.md` |
 
 ---
 

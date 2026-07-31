@@ -274,34 +274,34 @@ A = 数据充分可信；B = 部分缺失但不影响主结论；C = 缺失较�
 
 #### A股数据
 
-- 股票信息：`python tools/stock_info.py --search {公司名}`
-- 财务指标：`python tools/stock_financial.py --code {股票代码}`
-- 股票行情：`python tools/stock_quote.py --code {股票代码}`
-- 股权结构：`python tools/stock_equity.py --code {股票代码}`
+- 股票信息：`python tools/a_share/stock_info.py --search {公司名}`
+- 财务指标：`python tools/a_share/stock_financial.py --code {股票代码}`
+- 股票行情：`python tools/a_share/stock_quote.py --code {股票代码}`
+- 股权结构：`python tools/a_share/stock_equity.py --code {股票代码}`
 
 #### 港股数据
 
-- 股票信息与财务：`python tools/stock_info_hk.py --financial {股票代码}`
-- 股票行情：`python tools/stock_quote_hk.py --code {股票代码}`
+- 股票信息与财务：`python tools/hk_stock/stock_financial.py --financial {股票代码}`
+- 股票行情：`python tools/hk_stock/stock_quote.py --code {股票代码}`
 
 ### 财务计算与验证工具
 
-- 精确计算：`python tools/financial_rigor.py`（PE、ROE、市值校验等）
-- 报告审核：`python tools/report_audit.py`（数据抽检）
+- 精确计算：`python tools/common/financial_rigor.py`（PE、ROE、市值校验等）
+- 报告审核：`python tools/common/report_audit.py`（数据抽检）
 
 ### 网络信息获取
 
 #### A股公司
 
-- 网络搜索：`python tools/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
+- 网络搜索：`python tools/common/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
 
 #### 港股/美股公司（非国内上市）
 
-- **优先使用 Tavily 搜索**：`python tools/tavily_search.py "{搜索关键词}" --max-results 5`
+- **优先使用 Tavily 搜索**：`python tools/common/tavily_search.py "{搜索关键词}" --max-results 5`
   - Tavily 提供更高质量的内容和更详细的信息
   - 返回 title、url、content 三个字段
   - 支持高级搜索（search_depth="advanced"）
-- **备选 WebSearch**：`python tools/web_search.py "{搜索关键词}"`
+- **备选 WebSearch**：`python tools/common/web_search.py "{搜索关键词}"`
   - 作为补充信息源
 
 #### 重要内容（同时调用）
@@ -315,8 +315,8 @@ A = 数据充分可信；B = 部分缺失但不影响主结论；C = 缺失较�
 
 ```bash
 # 同时调用两个工具（并行执行）
-python tools/tavily_search.py "腾讯 行业地位 竞争格局"
-python tools/web_search.py "腾讯 行业地位 竞争格局"
+python tools/common/tavily_search.py "腾讯 行业地位 竞争格局"
+python tools/common/web_search.py "腾讯 行业地位 竞争格局"
 ```
 
 **注意**：WebSearch/WebFetch 在中国大陆不可用，所有网络信息必须使用本地工具。
@@ -431,13 +431,13 @@ AI算力
 
 ```bash
 # Step 1 — 提取抽检清单（15% 随机抽样）
-python tools/report_audit.py extract \
+python tools/common/report_audit.py extract \
   --report reports/{行业名}-funnel-{YYYYMMDD}.md
 
 # Step 2 — 对清单每项从可靠信源取数
 
 # Step 3 — 输出准出/打回判决
-python tools/report_audit.py verdict \
+python tools/common/report_audit.py verdict \
   --results '<填好的JSON>' \
   --report {行业名}-funnel-{YYYYMMDD}.md
 ```

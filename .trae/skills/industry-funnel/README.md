@@ -148,31 +148,31 @@
 
 | 工具 | 功能 |
 |------|------|
-| `tools/stock_info.py` | A股信息查询 |
-| `tools/stock_financial.py` | A股财务指标 |
-| `tools/stock_quote.py` | A股行情数据 |
-| `tools/stock_equity.py` | A股股权结构 |
+| `tools/a_share/stock_info.py` | A股信息查询 |
+| `tools/a_share/stock_financial.py` | A股财务指标 |
+| `tools/a_share/stock_quote.py` | A股行情数据 |
+| `tools/a_share/stock_equity.py` | A股股权结构 |
 
 ### 港股数据
 
 | 工具 | 功能 |
 |------|------|
-| `tools/stock_info_hk.py` | 港股信息查询与财务指标 |
-| `tools/stock_quote_hk.py` | 港股行情数据 |
+| `tools/hk_stock/stock_info.py` | 港股信息查询与财务指标 |
+| `tools/hk_stock/stock_quote.py` | 港股行情数据 |
 
 ### 财务计算与验证
 
 | 工具 | 功能 |
 |------|------|
-| `tools/financial_rigor.py` | 精确金融计算（PE、ROE、市值校验等） |
-| `tools/report_audit.py` | 报告数据抽检（准出流程） |
+| `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值校验等） |
+| `tools/common/report_audit.py` | 报告数据抽检（准出流程） |
 
 ### 网络信息获取
 
 | 工具 | 适用范围 |
 |------|---------|
-| `tools/web_search.py` | A股公司（阿里云百炼） |
-| `tools/tavily_search.py` | 港股/美股公司（优先使用，质量更高） |
+| `tools/common/web_search.py` | A股公司（阿里云百炼） |
+| `tools/common/tavily_search.py` | 港股/美股公司（优先使用，质量更高） |
 
 **重要约束**：
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
@@ -203,7 +203,7 @@
 - 中国/亚洲市场不要因英文资料少而漏掉
 - 小市值公司不要因为AI偏好龙头而漏
 - 必须列"未来IPO候选"未上市公司，标注估值与时间窗
-- 报告发布前必须通过 `tools/report_audit.py` 数据抽检
+- 报告发布前必须通过 `tools/common/report_audit.py` 数据抽检
 
 ---
 

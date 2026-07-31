@@ -127,16 +127,16 @@
 
 | 工具 | 功能 |
 |------|------|
-| `tools/stock_info.py` | A股信息查询 |
-| `tools/stock_financial.py` | A股财务指标 |
-| `tools/stock_quote.py` | A股行情数据 |
-| `tools/stock_equity.py` | A股股权结构与财报下载 |
-| `tools/stock_info_hk.py` | 港股信息查询与财务指标 |
-| `tools/stock_quote_hk.py` | 港股行情数据 |
-| `tools/financial_rigor.py` | 精确估值计算（PE、ROE、三情景估值等） |
-| `tools/report_audit.py` | 报告审核与数据抽检 |
-| `tools/web_search.py` | A股网络信息搜索（阿里云百炼） |
-| `tools/tavily_search.py` | 港股/美股网络信息搜索 |
+| `tools/a_share/stock_info.py` | A股信息查询 |
+| `tools/a_share/stock_financial.py` | A股财务指标 |
+| `tools/a_share/stock_quote.py` | A股行情数据 |
+| `tools/a_share/stock_equity.py` | A股股权结构与财报下载 |
+| `tools/hk_stock/stock_info.py` | 港股信息查询与财务指标 |
+| `tools/hk_stock/stock_quote.py` | 港股行情数据 |
+| `tools/common/financial_rigor.py` | 精确估值计算（PE、ROE、三情景估值等） |
+| `tools/common/report_audit.py` | 报告审核与数据抽检 |
+| `tools/common/web_search.py` | A股网络信息搜索（阿里云百炼） |
+| `tools/common/tavily_search.py` | 港股/美股网络信息搜索 |
 
 **重要约束**：
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
@@ -162,7 +162,7 @@
 
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
 - 所有数据必须标注来源，关键财务数据至少两个来源交叉验证
-- 估值估算须使用 `tools/financial_rigor.py` 精确计算，不得手算
+- 估值估算须使用 `tools/common/financial_rigor.py` 精确计算，不得手算
 - 信息丰富度C级持仓的分析结论须标注低置信度
 - 不预设立场：先摆数据 → 推逻辑 → 出结论
 - 不直接推荐个股，替代标的选择交给 `/industry-research` 或 `/investment-checklist`

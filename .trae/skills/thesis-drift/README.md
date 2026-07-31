@@ -149,15 +149,15 @@
 
 | 工具 | 功能 |
 |------|------|
-| `tools/financial_rigor.py` | 精确估值计算（PE、ROE、市值校验、三情景估值等） |
-| `tools/report_audit.py` | 报告审核与数据抽检 |
-| `tools/stock_info.py` | A股信息查询 |
-| `tools/stock_financial.py` | A股财务指标 |
-| `tools/stock_quote.py` | A股行情数据 |
-| `tools/stock_info_hk.py` | 港股信息查询与财务指标 |
-| `tools/stock_quote_hk.py` | 港股行情数据 |
-| `tools/web_search.py` | A股网络信息搜索（阿里云百炼） |
-| `tools/tavily_search.py` | 港股/美股网络信息搜索 |
+| `tools/common/financial_rigor.py` | 精确估值计算（PE、ROE、市值校验、三情景估值等） |
+| `tools/common/report_audit.py` | 报告审核与数据抽检 |
+| `tools/a_share/stock_info.py` | A股信息查询 |
+| `tools/a_share/stock_financial.py` | A股财务指标 |
+| `tools/a_share/stock_quote.py` | A股行情数据 |
+| `tools/hk_stock/stock_info.py` | 港股信息查询与财务指标 |
+| `tools/hk_stock/stock_quote.py` | 港股行情数据 |
+| `tools/common/web_search.py` | A股网络信息搜索（阿里云百炼） |
+| `tools/common/tavily_search.py` | 港股/美股网络信息搜索 |
 
 **重要约束**：
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）

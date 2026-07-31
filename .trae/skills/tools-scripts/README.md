@@ -33,7 +33,7 @@
 
 ### 年报数据提取标准流程
 
-1. **下载年报PDF** — 使用 `tools/stock_equity.py --download-report`
+1. **下载年报PDF** — 使用 `tools/a_share/stock_equity.py --download-report`
 2. **检查PDF类型** — 文本版 vs 扫描版（用 pdftotext 快速测试）
 3. **文本版提取** — `pdftotext -layout` 提取文本，grep 搜索关键词
 4. **扫描版处理** — `pdftoppm -png -r 300` 渲染为图像，OCR识别或人工核对
@@ -126,8 +126,8 @@ pdftotext -f 80 -l 100 -layout 601899_2025年报.pdf 601899_2025年报_财务报
 | `pdfinfo` | 获取PDF文档信息（Poppler工具集） |
 | `pdftoppm` | PDF页面渲染为图像（Poppler工具集） |
 | `tesseract` | OCR文字识别（可选，处理扫描版PDF） |
-| `tools/stock_equity.py` | 下载A股年报PDF |
-| `tools/stock_financial.py` | A股财务指标（用于交叉验证） |
+| `tools/a_share/stock_equity.py` | 下载A股年报PDF |
+| `tools/a_share/stock_financial.py` | A股财务指标（用于交叉验证） |
 
 **工具安装**：
 - **Windows**：[Poppler for Windows](http://blog.alivate.com.au/poppler-windows/)

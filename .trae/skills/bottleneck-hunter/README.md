@@ -123,12 +123,12 @@ AI驱动的全球产业链瓶颈套利：从超级趋势的"咽喉位置"挖掘�
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `tools/web_search.py` | 网络信息搜索（阿里云百炼） | `python tools/web_search.py "AI supply chain bottleneck 2026"` |
-| `tools/stock_info.py` | A股信息查询 | `python tools/stock_info.py --search 新易盛` |
-| `tools/stock_quote.py` | A股行情数据 | `python tools/stock_quote.py --code 300502` |
-| `tools/stock_financial.py` | A股财务指标 | `python tools/stock_financial.py --code 300502` |
-| `tools/stock_info_hk.py` | 港股信息查询 | `python tools/stock_info_hk.py --financial 00700` |
-| `tools/financial_rigor.py` | 精确估值计算 | `python tools/financial_rigor.py verify-valuation ...` |
+| `tools/common/web_search.py` | 网络信息搜索（阿里云百炼） | `python tools/common/web_search.py "AI supply chain bottleneck 2026"` |
+| `tools/a_share/stock_info.py` | A股信息查询 | `python tools/a_share/stock_info.py --search 新易盛` |
+| `tools/a_share/stock_quote.py` | A股行情数据 | `python tools/a_share/stock_quote.py --code 300502` |
+| `tools/a_share/stock_financial.py` | A股财务指标 | `python tools/a_share/stock_financial.py --code 300502` |
+| `tools/hk_stock/stock_financial.py` | 港股信息查询 | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| `tools/common/financial_rigor.py` | 精确估值计算 | `python tools/common/financial_rigor.py verify-valuation ...` |
 
 **重要约束**：
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）

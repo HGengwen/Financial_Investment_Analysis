@@ -104,31 +104,31 @@
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `tools/stock_info.py` | A股信息查询 | `python tools/stock_info.py --search {公司名}` |
-| `tools/stock_financial.py` | A股财务指标 | `python tools/stock_financial.py --code {股票代码}` |
-| `tools/stock_quote.py` | A股行情数据 | `python tools/stock_quote.py --code {股票代码}` |
-| `tools/stock_equity.py` | A股股权结构与财报下载 | `python tools/stock_equity.py --code {股票代码}` |
+| `tools/a_share/stock_info.py` | A股信息查询 | `python tools/a_share/stock_info.py --search {公司名}` |
+| `tools/a_share/stock_financial.py` | A股财务指标 | `python tools/a_share/stock_financial.py --code {股票代码}` |
+| `tools/a_share/stock_quote.py` | A股行情数据 | `python tools/a_share/stock_quote.py --code {股票代码}` |
+| `tools/a_share/stock_equity.py` | A股股权结构与财报下载 | `python tools/a_share/stock_equity.py --code {股票代码}` |
 
 #### 港股数据
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `tools/stock_info_hk.py` | 港股信息查询与财务指标 | `python tools/stock_info_hk.py --financial {股票代码}` |
-| `tools/stock_quote_hk.py` | 港股历史K线、指数数据 | `python tools/stock_quote_hk.py --code {股票代码}` |
+| `tools/hk_stock/stock_financial.py` | 港股信息查询与财务指标 | `python tools/hk_stock/stock_financial.py --financial {股票代码}` |
+| `tools/hk_stock/stock_quote.py` | 港股历史K线、指数数据 | `python tools/hk_stock/stock_quote.py --code {股票代码}` |
 
 ### 财务计算与验证工具
 
 | 工具 | 功能 |
 |------|------|
-| `tools/financial_rigor.py` | 精确金融计算（PE、ROE、市值校验等） |
-| `tools/report_audit.py` | 报告审核与数据抽检 |
+| `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值校验等） |
+| `tools/common/report_audit.py` | 报告审核与数据抽检 |
 
 ### 网络信息获取
 
 | 工具 | 适用范围 | 命令示例 |
 |------|---------|---------|
-| `tools/web_search.py` | A股公司（阿里云百炼） | `python tools/web_search.py "{关键词}"` |
-| `tools/tavily_search.py` | 港股/美股公司 | `python tools/tavily_search.py "{关键词}" --max-results 5` |
+| `tools/common/web_search.py` | A股公司（阿里云百炼） | `python tools/common/web_search.py "{关键词}"` |
+| `tools/common/tavily_search.py` | 港股/美股公司 | `python tools/common/tavily_search.py "{关键词}" --max-results 5` |
 
 **重要约束**：
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
@@ -158,7 +158,7 @@
 - 每个产业链环节至少分析 2-3 家头部公司
 - 对每家公司标注"信息充分度"（A/B/C级），让读者知道分析可靠程度
 - 不预设立场：先摆数据 → 推逻辑 → 出结论
-- 报告发布前需通过 `tools/report_audit.py` 数据抽检
+- 报告发布前需通过 `tools/common/report_audit.py` 数据抽检
 
 ---
 

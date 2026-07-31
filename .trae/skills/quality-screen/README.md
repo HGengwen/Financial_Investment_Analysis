@@ -131,14 +131,14 @@
 
 | 工具 | 功能 |
 |------|------|
-| `tools/stock_info.py` | A股股票代码查询 |
-| `tools/stock_financial.py` | A股财务指标查询 |
-| `tools/stock_screen.py` | A股质量筛选7条指标 |
-| `tools/stock_info_hk.py` | 港股信息查询与财务指标 |
-| `tools/stock_quote_hk.py` | 港股历史K线与指数数据 |
-| `tools/stock_screen_hk.py` | 港股质量筛选7条指标 |
-| `tools/web_search.py` | 网络信息搜索（阿里云百炼，A股/行业动态） |
-| `tools/tavily_search.py` | 港股/美股网络信息搜索 |
+| `tools/a_share/stock_info.py` | A股股票代码查询 |
+| `tools/a_share/stock_financial.py` | A股财务指标查询 |
+| `tools/a_share/stock_screen.py` | A股质量筛选7条指标 |
+| `tools/hk_stock/stock_info.py` | 港股信息查询与财务指标 |
+| `tools/hk_stock/stock_quote.py` | 港股历史K线与指数数据 |
+| `tools/hk_stock/stock_screen.py` | 港股质量筛选7条指标 |
+| `tools/common/web_search.py` | 网络信息搜索（阿里云百炼，A股/行业动态） |
+| `tools/common/tavily_search.py` | 港股/美股网络信息搜索 |
 
 **重要约束**：
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
@@ -149,10 +149,10 @@
 
 | 数据类型 | 优先来源 | 备用来源 |
 |---------|---------|---------|
-| A股财务指标 | `tools/stock_screen.py` | 公司年报、券商研报 |
-| 港股财务指标 | `tools/stock_screen_hk.py` | WebSearch、手动获取 |
-| 非A股公司信息 | `tools/web_search.py` | 用户手动提供 |
-| 行业动态/新闻 | `tools/web_search.py` | 用户手动提供 |
+| A股财务指标 | `tools/a_share/stock_screen.py` | 公司年报、券商研报 |
+| 港股财务指标 | `tools/hk_stock/stock_screen.py` | WebSearch、手动获取 |
+| 非A股公司信息 | `tools/common/web_search.py` | 用户手动提供 |
+| 行业动态/新闻 | `tools/common/web_search.py` | 用户手动提供 |
 
 ---
 

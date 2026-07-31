@@ -32,9 +32,9 @@
 1. **日期确认** — 开始研究前运行 `date` 确认当天日期，以此作为"最新数据"的基准，并在报告头部注明数据截止日期。不得依赖训练数据中的日期假设。
 2. **数据交叉验证** — 关键财务数据须至少来自两个独立来源。
 3. **精确算术工具** — 市值计算、估值、跨源校验使用精确工具：
-   `python3 tools/financial_rigor.py ...`
+   `python3 tools/common/financial_rigor.py ...`
 4. **报告审核** — 发布前运行审计工具：
-   `python3 tools/report_audit.py ...`
+   `python3 tools/common/report_audit.py ...`
 5. **不确定性标注** — 明确标注低置信度结论、不完整数据及来源缺口。
 6. **免责声明** — 本项目用于学习与研究，不构成投资建议。
 
@@ -68,11 +68,11 @@
 
 | 工具文件 | 功能 | 命令示例 |
 |---------|------|---------|
-| `tools/stock_info.py` | A股信息查询 | `python tools/stock_info.py --search 新易盛` |
-| `tools/stock_quote.py` | A股行情数据 | `python tools/stock_quote.py --code 300502` |
-| `tools/stock_financial.py` | A股财务指标 | `python tools/stock_financial.py --code 300502` |
-| `tools/stock_screen.py` | 质量筛选7条指标 | `python tools/stock_screen.py --code 300502` |
-| `tools/stock_equity.py` | 股权结构与财报下载 | `python tools/stock_equity.py --code 601899` |
+| `tools/a_share/stock_info.py` | A股信息查询 | `python tools/a_share/stock_info.py --search 新易盛` |
+| `tools/a_share/stock_quote.py` | A股行情数据 | `python tools/a_share/stock_quote.py --code 300502` |
+| `tools/a_share/stock_financial.py` | A股财务指标 | `python tools/a_share/stock_financial.py --code 300502` |
+| `tools/a_share/stock_screen.py` | 质量筛选7条指标 | `python tools/a_share/stock_screen.py --code 300502` |
+| `tools/a_share/stock_equity.py` | 股权结构与财报下载 | `python tools/a_share/stock_equity.py --code 601899` |
 
 **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
@@ -82,9 +82,9 @@
 
 | 工具文件 | 功能 | 命令示例 |
 |---------|------|---------|
-| `tools/stock_info_hk.py` | 港股信息查询、财务指标 | `python tools/stock_info_hk.py --financial 00700` |
-| `tools/stock_quote_hk.py` | 港股历史K线、指数数据 | `python tools/stock_quote_hk.py --code 00700` |
-| `tools/stock_screen_hk.py` | 港股质量筛选7条指标 | `python tools/stock_screen_hk.py --code 00700` |
+| `tools/hk_stock/stock_financial.py` | 港股信息查询、财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| `tools/hk_stock/stock_quote.py` | 港股历史K线、指数数据 | `python tools/hk_stock/stock_quote.py --code 00700` |
+| `tools/hk_stock/stock_screen.py` | 港股质量筛选7条指标 | `python tools/hk_stock/stock_screen.py --code 00700` |
 
 **数据源**：东方财富、新浪财经
 
@@ -94,9 +94,9 @@
 
 | 工具文件 | 功能 | 命令示例 |
 |---------|------|---------|
-| `tools/financial_rigor.py` | 精确金融计算（PE、ROE等） | `python tools/financial_rigor.py verify-valuation --help` |
-| `tools/web_search.py` | 网络信息搜索（阿里云百炼） | `python tools/web_search.py "搜索关键词"` |
-| `tools/report_audit.py` | 报告审核工具 | `python tools/report_audit.py --help` |
+| `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE等） | `python tools/common/financial_rigor.py verify-valuation --help` |
+| `tools/common/web_search.py` | 网络信息搜索（阿里云百炼） | `python tools/common/web_search.py "搜索关键词"` |
+| `tools/common/report_audit.py` | 报告审核工具 | `python tools/common/report_audit.py --help` |
 
 #### 4. 浏览器手动获取（非A股/港股数据）
 

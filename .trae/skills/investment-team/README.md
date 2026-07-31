@@ -129,31 +129,31 @@
 
 | 工具 | 功能 |
 |------|------|
-| `tools/stock_equity.py` | **财报PDF下载**（年报/半年报/季报，从巨潮资讯网） |
-| `tools/stock_info.py` | A股股票信息查询 |
-| `tools/stock_financial.py` | A股财务指标（ROE、毛利率等） |
-| `tools/stock_quote.py` | A股历史股价 |
+| `tools/a_share/stock_equity.py` | **财报PDF下载**（年报/半年报/季报，从巨潮资讯网） |
+| `tools/a_share/stock_info.py` | A股股票信息查询 |
+| `tools/a_share/stock_financial.py` | A股财务指标（ROE、毛利率等） |
+| `tools/a_share/stock_quote.py` | A股历史股价 |
 
 ### 港股数据
 
 | 工具 | 功能 |
 |------|------|
-| `tools/stock_info_hk.py` | 港股信息与财务指标 |
-| `tools/stock_quote_hk.py` | 港股历史K线 |
+| `tools/hk_stock/stock_info.py` | 港股信息与财务指标 |
+| `tools/hk_stock/stock_quote.py` | 港股历史K线 |
 
 ### 财务计算与验证
 
 | 工具 | 功能 |
 |------|------|
-| `tools/financial_rigor.py` | 精确金融计算（PE、ROE、市值校验、三情景估值等） |
-| `tools/report_audit.py` | 报告数据抽检（准出流程） |
+| `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值校验、三情景估值等） |
+| `tools/common/report_audit.py` | 报告数据抽检（准出流程） |
 
 ### 网络信息获取
 
 | 工具 | 适用范围 |
 |------|---------|
-| `tools/web_search.py` | A股公司（阿里云百炼） |
-| `tools/tavily_search.py` | 港股/美股公司（优先使用，质量更高） |
+| `tools/common/web_search.py` | A股公司（阿里云百炼） |
+| `tools/common/tavily_search.py` | 港股/美股公司（优先使用，质量更高） |
 
 ### PDF文档阅读工具（Poppler 工具集）
 
@@ -192,7 +192,7 @@
 - 所有分析必须有数据支撑，附数据来源
 - 关键财务数据至少两个独立来源交叉验证，使用 `financial_rigor.py` 工具验算
 - 市值必须手算校验：股价 × 总股本，与报告市值对比
-- 报告发布前必须通过 `tools/report_audit.py` 数据抽检（准出流程）
+- 报告发布前必须通过 `tools/common/report_audit.py` 数据抽检（准出流程）
 - 信息稀缺时宁可留白标注"数据不足"，不用推测填满框架
 
 ---
