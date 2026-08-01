@@ -25,6 +25,14 @@
 | `financial_rigor.py` | 精确金融计算（PE、ROE、市值校验） | `python tools/common/financial_rigor.py verify-valuation --help` |
 | `report_audit.py` | 研究报告审核 | `python tools/common/report_audit.py --help` |
 
+### 网络搜索工具
+
+| 工具文件 | 功能 | 命令示例 |
+|---------|------|---------|
+| `doubao_search.py` | 豆包搜索（火山引擎 SearchInfinity，AK/SK 鉴权） | `python tools/common/doubao_search.py "紫金矿业 财报"` |
+| `web_search.py` | 阿里云百炼 WebSearch MCP（替代被地域封锁的 Anthropic WebSearch） | `python tools/common/web_search.py "腾讯控股 股价"` |
+| `tavily_search.py` | Tavily 搜索（阿里云百炼 MCP，返回 title/url/content） | `python tools/common/tavily_search.py "紫金矿业 2025年报"` |
+
 ---
 
 ## 一、stock_info.py - A股信息查询
@@ -538,7 +546,332 @@ python tools/common/report_audit.py --file reports/腾讯-20260722.md --sample 1
 
 ---
 
-## 八、A股代码格式说明
+## 八、doubao_search.py - 豆包搜索
+
+### 功能说明
+
+通过火山引擎联网搜索 API（豆包搜索 SearchInfinity）实现网络信息搜索，返回结构化搜索结果。
+
+**核心特性**:
+- 使用火山引擎 TOP 网关 AK/SK 鉴权（SignatureV4 签名）
+- 支持 Web 搜索、时间范围过滤、站点过滤、行业类型搜索
+- 返回结构化数据：标题、链接、摘要、正文、权威度等
+- 内置客户端 QPS 限流（默认 5 QPS，账号维度限流）
+- 支持导出 Markdown 格式搜索报告
+
+### 依赖与配置
+
+**依赖库**:
+```bash
+pip install volcengine python-dotenv requests
+```
+
+**环境变量**（在项目根目录 `.env` 文件中配置）:
+```
+VOLC_AK=你的AccessKeyID
+VOLC_SK=你的SecretAccessKey
+VOLC_QPS=5  # 可选，QPS 限流
+```
+
+### 使用方法
+
+#### 1. 基本搜索
+
+```bash
+python tools/common/doubao_search.py "紫金矿业 财报"
+```
+
+#### 2. 指定返回条数
+
+```bash
+python tools/common/doubao_search.py "黄金价格走势 2026" --count 10
+```
+
+#### 3. 时间范围过滤
+
+```bash
+# 可选: day / week / month / year
+python tools/common/doubao_search.py "新规" --time-range month
+```
+
+#### 4. 站点过滤
+
+```bash
+# 仅搜索指定站点（多个用 | 分隔）
+python tools/common/doubao_search.py "A股 半年报" --sites gov.cn|sse.com.cn
+# 屏蔽指定站点
+python tools/common/doubao_search.py "A股 分析" --block-hosts some-bad-site.com
+```
+
+#### 5. 财经定向搜索快捷选项
+
+等同于 `--industry finance --auth-level 1`（金融行业 + 仅非常权威信源）:
+
+```bash
+python tools/common/doubao_search.py "紫金矿业 半年报" --finance
+```
+
+#### 6. 行业类型搜索
+
+```bash
+# 可选: finance / game / gov
+python tools/common/doubao_search.py "新规" --industry gov
+```
+
+#### 7. 仅返回有正文的结果
+
+```bash
+python tools/common/doubao_search.py "腾讯控股 年报" --need-content
+```
+
+#### 8. 正文格式选择
+
+```bash
+# 可选: text / markdown（默认 markdown）
+python tools/common/doubao_search.py "腾讯控股 年报" --content-format text
+```
+
+#### 9. JSON 格式输出
+
+```bash
+python tools/common/doubao_search.py "腾讯控股" --json
+```
+
+#### 10. 导出 Markdown 报告
+
+```bash
+# 导出到 reports/ 目录（默认命名规则）
+python tools/common/doubao_search.py "A股 半年报" --finance --export
+# 自定义导出路径
+python tools/common/doubao_search.py "紫金矿业" --export --export-path reports/my_report.md
+```
+
+#### 11. 命令行覆盖凭证
+
+```bash
+python tools/common/doubao_search.py "紫金矿业" --ak AKLTY... --sk TW1N...
+```
+
+### 模块导入接口
+
+```python
+from tools.common.doubao_search import doubao_search
+
+# 基本调用
+results = doubao_search("黄金价格", count=5)
+
+# 财经定向搜索
+results = doubao_search(
+    "紫金矿业 财报",
+    count=10,
+    industry="finance",
+    auth_info_level=1,
+    time_range="month",
+    need_content=True,
+)
+
+for r in results:
+    print(f"标题: {r['title']}")
+    print(f"链接: {r['url']}")
+    print(f"来源: {r['site_name']}")
+    print(f"权威度: {r['auth_des']}（等级 {r['auth_level']}）")
+    print(f"摘要: {r['summary'][:100]}...")
+```
+
+### 返回字段说明
+
+每条搜索结果包含以下字段:
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `title` | str | 标题 |
+| `url` | str | 链接 |
+| `site_name` | str | 来源站点名 |
+| `publish_time` | str | 发布时间（ISO 8601） |
+| `summary` | str | 摘要（500~1000 字，适合大模型场景） |
+| `snippet` | str | 简短片段 |
+| `content` | str | 正文内容（需 `need_content=True`） |
+| `auth_level` | int | 权威度等级（1=非常权威, 2=正常权威, 3=一般权威, 4=一般不权威） |
+| `auth_des` | str | 权威度中文描述 |
+| `rank_score` | float | 相关性评分 |
+
+### 注意事项
+
+1. **AK/SK 申请**: 需在火山引擎控制台开通联网搜索服务并创建 IAM 访问密钥
+2. **QPS 限流**: 账号维度默认 5 QPS，需扩容可提工单；客户端已内置限流
+3. **关键词长度**: 1~100 字符，过长会自动截断
+4. **结果条数**: 1~50 条，默认 10 条
+5. **正文获取**: 默认不返回正文，需 `--need-content` 开启
+
+---
+
+## 九、web_search.py - 阿里云百炼 WebSearch
+
+### 功能说明
+
+通过阿里云百炼 WebSearch MCP 服务实现网络信息搜索，替代被地域封锁的 Anthropic WebSearch 服务。
+
+**核心特性**:
+- 使用 MCP 协议连接阿里云百炼 WebSearch 服务
+- 通过 SSE 协议流式获取结果
+- 返回标准化字段：title、link、snippet
+- 与阿里云通义千问生态深度集成
+
+### 依赖与配置
+
+**依赖库**:
+```bash
+pip install mcp python-dotenv
+```
+
+**环境变量**（在项目根目录 `.env` 文件中配置）:
+```
+DASHSCOPE_API_KEY=your_api_key_here
+WebSearch_MCP_BASE_URL=https://dashscope.aliyuncs.com/api/v1/mcps/WebSearch/sse  # 可选
+```
+
+### 使用方法
+
+#### 1. 基本搜索
+
+```bash
+python tools/common/web_search.py "腾讯控股 股价"
+```
+
+#### 2. 指定结果数量
+
+```bash
+python tools/common/web_search.py "中际旭创 ROE" --num 10
+```
+
+#### 3. JSON 格式输出
+
+```bash
+python tools/common/web_search.py "贵州茅台 年报 2024" --json
+```
+
+#### 4. 命令行覆盖 API Key
+
+```bash
+python tools/common/web_search.py "腾讯控股" --api-key sk-your-api-key
+```
+
+### 模块导入接口
+
+```python
+import asyncio
+from tools.common.web_search import search_web
+
+async def main():
+    result = await search_web(
+        api_key="sk-xxx",
+        mcp_url="https://dashscope.aliyuncs.com/api/v1/mcps/WebSearch/sse",
+        query="黄金价格走势",
+        num_results=5,
+    )
+    for item in result["results"]:
+        print(f"标题: {item['title']}")
+        print(f"链接: {item['link']}")
+
+asyncio.run(main())
+```
+
+### 注意事项
+
+1. **API Key 申请**: 需在阿里云百炼控制台开通 WebSearch MCP 服务
+2. **异步调用**: 使用 MCP 协议（SSE），需在异步环境中运行
+3. **Windows 兼容**: 已自动设置 `WindowsSelectorEventLoopPolicy`
+4. **字段简化**: 仅返回 title、link、snippet、hostname 四个字段
+
+---
+
+## 十、搜索工具选型对比
+
+### 选型决策表
+
+下表综合"海内外财经检索选型结论"，明确 `doubao_search.py` 与 `web_search.py` 的优先选用场合:
+
+| 维度 | `doubao_search.py`（火山引擎豆包搜索） | `web_search.py`（阿里云百炼 WebSearch） |
+|------|--------------------------------|--------------------------------|
+| **鉴权方式** | AK/SK（SignatureV4 签名） | Bearer Token（DASHSCOPE_API_KEY） |
+| **接入协议** | HTTP REST + 签名 | MCP（SSE 流式） |
+| **返回字段丰富度** | 高（10+ 字段，含权威度、相关性、摘要、正文） | 中（4 字段：title/link/snippet/hostname） |
+| **正文能力** | 支持（`--need-content` + markdown/text 格式） | 不支持 |
+| **行业定向** | 支持（finance/game/gov） | 不支持 |
+| **权威度筛选** | 支持（仅非常权威信源） | 不支持 |
+| **站点过滤** | 支持（`--sites` / `--block-hosts`） | 不支持 |
+| **限流机制** | 客户端 QPS 限流（线程安全） | 无（依赖服务端） |
+| **Markdown 报告导出** | 内置（`--export`） | 不支持 |
+| **模型生态绑定** | 中立无绑定（适配通义千问/Claude/本地 LLM 等多模型架构） | 与阿里云通义千问生态深度绑定 |
+| **免费额度** | 每月 500 次免费（个人/小团队高频资讯监控） | 按阿里云百炼计费策略 |
+
+### 优先选择 `doubao_search.py` 的场景
+
+1. **跨市场综合检索**: 同时检索 A 股 / 港股 / 美股 / 中概股、海外央行政策、境外投行研报、SEC 公告
+2. **投研报告自动化**: 需要抓取公告、研报全文做大模型二次拆解、自动生成投研报告（依赖 `--need-content` 正文能力 + `--export` 报告导出）
+3. **多模型混合架构**: 接入多模型（通义千问、本地开源 LLM、Claude 等），要求检索底座中立无绑定
+4. **权威信源筛选**: 财经定向搜索场景需 `--finance` 快捷选项（金融行业 + 仅非常权威信源）
+5. **个人/小团队高频监控**: 利用每月 500 次免费额度进行高频资讯监控
+6. **行业垂直搜索**: 需要 `--industry finance/game/gov` 进行行业类型搜索
+7. **站点白名单/黑名单**: 需要限定搜索站点范围或屏蔽特定站点
+
+### 仅选择 `web_search.py` 的场景
+
+1. **阿里云全栈部署**: 企业全栈部署在阿里云，主力模型仅使用通义千问
+2. **A股量化基本面**: 仅做 A 股量化基本面分析，依赖百炼金融专项 MCP 插件获取行情、持仓数据
+3. **持牌金融机构合规需求**: 持牌金融机构需要私有化部署、全链路审计、等保合规交付
+4. **轻量级场景**: 仅需快速获取 title/link/snippet，不需要正文、权威度、报告导出等高级能力
+5. **已有阿里云百炼生态**: 已开通 DASHSCOPE_API_KEY，希望复用现有凭证，避免额外开通火山引擎服务
+
+### 选型决策流程图
+
+```
+开始
+  │
+  ├─ 是否需要跨市场检索（A/港/美/中概股）或海外信源？
+  │   ├─ 是 → 优先 doubao_search.py
+  │   └─ 否 ↓
+  │
+  ├─ 是否需要正文/权威度/行业定向/报告导出？
+  │   ├─ 是 → 优先 doubao_search.py
+  │   └─ 否 ↓
+  │
+  ├─ 是否已全栈部署阿里云 + 仅用通义千问？
+  │   ├─ 是 → 选择 web_search.py
+  │   └─ 否 ↓
+  │
+  ├─ 是否需要等保合规/全链路审计（持牌金融机构）？
+  │   ├─ 是 → 选择 web_search.py
+  │   └─ 否 ↓
+  │
+  └─ 默认推荐 doubao_search.py（功能更丰富，中立无绑定）
+```
+
+### 实战推荐
+
+| 使用场景 | 推荐工具 | 理由 |
+|---------|---------|------|
+| 海外投行研报检索 | `doubao_search.py` | 海外信源覆盖更广，正文能力强 |
+| A股财报数据交叉验证 | `doubao_search.py --finance` | 权威度筛选 + 行业定向 |
+| 美股 SEC 公告抓取 | `doubao_search.py --need-content` | 支持正文返回与 Markdown 导出 |
+| 跨市场金融资讯监控 | `doubao_search.py` | 中立无绑定，适配多模型架构 |
+| 通义千问 RAG 检索增强 | `web_search.py` | 与阿里云生态深度集成 |
+| 阿里云全栈企业部署 | `web_search.py` | 复用 DASHSCOPE_API_KEY，统一计费 |
+| 持牌金融机构合规交付 | `web_search.py` | 私有化部署 + 全链路审计 |
+| 快速验证某个关键词 | 任一均可 | 视已配置凭证而定 |
+
+### 配套测试
+
+两个工具均配套测试软件:
+
+- `doubao_search.py` 测试: `python tests/common/test_doubao_search.py [--skip-live]`
+- `web_search.py` 测试: `python tests/common/test_web_search.py`
+
+`--skip-live` 参数可跳过需要真实凭证的在线测试，适合在 CI/CD 等无凭证环境运行。
+
+---
+
+## 十一、A股代码格式说明
 
 A股代码统一使用**6位数字字符串**:
 
@@ -559,7 +892,7 @@ A股代码统一使用**6位数字字符串**:
 
 ---
 
-## 九、数据源说明
+## 十二、数据源说明
 
 ### stock_info_a_code_name()
 
@@ -657,7 +990,7 @@ A股代码统一使用**6位数字字符串**:
 
 ---
 
-## 十、注意事项
+## 十三、注意事项
 
 ### 1. 代码格式
 
@@ -692,7 +1025,7 @@ A股代码必须为6位数字字符串，如 `300502`，不要添加 `.SH` 或 `
 
 ---
 
-## 十一、与港股/美股工具的区别
+## 十四、与港股/美股工具的区别
 
 | 特性 | A股工具 | 港股工具 | 美股工具 |
 |------|---------|---------|---------|
@@ -707,7 +1040,7 @@ A股代码必须为6位数字字符串，如 `300502`，不要添加 `.SH` 或 `
 
 ---
 
-## 十二、Python路径
+## 十五、Python路径
 
 ```bash
 F:\Anaconda3\envs\Python_3_12_3\python.exe
@@ -715,7 +1048,7 @@ F:\Anaconda3\envs\Python_3_12_3\python.exe
 
 ---
 
-## 十三、常见使用场景
+## 十六、常见使用场景
 
 ### 场景1: 快速查询公司信息
 
@@ -782,7 +1115,7 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-ty
 
 ---
 
-## 十四、局限性说明
+## 十七、局限性说明
 
 1. **数据窗口**：部分公司上市时间较短，财务数据可能不足10年
 2. **周期性行业**：周期性行业需用完整周期平均值判断，避免单一年份误导
@@ -791,6 +1124,8 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-ty
 
 ---
 
-**文档版本**: v2.0
-**更新日期**: 2026-07-29
-**变更记录**: 工具重构到 tools/a_share/ 和 tools/common/ 目录，更新所有路径引用
+**文档版本**: v2.1
+**更新日期**: 2026-08-01
+**变更记录**:
+- v2.1 (2026-08-01): 新增 doubao_search.py、web_search.py 工具说明章节与搜索工具选型对比
+- v2.0 (2026-07-29): 工具重构到 tools/a_share/ 和 tools/common/ 目录，更新所有路径引用

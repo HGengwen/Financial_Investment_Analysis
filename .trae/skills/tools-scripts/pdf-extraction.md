@@ -10,6 +10,17 @@ disable-model-invocation: true
 
 **适用场景**：从下载的年报、季报、半年报等财务报告中提取财务数据和信息。
 
+## 快速开始
+
+```
+/pdf-extraction {PDF文件路径}
+```
+
+例如：
+- `/pdf-extraction 601899_2025年报.pdf`
+- `/pdf-extraction ./cninfo_reports/茅台_2024年报.pdf`
+- `/pdf-extraction reports/腾讯_2025Q2财报.pdf`
+
 ## 设计理念
 
 财务报告是投资研究的重要一手数据来源，但 PDF 格式文档存在以下挑战：
@@ -161,8 +172,8 @@ python tools/a_share/stock_equity.py --code 601899 --download-report
 # 步骤2：检查PDF类型（文本版 vs 扫描版）
 pdftotext -layout 601899_2025年报.pdf - | head -100
 
-# 如果能正常输出文本 → 文本版PDF
-# 如果输出乱码或空白 → 扫描版PDF，需要使用 pdftoppm
+# 如果能正常输出文本 -> 文本版PDF
+# 如果输出乱码或空白 -> 扫描版PDF，需要使用 pdftoppm
 
 # 步骤3A（文本版PDF）：提取文本内容
 pdftotext -layout 601899_2025年报.pdf 601899_2025年报.txt
@@ -227,7 +238,7 @@ pdftoppm -png -r 300 -f 100 -l 120 601899_2025年报.pdf output/page
 
 - 从PDF提取的数据必须与其他来源进行交叉验证
 - 特别关注数字、单位、小数点位置的准确性
-- **误差>1%必须标记**，参见 [financial-data 技能](../financial-data/SKILL.md)
+- **误差>1%必须标记**，参见 [全局约束规范](./global-constraints.md)
 
 ---
 
@@ -309,7 +320,7 @@ grep -n "净利润\|营业收入" 601899_2025年报.txt
 python tools/a_share/stock_financial.py --code 601899
 
 # 步骤4：对比两个来源的数据，计算误差率
-# 如果误差>1%，按照 financial-data 技能规范进行标记
+# 如果误差>1%，按照全局约束规范进行标记
 ```
 
 ---
@@ -324,8 +335,8 @@ python tools/a_share/stock_financial.py --code 601899
 pdftotext -layout 报告.pdf - | head -50
 ```
 
-- 如果能正常输出文本 → 文本版PDF
-- 如果输出乱码或空白 → 扫描版PDF
+- 如果能正常输出文本 -> 文本版PDF
+- 如果输出乱码或空白 -> 扫描版PDF
 
 ### Q2: 扫描版PDF如何提取数据？
 
@@ -386,11 +397,12 @@ pdftotext -f 51 -l 100 -layout 报告.pdf 报告_第51-100页.txt
 
 ## 版本信息
 
-- **版本**：1.0.0
+- **版本**：1.1.0
 - **创建日期**：2026-07-22
+- **最后更新**：2026-07-31（更新相关技能引用）
 - **维护状态**：活跃维护
 - **依赖工具**：Poppler 工具集（pdftotext、pdfinfo、pdftoppm）
-- **相关技能**：[financial-data](../financial-data/SKILL.md)、[management-deep-dive](../management-deep-dive/SKILL.md)
+- **相关技能**：[A股数据获取](./a-share-data.md)、[财务计算与验证](./financial-calc.md)、[全局约束规范](./global-constraints.md)、[公共工具索引](./common-tools-guide.md)
 
 ---
 

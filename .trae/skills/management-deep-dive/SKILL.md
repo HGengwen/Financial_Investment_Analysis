@@ -635,7 +635,7 @@ pdftoppm -png -r 300 -f 100 -l 120 601899_2025年报.pdf output/page
 
 Poppler 工具集的完整使用说明，请参考独立的 PDF 提取技能文档：
 
-- **技能文档**：[PDF文档内容提取技能](../tools-scripts/SKILL.md)
+- **技能文档**：[PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)
 - **快速指南**：[PDF提取 README](../tools-scripts/README.md)
 
 该文档包含：
