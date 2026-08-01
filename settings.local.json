@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(F:/Anaconda3/envs/Python_3_12_3/python.exe tools/stock_info.py --search 药明康德)",
+      "Bash(cd F:/Financial_Investment_Analysis && python tools/web_search.py \"CXO行业 CRO CDMO 2025 2026 产业链 市场规模 增长趋势\")"
+    ]
+  }
+}
