@@ -135,23 +135,23 @@
 
 | 工具 | 功能 |
 |------|------|
-| `tools/stock_info.py` | A股股票信息查询 |
-| `tools/stock_financial.py` | A股财务指标 |
-| `tools/stock_quote.py` | A股股票行情 |
+| `tools/a_share/stock_info.py` | A股股票信息查询 |
+| `tools/a_share/stock_financial.py` | A股财务指标 |
+| `tools/a_share/stock_quote.py` | A股股票行情 |
 
 ### 港股数据
 
 | 工具 | 功能 |
 |------|------|
-| `tools/stock_info_hk.py` | 港股信息与财务指标 |
-| `tools/stock_quote_hk.py` | 港股股票行情 |
+| `tools/hk_stock/stock_info.py` | 港股信息与财务指标 |
+| `tools/hk_stock/stock_quote.py` | 港股股票行情 |
 
 ### 网络信息获取
 
 | 工具 | 适用范围 |
 |------|---------|
-| `tools/web_search.py` | A股公司（阿里云百炼） |
-| `tools/tavily_search.py` | 港股/美股公司（优先使用，质量更高） |
+| `tools/common/web_search.py` | A股公司（阿里云百炼） |
+| `tools/common/tavily_search.py` | 港股/美股公司（优先使用，质量更高） |
 
 **重要约束**：
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）

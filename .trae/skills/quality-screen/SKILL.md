@@ -92,19 +92,19 @@ disable-model-invocation: true
 
 | 工具 | 用途 | 命令示例 |
 |------|------|---------|
-| `tools/stock_info.py` | 股票代码查询 | `python tools/stock_info.py --search 腾讯` |
-| `tools/stock_financial.py` | 财务指标查询 | `python tools/stock_financial.py --code 300502` |
-| `tools/stock_screen.py` | 质量筛选7条指标 | `python tools/stock_screen.py --code 300502` |
+| `tools/a_share/stock_info.py` | 股票代码查询 | `python tools/a_share/stock_info.py --search 腾讯` |
+| `tools/a_share/stock_financial.py` | 财务指标查询 | `python tools/a_share/stock_financial.py --code 300502` |
+| `tools/a_share/stock_screen.py` | 质量筛选7条指标 | `python tools/a_share/stock_screen.py --code 300502` |
 
 **港股数据获取（使用独立的港股工具）**：
 
 | 工具 | 用途 | 命令示例 |
 |------|------|---------|
-| `tools/stock_info_hk.py` | 港股信息查询 | `python tools/stock_info_hk.py --search 腾讯` |
-| `tools/stock_info_hk.py` | 港股财务指标 | `python tools/stock_info_hk.py --financial 00700` |
-| `tools/stock_quote_hk.py` | 港股历史K线 | `python tools/stock_quote_hk.py --code 00700` |
-| `tools/stock_quote_hk.py` | 港股指数 | `python tools/stock_quote_hk.py --index HSI` |
-| `tools/stock_screen_hk.py` | 港股质量筛选7条指标 | `python tools/stock_screen_hk.py --code 00700` |
+| `tools/hk_stock/stock_info.py` | 港股信息查询 | `python tools/hk_stock/stock_info.py --search 腾讯` |
+| `tools/hk_stock/stock_financial.py` | 港股财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
+| `tools/hk_stock/stock_quote.py` | 港股指数 | `python tools/hk_stock/stock_quote.py --index HSI` |
+| `tools/hk_stock/stock_screen.py` | 港股质量筛选7条指标 | `python tools/hk_stock/stock_screen.py --code 00700` |
 
 **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
@@ -121,39 +121,39 @@ disable-model-invocation: true
 
 ```bash
 # 搜索港股公司
-python tools/stock_info_hk.py --search 腾讯
+python tools/hk_stock/stock_info.py --search 腾讯
 
 # 获取港股财务指标（年度数据）
-python tools/stock_info_hk.py --financial 00700
+python tools/hk_stock/stock_financial.py --financial 00700
 
 # 获取港股财务指标（报告期数据）
-python tools/stock_info_hk.py --financial 00700 --indicator 报告期
+python tools/hk_stock/stock_financial.py --financial 00700 --indicator 报告期
 
 # 港股质量筛选（单只股票）
-python tools/stock_screen_hk.py --code 00700
+python tools/hk_stock/stock_screen.py --code 00700
 
 # 港股质量筛选（多只股票）
-python tools/stock_screen_hk.py --code 00700,03690,01810
+python tools/hk_stock/stock_screen.py --code 00700,03690,01810
 
 # 获取港股历史数据
-python tools/stock_quote_hk.py --code 00700
+python tools/hk_stock/stock_quote.py --code 00700
 
 # 指定日期范围
-python tools/stock_quote_hk.py --code 00700 --start 20260101 --end 20260710
+python tools/hk_stock/stock_quote.py --code 00700 --start 20260101 --end 20260710
 
 # 获取恒生指数
-python tools/stock_quote_hk.py --index HSI
+python tools/hk_stock/stock_quote.py --index HSI
 ```
 
 ---
 
 **网络信息搜索（使用本地 WebSearch 工具替代 Anthropic WebSearch）**：
 
-Anthropic 官方 WebSearch/WebFetch 在中国大陆被地域封锁，不可用。使用本地 `tools/web_search.py` 工具替代，该工具通过阿里云百炼 WebSearch MCP 服务实现网络搜索。
+Anthropic 官方 WebSearch/WebFetch 在中国大陆被地域封锁，不可用。使用本地 `tools/common/web_search.py` 工具替代，该工具通过阿里云百炼 WebSearch MCP 服务实现网络搜索。
 
 | 工具 | 用途 | 命令示例 |
 |------|------|---------|
-| `tools/web_search.py` | 网络信息搜索 | `python tools/web_search.py "腾讯控股 股价"` |
+| `tools/common/web_search.py` | 网络信息搜索 | `python tools/common/web_search.py "腾讯控股 股价"` |
 
 **WebSearch 适用场景**：
 
@@ -178,13 +178,13 @@ Anthropic 官方 WebSearch/WebFetch 在中国大陆被地域封锁，不可用�
 **命令格式**：
 ```bash
 # 基本搜索
-python tools/web_search.py "搜索关键词"
+python tools/common/web_search.py "搜索关键词"
 
 # 指定结果数量
-python tools/web_search.py "搜索关键词" --num 10
+python tools/common/web_search.py "搜索关键词" --num 10
 
 # JSON 格式输出
-python tools/web_search.py "搜索关键词" --json
+python tools/common/web_search.py "搜索关键词" --json
 ```
 
 ---
@@ -205,14 +205,14 @@ python tools/web_search.py "搜索关键词" --json
 
 | 数据类型 | 优先来源 | 备用来源 |
 |---------|---------|---------|
-| **A股财务指标** | 本地工具 `tools/stock_screen.py` | 公司年报、券商研报 |
-| **A股股票信息** | 本地工具 `tools/stock_info.py` | WebSearch |
-| **港股财务指标** | 本地工具 `tools/stock_screen_hk.py` | WebSearch、手动获取 |
-| **港股历史数据** | 本地工具 `tools/stock_quote_hk.py` | WebSearch、手动获取 |
-| **港股股票信息** | 本地工具 `tools/stock_info_hk.py` | WebSearch、手动获取 |
-| **非A股公司信息** | WebSearch `tools/web_search.py` | 用户手动提供 |
-| **行业动态/新闻** | WebSearch `tools/web_search.py` | 用户手动提供 |
-| **最新市值/股价** | WebSearch `tools/web_search.py` | 本地工具（A股/港股） |
+| **A股财务指标** | 本地工具 `tools/a_share/stock_screen.py` | 公司年报、券商研报 |
+| **A股股票信息** | 本地工具 `tools/a_share/stock_info.py` | WebSearch |
+| **港股财务指标** | 本地工具 `tools/hk_stock/stock_screen.py` | WebSearch、手动获取 |
+| **港股历史数据** | 本地工具 `tools/hk_stock/stock_quote.py` | WebSearch、手动获取 |
+| **港股股票信息** | 本地工具 `tools/hk_stock/stock_info.py` | WebSearch、手动获取 |
+| **非A股公司信息** | WebSearch `tools/common/web_search.py` | 用户手动提供 |
+| **行业动态/新闻** | WebSearch `tools/common/web_search.py` | 用户手动提供 |
+| **最新市值/股价** | WebSearch `tools/common/web_search.py` | 本地工具（A股/港股） |
 
 **港股财务指标获取说明**：
 
@@ -220,13 +220,13 @@ python tools/web_search.py "搜索关键词" --json
 
 1. **获取年度财务指标**：
    ```bash
-   python tools/stock_info_hk.py --financial 00700
+   python tools/hk_stock/stock_financial.py --financial 00700
    ```
    返回数据包括：ROE、毛利率、净利率、经营现金流/营收、归母净利润、营业总收入等
 
 2. **获取报告期财务指标**：
    ```bash
-   python tools/stock_info_hk.py --financial 00700 --indicator 报告期
+   python tools/hk_stock/stock_financial.py --financial 00700 --indicator 报告期
    ```
 
 3. **关键指标字段映射**：

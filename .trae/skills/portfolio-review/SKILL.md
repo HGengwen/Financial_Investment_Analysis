@@ -59,29 +59,29 @@ disable-model-invocation: true
 **A股持仓**：
 ```bash
 # 股票信息查询
-python tools/stock_info.py --search {公司名}
+python tools/a_share/stock_info.py --search {公司名}
 
 # 财务指标
-python tools/stock_financial.py --code {股票代码}
+python tools/a_share/stock_financial.py --code {股票代码}
 
 # 股票行情
-python tools/stock_quote.py --code {股票代码}
+python tools/a_share/stock_quote.py --code {股票代码}
 ```
 
 **港股持仓**：
 ```bash
 # 股票信息与财务指标
-python tools/stock_info_hk.py --financial {股票代码}
+python tools/hk_stock/stock_financial.py --financial {股票代码}
 
 # 股票行情
-python tools/stock_quote_hk.py --code {股票代码}
+python tools/hk_stock/stock_quote.py --code {股票代码}
 ```
 
 **网络信息获取**（重大事件、分析师预期等）：
-- A股：`python tools/web_search.py "{公司名} 最新消息 分析师预期"`
-- 港股/美股：优先使用 `python tools/tavily_search.py "{公司名} 最新消息 分析师预期"`
+- A股：`python tools/common/web_search.py "{公司名} 最新消息 分析师预期"`
+- 港股/美股：优先使用 `python tools/common/tavily_search.py "{公司名} 最新消息 分析师预期"`
 
-对每个持仓使用 `tools/financial_rigor.py verify-valuation` 校验估值数据。
+对每个持仓使用 `tools/common/financial_rigor.py verify-valuation` 校验估值数据。
 
 对每只持仓标注信息丰富度（A/B/C级），C级持仓的分析结论标注低置信度。
 
@@ -154,7 +154,7 @@ python tools/stock_quote_hk.py --code {股票代码}
 | 2 | | | | | |
 | ... | | | | | |
 
-预期回报估算方法（使用 `tools/financial_rigor.py three-scenario` 计算）：
+预期回报估算方法（使用 `tools/common/financial_rigor.py three-scenario` 计算）：
 
 - **简化公式**：预期年化 ≈ FCF Yield + 预期增速（主要方法）
 - **价值型验证**：安全边际回归 + 利润增速 + 股息率
@@ -279,31 +279,31 @@ python tools/stock_quote_hk.py --code {股票代码}
 
 #### A股持仓
 
-- 股票信息：`python tools/stock_info.py --search {公司名}`
-- 财务指标：`python tools/stock_financial.py --code {股票代码}`
-- 股票行情：`python tools/stock_quote.py --code {股票代码}`
-- 股权结构：`python tools/stock_equity.py --code {股票代码}`
+- 股票信息：`python tools/a_share/stock_info.py --search {公司名}`
+- 财务指标：`python tools/a_share/stock_financial.py --code {股票代码}`
+- 股票行情：`python tools/a_share/stock_quote.py --code {股票代码}`
+- 股权结构：`python tools/a_share/stock_equity.py --code {股票代码}`
 
 #### 港股持仓
 
-- 股票信息与财务：`python tools/stock_info_hk.py --financial {股票代码}`
-- 股票行情：`python tools/stock_quote_hk.py --code {股票代码}`
+- 股票信息与财务：`python tools/hk_stock/stock_financial.py --financial {股票代码}`
+- 股票行情：`python tools/hk_stock/stock_quote.py --code {股票代码}`
 
 ### 财务计算与验证
 
-- 精确计算：`python tools/financial_rigor.py`（PE、ROE、市值校验、三情景估值等）
-- 报告审核：`python tools/report_audit.py`（数据抽检）
+- 精确计算：`python tools/common/financial_rigor.py`（PE、ROE、市值校验、三情景估值等）
+- 报告审核：`python tools/common/report_audit.py`（数据抽检）
 
 ### 网络信息获取
 
 #### A股公司
 
-- 网络搜索：`python tools/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
+- 网络搜索：`python tools/common/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
 
 #### 港股/美股公司（非国内上市）
 
-- **优先使用 Tavily 搜索**：`python tools/tavily_search.py "{搜索关键词}" --max-results 5`
-- **备选 WebSearch**：`python tools/web_search.py "{搜索关键词}"`
+- **优先使用 Tavily 搜索**：`python tools/common/tavily_search.py "{搜索关键词}" --max-results 5`
+- **备选 WebSearch**：`python tools/common/web_search.py "{搜索关键词}"`
 
 **注意**：WebSearch/WebFetch 在中国大陆不可用，所有网络信息必须使用本地工具。
 

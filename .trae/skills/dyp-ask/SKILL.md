@@ -197,16 +197,16 @@ disable-model-invocation: true
 本技能为问答型技能，通常不需要调用外部工具。但在分析具体公司时，可参考以下数据源：
 
 ### A股数据获取
-- 股票信息：`python tools/stock_info.py --search {公司名}`
-- 股票行情：`python tools/stock_quote.py --code {股票代码}`
-- 财务指标：`python tools/stock_financial.py --code {股票代码}`
+- 股票信息：`python tools/a_share/stock_info.py --search {公司名}`
+- 股票行情：`python tools/a_share/stock_quote.py --code {股票代码}`
+- 财务指标：`python tools/a_share/stock_financial.py --code {股票代码}`
 
 ### 港股数据获取
-- 股票信息与财务：`python tools/stock_info_hk.py --financial {股票代码}`
-- 股票行情：`python tools/stock_quote_hk.py --code {股票代码}`
+- 股票信息与财务：`python tools/hk_stock/stock_financial.py --financial {股票代码}`
+- 股票行情：`python tools/hk_stock/stock_quote.py --code {股票代码}`
 
 ### 网络信息获取
-- 网络信息搜索：`python tools/web_search.py "{搜索关键词}"`（阿里云百炼）
+- 网络信息搜索：`python tools/common/web_search.py "{搜索关键词}"`（阿里云百炼）
 
 **注意**：段永平强调"毛估估"，不需要精确数据。工具获取的数据仅供参考，重点在于理解生意模式和企业文化。
 

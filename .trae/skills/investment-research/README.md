@@ -124,12 +124,12 @@
 
 ```bash
 # Step 1 — 提取抽检清单（15%随机抽样）
-python tools/report_audit.py extract --report <报告文件路径>
+python tools/common/report_audit.py extract --report <报告文件路径>
 
 # Step 2 — 取数核验（按 financial-data 技能规范）
 
 # Step 3 — 输出判决
-python tools/report_audit.py verdict \
+python tools/common/report_audit.py verdict \
   --results '<填好的JSON>' --report <报告文件名>
 ```
 
@@ -144,43 +144,43 @@ python tools/report_audit.py verdict \
 
 | 工具 | 功能 |
 |------|------|
-| `tools/stock_info.py` | A股股票信息查询 |
-| `tools/stock_financial.py` | A股财务指标（ROE、毛利率等） |
-| `tools/stock_quote.py` | A股历史股价 |
-| `tools/stock_equity.py` | A股股权结构与年报下载 |
+| `tools/a_share/stock_info.py` | A股股票信息查询 |
+| `tools/a_share/stock_financial.py` | A股财务指标（ROE、毛利率等） |
+| `tools/a_share/stock_quote.py` | A股历史股价 |
+| `tools/a_share/stock_equity.py` | A股股权结构与年报下载 |
 
 ### 港股数据
 
 | 工具 | 功能 |
 |------|------|
-| `tools/stock_info_hk.py` | 港股信息与财务指标 |
-| `tools/stock_quote_hk.py` | 港股历史K线 |
-| `tools/stock_screen_hk.py` | 港股质量筛选 |
+| `tools/hk_stock/stock_info.py` | 港股信息与财务指标 |
+| `tools/hk_stock/stock_quote.py` | 港股历史K线 |
+| `tools/hk_stock/stock_screen.py` | 港股质量筛选 |
 
 ### 精确计算与审核
 
 | 工具 | 功能 |
 |------|------|
-| `tools/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证、三情景估值） |
-| `tools/report_audit.py` | 报告数据抽检与审核 |
+| `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证、三情景估值） |
+| `tools/common/report_audit.py` | 报告数据抽检与审核 |
 
 **关键计算命令**：
 
 ```bash
 # 市值验算
-python tools/financial_rigor.py verify-market-cap \
+python tools/common/financial_rigor.py verify-market-cap \
   --price {股价} --shares {总股本} --reported {报告市值} --currency {币种}
 
 # 关键数据交叉验证
-python tools/financial_rigor.py cross-validate \
+python tools/common/financial_rigor.py cross-validate \
   --field {字段名} --values '{"来源1": 数值, "来源2": 数值}' --unit {单位}
 
 # 估值指标验算
-python tools/financial_rigor.py verify-valuation \
+python tools/common/financial_rigor.py verify-valuation \
   --price {股价} --eps {EPS} --bvps {每股净资产} --fcf-per-share {每股FCF}
 
 # 三情景估值模型
-python tools/financial_rigor.py three-scenario \
+python tools/common/financial_rigor.py three-scenario \
   --price {股价} --eps {EPS} --shares {总股本亿} \
   --growth {乐观} {中性} {悲观} --pe {乐观PE} {中性PE} {悲观PE}
 ```
@@ -189,7 +189,7 @@ python tools/financial_rigor.py three-scenario \
 
 | 工具 | 功能 |
 |------|------|
-| `tools/web_search.py` | 网络信息搜索（阿里云百炼） |
+| `tools/common/web_search.py` | 网络信息搜索（阿里云百炼） |
 
 **重要约束**：
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
@@ -219,11 +219,11 @@ python tools/financial_rigor.py three-scenario \
 - 所有估计值必须明确标注"估计"
 - 市值必须手算校验：股价 × 总股本，与报告市值对比
 - 货币单位要明确（港币/人民币/美元），防止混淆
-- PE/ROE/估值等指标用 `tools/financial_rigor.py` 精确计算，禁止心算
+- PE/ROE/估值等指标用 `tools/common/financial_rigor.py` 精确计算，禁止心算
 - 报告开头必须包含信息丰富度评级和AI研究局限性声明
 - 报告结尾必须区分AI分析置信度与投资确定性
 - C级公司必须列出"需要一手验证的问题清单"
-- 报告发布前必须通过 `tools/report_audit.py` 数据抽检（准出流程）
+- 报告发布前必须通过 `tools/common/report_audit.py` 数据抽检（准出流程）
 
 ---
 

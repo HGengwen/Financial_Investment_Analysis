@@ -281,56 +281,29 @@ disable-model-invocation: true
 
 ## 工具使用指南
 
-### 财务数据获取工具
+本技能的工具使用规范详见以下公共技能文件：
+- A股/港股数据获取：[A股数据](../tools-scripts/a-share-data.md) / [港股数据](../tools-scripts/hk-share-data.md)
+- 财务计算与验证：[financial-calc](../tools-scripts/financial-calc.md)
+- 网络信息搜索：[web-search-tools](../tools-scripts/web-search-tools.md)
+- 全局约束规范：[global-constraints](../tools-scripts/global-constraints.md)
+- 完整索引：[公共工具索引](../tools-scripts/common-tools-guide.md)
 
-#### A股数据
+### 行业研究的特殊工具使用注意
 
-- 股票信息：`python tools/stock_info.py --search {公司名}`
-- 财务指标：`python tools/stock_financial.py --code {股票代码}`
-- 股票行情：`python tools/stock_quote.py --code {股票代码}`
-- 股权结构：`python tools/stock_equity.py --code {股票代码}`
+1. **产业链扫描需覆盖全市场**：A股/港股/美股/国际市场，不遗漏重要标的
+2. **每个产业链环节至少分析 2-3 家头部公司**
+3. **港股/美股重要分析建议同时调用 Tavily 和 WebSearch 互为补充**
+4. **对每家公司标注"信息充分度"**（A/B/C级），让读者知道 AI 分析的可靠程度
 
-#### 港股数据
+### 网络搜索并行调用示例
 
-- 股票信息与财务：`python tools/stock_info_hk.py --financial {股票代码}`
-- 股票行情：`python tools/stock_quote_hk.py --code {股票代码}`
-
-### 财务计算与验证工具
-
-- 精确计算：`python tools/financial_rigor.py`（PE、ROE、市值校验等）
-- 报告审核：`python tools/report_audit.py`（数据抽检）
-
-### 网络信息获取
-
-#### A股公司
-
-- 网络搜索：`python tools/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
-
-#### 港股/美股公司（非国内上市）
-
-- **优先使用 Tavily 搜索**：`python tools/tavily_search.py "{搜索关键词}" --max-results 5`
-  - Tavily 提供更高质量的内容和更详细的信息
-  - 返回 title、url、content 三个字段
-  - 支持高级搜索（search_depth="advanced"）
-- **备选 WebSearch**：`python tools/web_search.py "{搜索关键词}"`
-  - 作为补充信息源
-
-#### 重要内容（同时调用）
-
-对于港股/美股的重要分析，建议**同时调用两个工具**，互为补充：
-
-- Tavily 搜索：获取详细内容和深度分析
-- WebSearch 搜索：获取更多来源和不同视角
-
-**示例**：
+对于港股/美股的重要行业分析，建议同时调用两个搜索工具：
 
 ```bash
 # 同时调用两个工具（并行执行）
-python tools/tavily_search.py "核电行业 全球竞争格局 主要玩家"
-python tools/web_search.py "核电行业 全球竞争格局 主要玩家"
+python tools/common/tavily_search.py "核电行业 全球竞争格局 主要玩家"
+python tools/common/web_search.py "核电行业 全球竞争格局 主要玩家"
 ```
-
-**注意**：WebSearch/WebFetch 在中国大陆不可用，所有网络信息必须使用本地工具。
 
 ---
 
@@ -468,19 +441,19 @@ reports/
 
 ## 数据抽检（准出流程）
 
-报告写入后，执行数据抽检，通过方可发布：
+报告写入后必须执行数据抽检，通过方可发布。具体流程详见 **[报告审核与数据抽检](../tools-scripts/report-audit.md)**。
 
 ```bash
-# Step 1 — 提取抽检清单（15%随机抽样）
-python tools/report_audit.py extract \
+# Step 1 - 提取抽检清单（15%随机抽样）
+python tools/common/report_audit.py extract \
   --report reports/{行业名}-industry-{YYYYMMDD}.md
 
-# Step 2 — 对清单每项从可靠信源取数
+# Step 2 - 对清单每项从可靠信源取数（按 financial-data 技能规范）
 
-# Step 3 — 输出准出/打回判决
-python tools/report_audit.py verdict \
+# Step 3 - 输出准出/打回判决
+python tools/common/report_audit.py verdict \
   --results '<填好的JSON>' \
   --report {行业名}-industry-{YYYYMMDD}.md
 ```
 
-**【准出】** 全部通过 → 报告可发布；**【打回】** 有不通过 → 修正后重审。
+**【准出】** 全部通过 -> 报告可发布；**【打回】** 有不通过 -> 修正后重审。

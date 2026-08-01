@@ -144,13 +144,13 @@
 
 | 工具 | 功能 |
 |------|------|
-| `tools/web_search.py` | A股网络信息搜索（阿里云百炼） |
-| `tools/tavily_search.py` | 港股/美股/国际主题网络搜索 |
+| `tools/common/web_search.py` | A股网络信息搜索（阿里云百炼） |
+| `tools/common/tavily_search.py` | 港股/美股/国际主题网络搜索 |
 | `pdftotext` | PDF转纯文本（Poppler工具集） |
 | `pdfinfo` | 获取PDF文档信息（Poppler工具集） |
 | `pdftoppm` | PDF页面渲染为图像（Poppler工具集） |
-| `tools/stock_equity.py` | A股年报PDF下载 |
-| `tools/stock_financial.py` | A股财务指标（投资类文章） |
+| `tools/a_share/stock_equity.py` | A股年报PDF下载 |
+| `tools/a_share/stock_financial.py` | A股财务指标（投资类文章） |
 | Trae图片生成API | 非论文类文章配图生成 |
 
 **重要约束**：

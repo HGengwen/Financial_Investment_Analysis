@@ -82,31 +82,31 @@ disable-model-invocation: true
 
 ### A3：数值与估值校验
 
-所有数值变化必须使用 `tools/financial_rigor.py` 做精确计算，禁止 LLM 心算：
+所有数值变化必须使用 `tools/common/financial_rigor.py` 做精确计算，禁止 LLM 心算：
 
 ```bash
 # 估值验证
-python tools/financial_rigor.py verify-valuation \
+python tools/common/financial_rigor.py verify-valuation \
   --price {当前价格} \
   --eps {EPS} \
   --bvps {每股净资产} \
   --fcf-per-share {每股自由现金流}
 
 # 市值验证
-python tools/financial_rigor.py verify-market-cap \
+python tools/common/financial_rigor.py verify-market-cap \
   --price {价格} --shares {股本} --reported {报告市值} --currency {币种}
 
 # 数据交叉验证
-python tools/financial_rigor.py cross-validate \
+python tools/common/financial_rigor.py cross-validate \
   --field {字段} --values '{JSON}' --unit {单位}
 
 # 三情景估值
-python tools/financial_rigor.py three-scenario \
+python tools/common/financial_rigor.py three-scenario \
   --price {价格} --eps {EPS} --shares {股本亿} \
   --growth {乐观} {中性} {悲观} --pe {乐观PE} {中性PE} {悲观PE}
 
 # 精确计算
-python tools/financial_rigor.py calc --expr '{精确算式}'
+python tools/common/financial_rigor.py calc --expr '{精确算式}'
 ```
 
 关键财务数据必须至少两处独立来源交叉验证。来源不足、口径不一致、无法复核的数字必须标注为"低置信度 / 待核实"。
@@ -150,29 +150,29 @@ python tools/financial_rigor.py calc --expr '{精确算式}'
 
 ```bash
 # 股票信息查询
-python tools/stock_info.py --search {公司名}
+python tools/a_share/stock_info.py --search {公司名}
 
 # 财务指标
-python tools/stock_financial.py --code {股票代码}
+python tools/a_share/stock_financial.py --code {股票代码}
 
 # 股票行情
-python tools/stock_quote.py --code {股票代码}
+python tools/a_share/stock_quote.py --code {股票代码}
 ```
 
 #### 港股数据
 
 ```bash
 # 股票信息与财务指标
-python tools/stock_info_hk.py --financial {股票代码}
+python tools/hk_stock/stock_financial.py --financial {股票代码}
 
 # 股票行情
-python tools/stock_quote_hk.py --code {股票代码}
+python tools/hk_stock/stock_quote.py --code {股票代码}
 ```
 
 #### 网络信息获取
 
-- A股：`python tools/web_search.py "{公司名} 最新财报 管理层讨论"`
-- 港股/美股：优先使用 `python tools/tavily_search.py "{公司名} 最新财报 管理层讨论"`
+- A股：`python tools/common/web_search.py "{公司名} 最新财报 管理层讨论"`
+- 港股/美股：优先使用 `python tools/common/tavily_search.py "{公司名} 最新财报 管理层讨论"`
 
 ---
 
@@ -292,32 +292,32 @@ python tools/stock_quote_hk.py --code {股票代码}
 
 ### 财务数据验证
 
-- 精确计算：`python tools/financial_rigor.py`（PE、ROE、市值校验、三情景估值等）
-- 报告审核：`python tools/report_audit.py`（数据抽检）
+- 精确计算：`python tools/common/financial_rigor.py`（PE、ROE、市值校验、三情景估值等）
+- 报告审核：`python tools/common/report_audit.py`（数据抽检）
 
 ### 数据获取工具
 
 #### A股数据
 
-- 股票信息：`python tools/stock_info.py --search {公司名}`
-- 财务指标：`python tools/stock_financial.py --code {股票代码}`
-- 股票行情：`python tools/stock_quote.py --code {股票代码}`
+- 股票信息：`python tools/a_share/stock_info.py --search {公司名}`
+- 财务指标：`python tools/a_share/stock_financial.py --code {股票代码}`
+- 股票行情：`python tools/a_share/stock_quote.py --code {股票代码}`
 
 #### 港股数据
 
-- 股票信息与财务：`python tools/stock_info_hk.py --financial {股票代码}`
-- 股票行情：`python tools/stock_quote_hk.py --code {股票代码}`
+- 股票信息与财务：`python tools/hk_stock/stock_financial.py --financial {股票代码}`
+- 股票行情：`python tools/hk_stock/stock_quote.py --code {股票代码}`
 
 ### 网络信息获取
 
 #### A股公司
 
-- 网络搜索：`python tools/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
+- 网络搜索：`python tools/common/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
 
 #### 港股/美股公司（非国内上市）
 
-- **优先使用 Tavily 搜索**：`python tools/tavily_search.py "{搜索关键词}" --max-results 5`
-- **备选 WebSearch**：`python tools/web_search.py "{搜索关键词}"`
+- **优先使用 Tavily 搜索**：`python tools/common/tavily_search.py "{搜索关键词}" --max-results 5`
+- **备选 WebSearch**：`python tools/common/web_search.py "{搜索关键词}"`
 
 **注意**：WebSearch/WebFetch 在中国大陆不可用，所有网络信息必须使用本地工具。
 
@@ -327,7 +327,7 @@ python tools/stock_quote_hk.py --code {股票代码}
 
 1. **证据优先于措辞** — 同义改写不是漂移，只有事实证据变化才是漂移
 2. **基本面优先于股价** — 股价涨跌只影响估值锚点，不自动改变生意质量
-3. **数值必须验算** — 所有百分比、估值倍数、目标价差异必须用 `tools/financial_rigor.py`
+3. **数值必须验算** — 所有百分比、估值倍数、目标价差异必须用 `tools/common/financial_rigor.py`
 4. **不确定就标注不确定** — 来源缺失、口径不一致、无法复核时，不要硬判
 5. **红线单独处理** — 红线触发优先级高于估值便宜，不能被低 PE 掩盖
 6. **输出必须可复盘** — 每个 Improved / Weakened 结论都要能追溯到具体证据

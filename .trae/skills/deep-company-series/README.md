@@ -126,27 +126,27 @@ reports/
 
 | 工具 | 功能 |
 |------|------|
-| `tools/stock_info.py` | A股股票代码查询 |
-| `tools/stock_financial.py` | A股财务指标查询 |
-| `tools/stock_screen.py` | A股质量筛选7条指标 |
-| `tools/stock_quote.py` | A股行情数据 |
-| `tools/stock_equity.py` | A股股权结构与财报下载 |
+| `tools/a_share/stock_info.py` | A股股票代码查询 |
+| `tools/a_share/stock_financial.py` | A股财务指标查询 |
+| `tools/a_share/stock_screen.py` | A股质量筛选7条指标 |
+| `tools/a_share/stock_quote.py` | A股行情数据 |
+| `tools/a_share/stock_equity.py` | A股股权结构与财报下载 |
 
 ### 港股数据
 
 | 工具 | 功能 |
 |------|------|
-| `tools/stock_info_hk.py` | 港股信息查询与财务指标 |
-| `tools/stock_quote_hk.py` | 港股历史K线与指数 |
-| `tools/stock_screen_hk.py` | 港股质量筛选7条指标 |
+| `tools/hk_stock/stock_info.py` | 港股信息查询与财务指标 |
+| `tools/hk_stock/stock_quote.py` | 港股历史K线与指数 |
+| `tools/hk_stock/stock_screen.py` | 港股质量筛选7条指标 |
 
 ### 财务计算与网络搜索
 
 | 工具 | 功能 |
 |------|------|
-| `tools/financial_rigor.py` | 精确财务计算（市值、PE、ROE等） |
-| `tools/web_search.py` | 网络信息搜索（阿里云百炼） |
-| `tools/tavily_search.py` | 港股/美股网络信息搜索 |
+| `tools/common/financial_rigor.py` | 精确财务计算（市值、PE、ROE等） |
+| `tools/common/web_search.py` | 网络信息搜索（阿里云百炼） |
+| `tools/common/tavily_search.py` | 港股/美股网络信息搜索 |
 
 **重要约束**：
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
@@ -176,7 +176,7 @@ reports/
 - 关键财务数据必须至少两个独立来源交叉验证
 - 市值必须手算校验：股价 × 总股本，与报告市值对比
 - 货币单位要明确（港币/人民币/美元），防止混淆
-- PE/ROE 等指标用 `tools/financial_rigor.py` 精确计算
+- PE/ROE 等指标用 `tools/common/financial_rigor.py` 精确计算
 - 不预设立场：先摆数据 → 推逻辑 → 出结论
 - 推送前必须用 grep 扫描本机用户名、`/Users/`、真实姓名等隐私字段
 - 报告写完后主动询问是否推送到 GitHub

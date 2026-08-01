@@ -49,28 +49,28 @@ disable-model-invocation: true
 
 ```bash
 # 股票信息查询
-python tools/stock_info.py --search {公司名}
+python tools/a_share/stock_info.py --search {公司名}
 
 # 财务指标
-python tools/stock_financial.py --code {股票代码}
+python tools/a_share/stock_financial.py --code {股票代码}
 
 # 股票行情
-python tools/stock_quote.py --code {股票代码}
+python tools/a_share/stock_quote.py --code {股票代码}
 ```
 
 #### 港股数据获取
 
 ```bash
 # 股票信息与财务指标
-python tools/stock_info_hk.py --financial {股票代码}
+python tools/hk_stock/stock_financial.py --financial {股票代码}
 
 # 股票行情
-python tools/stock_quote_hk.py --code {股票代码}
+python tools/hk_stock/stock_quote.py --code {股票代码}
 ```
 
 #### 估值数据校验
 
-使用 `tools/financial_rigor.py verify-valuation` 校验估值数据。
+使用 `tools/common/financial_rigor.py verify-valuation` 校验估值数据。
 
 如果已有该公司的 `/investment-research` 或 `/investment-team` 报告，优先从中读取。
 
@@ -133,7 +133,7 @@ python tools/stock_quote_hk.py --code {股票代码}
 | 内在价值估算 | | | | |
 | 安全边际 | | | | |
 
-使用 `tools/financial_rigor.py three-scenario` 计算三情景估值。
+使用 `tools/common/financial_rigor.py three-scenario` 计算三情景估值。
 
 ---
 
@@ -170,24 +170,24 @@ python tools/stock_quote_hk.py --code {股票代码}
 
 ```bash
 # 最新财务指标
-python tools/stock_financial.py --code {股票代码}
+python tools/a_share/stock_financial.py --code {股票代码}
 
 # 最新行情
-python tools/stock_quote.py --code {股票代码}
+python tools/a_share/stock_quote.py --code {股票代码}
 ```
 
 #### 港股数据更新
 
 ```bash
 # 最新财务指标和行情
-python tools/stock_info_hk.py --financial {股票代码}
-python tools/stock_quote_hk.py --code {股票代码}
+python tools/hk_stock/stock_financial.py --financial {股票代码}
+python tools/hk_stock/stock_quote.py --code {股票代码}
 ```
 
 #### 网络信息获取
 
-- A股：`python tools/web_search.py "{公司名} 最新财报 管理层变动 监管政策"`
-- 港股/美股：优先使用 `python tools/tavily_search.py "{公司名} 最新财报 管理层变动 监管政策"`
+- A股：`python tools/common/web_search.py "{公司名} 最新财报 管理层变动 监管政策"`
+- 港股/美股：优先使用 `python tools/common/tavily_search.py "{公司名} 最新财报 管理层变动 监管政策"`
 
 收集内容：
 1. 最新财报数据（如果有新的季报/年报）
@@ -238,7 +238,7 @@ python tools/stock_quote_hk.py --code {股票代码}
 | 内在价值估算 | | | | |
 | 安全边际 | | | | |
 
-使用 `tools/financial_rigor.py verify-valuation` 校验当前估值。
+使用 `tools/common/financial_rigor.py verify-valuation` 校验当前估值。
 
 ---
 
@@ -310,32 +310,32 @@ X / 10分
 
 ### 财务数据验证
 
-- 精确计算：`python tools/financial_rigor.py`（PE、ROE、市值校验、三情景估值等）
-- 报告审核：`python tools/report_audit.py`（数据抽检）
+- 精确计算：`python tools/common/financial_rigor.py`（PE、ROE、市值校验、三情景估值等）
+- 报告审核：`python tools/common/report_audit.py`（数据抽检）
 
 ### 数据获取工具
 
 #### A股数据
 
-- 股票信息：`python tools/stock_info.py --search {公司名}`
-- 财务指标：`python tools/stock_financial.py --code {股票代码}`
-- 股票行情：`python tools/stock_quote.py --code {股票代码}`
+- 股票信息：`python tools/a_share/stock_info.py --search {公司名}`
+- 财务指标：`python tools/a_share/stock_financial.py --code {股票代码}`
+- 股票行情：`python tools/a_share/stock_quote.py --code {股票代码}`
 
 #### 港股数据
 
-- 股票信息与财务：`python tools/stock_info_hk.py --financial {股票代码}`
-- 股票行情：`python tools/stock_quote_hk.py --code {股票代码}`
+- 股票信息与财务：`python tools/hk_stock/stock_financial.py --financial {股票代码}`
+- 股票行情：`python tools/hk_stock/stock_quote.py --code {股票代码}`
 
 ### 网络信息获取
 
 #### A股公司
 
-- 网络搜索：`python tools/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
+- 网络搜索：`python tools/common/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
 
 #### 港股/美股公司（非国内上市）
 
-- **优先使用 Tavily 搜索**：`python tools/tavily_search.py "{搜索关键词}" --max-results 5`
-- **备选 WebSearch**：`python tools/web_search.py "{搜索关键词}"`
+- **优先使用 Tavily 搜索**：`python tools/common/tavily_search.py "{搜索关键词}" --max-results 5`
+- **备选 WebSearch**：`python tools/common/web_search.py "{搜索关键词}"`
 
 **注意**：WebSearch/WebFetch 在中国大陆不可用，所有网络信息必须使用本地工具。
 

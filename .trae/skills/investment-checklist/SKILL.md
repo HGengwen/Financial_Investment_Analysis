@@ -48,28 +48,28 @@ disable-model-invocation: true
 8. **最新动态**：近6个月重大事件（业绩、并购、监管、管理层变动等）
 
 **数据获取工具规范**：
-- A股数据：使用 `tools/stock_info.py`、`tools/stock_quote.py`、`tools/stock_financial.py`、`tools/stock_screen.py`
-- 港股数据：使用 `tools/stock_info_hk.py`、`tools/stock_quote_hk.py`、`tools/stock_screen_hk.py`
-- 精确计算：使用 `tools/financial_rigor.py` 进行PE、ROE、市值等指标的精确计算
+- A股数据：使用 `tools/a_share/stock_info.py`、`tools/a_share/stock_quote.py`、`tools/a_share/stock_financial.py`、`tools/a_share/stock_screen.py`
+- 港股数据：使用 `tools/hk_stock/stock_info.py`、`tools/hk_stock/stock_quote.py`、`tools/hk_stock/stock_screen.py`
+- 精确计算：使用 `tools/common/financial_rigor.py` 进行PE、ROE、市值等指标的精确计算
 - 网络搜索：根据公司上市地点选择相应工具（详见下方说明）
 
 #### 网络信息获取工具选择
 
 **A股公司**：
-- 使用 `tools/web_search.py`（阿里云百炼 WebSearch）
-- 命令示例：`python tools/web_search.py "{公司名} 护城河 竞争优势"`
+- 使用 `tools/common/web_search.py`（阿里云百炼 WebSearch）
+- 命令示例：`python tools/common/web_search.py "{公司名} 护城河 竞争优势"`
 
 **港股/美股公司（非国内上市）**：
-- **优先使用 Tavily 搜索**：`tools/tavily_search.py`
+- **优先使用 Tavily 搜索**：`tools/common/tavily_search.py`
   - Tavily 提供更高质量的内容和更详细的信息
   - 返回 title、url、content 三个字段
   - 支持高级搜索（search_depth="advanced"）
-- **备选 WebSearch**：`tools/web_search.py`
+- **备选 WebSearch**：`tools/common/web_search.py`
   - 作为补充信息源
 - 命令示例：
   ```bash
-  python tools/tavily_search.py "腾讯 管理层 马化腾 CEO" --max-results 5
-  python tools/web_search.py "腾讯 管理层 马化腾 CEO"
+  python tools/common/tavily_search.py "腾讯 管理层 马化腾 CEO" --max-results 5
+  python tools/common/web_search.py "腾讯 管理层 马化腾 CEO"
   ```
 
 **重要内容（同时调用）**：
@@ -81,10 +81,10 @@ disable-model-invocation: true
 
 | 数据收集维度 | A股搜索示例 | 港股/美股搜索示例 |
 |------------|-----------|-----------------|
-| **竞争格局** | `python tools/web_search.py "{公司名} 行业排名 市场份额"` | `python tools/tavily_search.py "{公司名} market share competitors" --max-results 5` |
-| **护城河证据** | `python tools/web_search.py "{公司名} 护城河 竞争优势"` | `python tools/tavily_search.py "{公司名} competitive advantage moat" --max-results 5` |
-| **管理层记录** | `python tools/web_search.py "{公司名} CEO 履历 资本配置"` | `python tools/tavily_search.py "{公司名} CEO management capital allocation" --max-results 5` |
-| **最新动态** | `python tools/web_search.py "{公司名} 最新消息 2026"` | `python tools/tavily_search.py "{公司名} latest news 2026" --max-results 5` |
+| **竞争格局** | `python tools/common/web_search.py "{公司名} 行业排名 市场份额"` | `python tools/common/tavily_search.py "{公司名} market share competitors" --max-results 5` |
+| **护城河证据** | `python tools/common/web_search.py "{公司名} 护城河 竞争优势"` | `python tools/common/tavily_search.py "{公司名} competitive advantage moat" --max-results 5` |
+| **管理层记录** | `python tools/common/web_search.py "{公司名} CEO 履历 资本配置"` | `python tools/common/tavily_search.py "{公司名} CEO management capital allocation" --max-results 5` |
+| **最新动态** | `python tools/common/web_search.py "{公司名} 最新消息 2026"` | `python tools/common/tavily_search.py "{公司名} latest news 2026" --max-results 5` |
 
 #### 网络搜索工具对比
 
@@ -132,7 +132,7 @@ disable-model-invocation: true
 用数据说话，**关键指标必须通过工具精确计算**：
 
 ```bash
-python tools/financial_rigor.py verify-valuation \
+python tools/common/financial_rigor.py verify-valuation \
   --price {股价} --eps {EPS} --bvps {每股净资产} --fcf-per-share {每股FCF} --dividend {每股股息}
 ```
 
@@ -209,7 +209,7 @@ python tools/financial_rigor.py verify-valuation \
 追加检验（**必须通过工具精确计算，禁止心算**）：
 
 ```bash
-python tools/financial_rigor.py three-scenario \
+python tools/common/financial_rigor.py three-scenario \
   --price {股价} --eps {EPS} --shares {股本亿} \
   --growth {乐观} {中性} {悲观} --pe {乐观PE} {中性PE} {悲观PE} --currency {币种}
 ```
@@ -315,28 +315,28 @@ python tools/financial_rigor.py three-scenario \
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `tools/stock_info.py` | A股信息查询 | `python tools/stock_info.py --search 新易盛` |
-| `tools/stock_quote.py` | A股行情数据 | `python tools/stock_quote.py --code 300502` |
-| `tools/stock_financial.py` | A股财务指标 | `python tools/stock_financial.py --code 300502` |
-| `tools/stock_screen.py` | 质量筛选7条指标 | `python tools/stock_screen.py --code 300502` |
+| `tools/a_share/stock_info.py` | A股信息查询 | `python tools/a_share/stock_info.py --search 新易盛` |
+| `tools/a_share/stock_quote.py` | A股行情数据 | `python tools/a_share/stock_quote.py --code 300502` |
+| `tools/a_share/stock_financial.py` | A股财务指标 | `python tools/a_share/stock_financial.py --code 300502` |
+| `tools/a_share/stock_screen.py` | 质量筛选7条指标 | `python tools/a_share/stock_screen.py --code 300502` |
 
 ### 港股数据工具
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `tools/stock_info_hk.py` | 港股信息查询、财务指标 | `python tools/stock_info_hk.py --financial 00700` |
-| `tools/stock_quote_hk.py` | 港股历史K线、指数数据 | `python tools/stock_quote_hk.py --code 00700` |
-| `tools/stock_screen_hk.py` | 港股质量筛选7条指标 | `python tools/stock_screen_hk.py --code 00700` |
+| `tools/hk_stock/stock_financial.py` | 港股信息查询、财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| `tools/hk_stock/stock_quote.py` | 港股历史K线、指数数据 | `python tools/hk_stock/stock_quote.py --code 00700` |
+| `tools/hk_stock/stock_screen.py` | 港股质量筛选7条指标 | `python tools/hk_stock/stock_screen.py --code 00700` |
 
 ### 精确计算工具
 
 ```bash
 # 估值指标验证
-python tools/financial_rigor.py verify-valuation \
+python tools/common/financial_rigor.py verify-valuation \
   --price {股价} --eps {EPS} --bvps {每股净资产} --fcf-per-share {每股FCF} --dividend {每股股息}
 
 # 三情景估值模型
-python tools/financial_rigor.py three-scenario \
+python tools/common/financial_rigor.py three-scenario \
   --price {股价} --eps {EPS} --shares {股本亿} \
   --growth {乐观} {中性} {悲观} --pe {乐观PE} {中性PE} {悲观PE} --currency {币种}
 ```
@@ -345,45 +345,45 @@ python tools/financial_rigor.py three-scenario \
 
 #### A股公司
 
-- 网络搜索：`python tools/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
+- 网络搜索：`python tools/common/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
 
 **搜索示例**：
 ```bash
 # 获取竞争格局信息
-python tools/web_search.py "贵州茅台 行业排名 市场份额"
+python tools/common/web_search.py "贵州茅台 行业排名 市场份额"
 
 # 获取护城河证据
-python tools/web_search.py "贵州茅台 护城河 品牌溢价"
+python tools/common/web_search.py "贵州茅台 护城河 品牌溢价"
 
 # 获取管理层信息
-python tools/web_search.py "贵州茅台 CEO 履历 管理层"
+python tools/common/web_search.py "贵州茅台 CEO 履历 管理层"
 
 # 获取最新动态
-python tools/web_search.py "贵州茅台 最新消息 2026"
+python tools/common/web_search.py "贵州茅台 最新消息 2026"
 ```
 
 #### 港股/美股公司（非国内上市）
 
-- **优先使用 Tavily 搜索**：`python tools/tavily_search.py "{搜索关键词}" --max-results 5`
+- **优先使用 Tavily 搜索**：`python tools/common/tavily_search.py "{搜索关键词}" --max-results 5`
   - Tavily 提供更高质量的内容和更详细的信息
   - 返回 title、url、content 三个字段
   - 支持高级搜索（search_depth="advanced"）
-- **备选 WebSearch**：`python tools/web_search.py "{搜索关键词}"`
+- **备选 WebSearch**：`python tools/common/web_search.py "{搜索关键词}"`
   - 作为补充信息源
 
 **搜索示例**：
 ```bash
 # 基本搜索
-python tools/tavily_search.py "腾讯 管理层 马化腾 CEO" --max-results 5
+python tools/common/tavily_search.py "腾讯 管理层 马化腾 CEO" --max-results 5
 
 # 高级搜索（更详细的内容）
-python tools/tavily_search.py "腾讯 competitive advantage moat" --search-depth advanced --max-results 5
+python tools/common/tavily_search.py "腾讯 competitive advantage moat" --search-depth advanced --max-results 5
 
 # 获取管理层记录
-python tools/tavily_search.py "腾讯 capital allocation buyback dividend" --max-results 5
+python tools/common/tavily_search.py "腾讯 capital allocation buyback dividend" --max-results 5
 
 # 获取最新动态
-python tools/tavily_search.py "腾讯 latest news 2026" --max-results 5
+python tools/common/tavily_search.py "腾讯 latest news 2026" --max-results 5
 ```
 
 #### 重要内容建议同时调用
@@ -392,8 +392,8 @@ python tools/tavily_search.py "腾讯 latest news 2026" --max-results 5
 
 ```bash
 # 同时调用两个工具（并行执行）
-python tools/tavily_search.py "腾讯 competitive advantage" --max-results 5
-python tools/web_search.py "腾讯 护城河 竞争优势"
+python tools/common/tavily_search.py "腾讯 competitive advantage" --max-results 5
+python tools/common/web_search.py "腾讯 护城河 竞争优势"
 ```
 
 **工具对比**：
@@ -420,7 +420,7 @@ python tools/web_search.py "腾讯 护城河 竞争优势"
 - 所有估计值必须明确标注"估计"
 - 市值必须手算校验：股价 × 总股本
 - 货币单位要明确（港币/人民币/美元），防止混淆
-- PE/ROE等指标用 `tools/financial_rigor.py` 精确计算
+- PE/ROE等指标用 `tools/common/financial_rigor.py` 精确计算
 
 ---
 

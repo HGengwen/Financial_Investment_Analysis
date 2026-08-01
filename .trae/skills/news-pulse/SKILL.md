@@ -241,15 +241,15 @@ disable-model-invocation: true
 
 #### A股公司
 
-- 网络搜索：`python tools/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
+- 网络搜索：`python tools/common/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
 
 #### 港股/美股公司（非国内上市）
 
-- **优先使用 Tavily 搜索**：`python tools/tavily_search.py "{搜索关键词}" --max-results 5`
+- **优先使用 Tavily 搜索**：`python tools/common/tavily_search.py "{搜索关键词}" --max-results 5`
   - Tavily 提供更高质量的内容和更详细的信息
   - 返回 title、url、content 三个字段
   - 支持高级搜索（search_depth="advanced"）
-- **备选 WebSearch**：`python tools/web_search.py "{搜索关键词}"`
+- **备选 WebSearch**：`python tools/common/web_search.py "{搜索关键词}"`
   - 作为补充信息源
 
 #### 重要内容（同时调用）
@@ -263,20 +263,20 @@ disable-model-invocation: true
 
 ```bash
 # 同时调用两个工具（并行执行）
-python tools/tavily_search.py "腾讯 监管 2026年7月"
-python tools/web_search.py "腾讯 监管 2026年7月"
+python tools/common/tavily_search.py "腾讯 监管 2026年7月"
+python tools/common/web_search.py "腾讯 监管 2026年7月"
 ```
 
 ### A股数据获取
 
-- 股票信息：`python tools/stock_info.py --search {公司名}`
-- 财务指标：`python tools/stock_financial.py --code {股票代码}`
-- 股票行情：`python tools/stock_quote.py --code {股票代码}`
+- 股票信息：`python tools/a_share/stock_info.py --search {公司名}`
+- 财务指标：`python tools/a_share/stock_financial.py --code {股票代码}`
+- 股票行情：`python tools/a_share/stock_quote.py --code {股票代码}`
 
 ### 港股数据获取
 
-- 股票信息与财务：`python tools/stock_info_hk.py --financial {股票代码}`
-- 股票行情：`python tools/stock_quote_hk.py --code {股票代码}`
+- 股票信息与财务：`python tools/hk_stock/stock_financial.py --financial {股票代码}`
+- 股票行情：`python tools/hk_stock/stock_quote.py --code {股票代码}`
 
 **注意**：WebSearch/WebFetch 在中国大陆不可用，所有网络信息必须使用本地工具。
 

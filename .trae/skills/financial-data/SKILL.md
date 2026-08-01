@@ -58,8 +58,8 @@ disable-model-invocation: true
 ### 第一步：确认上市地点与股票代码
 
 首先确认公司的上市情况：
-- **仅A股**：使用 `tools/stock_info.py` 和 `tools/stock_financial.py`
-- **仅港股**：使用 `tools/stock_info_hk.py`
+- **仅A股**：使用 `tools/a_share/stock_info.py` 和 `tools/a_share/stock_financial.py`
+- **仅港股**：使用 `tools/hk_stock/stock_info.py`
 - **A+H股**：同时使用A股和港股工具
 - **美股**：通过浏览器手动访问 macrotrends/stockanalysis
 
@@ -71,10 +71,10 @@ disable-model-invocation: true
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `tools/stock_info.py` | A股信息查询 | `python tools/stock_info.py --search 紫金矿业` |
-| `tools/stock_financial.py` | A股财务指标（ROE、毛利率等） | `python tools/stock_financial.py --code 601899` |
-| `tools/stock_quote.py` | A股历史股价 | `python tools/stock_quote.py --code 601899` |
-| `tools/stock_equity.py` | 股权结构与年报下载 | `python tools/stock_equity.py --code 601899` |
+| `tools/a_share/stock_info.py` | A股信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
+| `tools/a_share/stock_financial.py` | A股财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
+| `tools/a_share/stock_quote.py` | A股历史股价 | `python tools/a_share/stock_quote.py --code 601899` |
+| `tools/a_share/stock_equity.py` | 股权结构与年报下载 | `python tools/a_share/stock_equity.py --code 601899` |
 
 **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
@@ -84,9 +84,9 @@ disable-model-invocation: true
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `tools/stock_info_hk.py` | 港股信息查询、财务指标 | `python tools/stock_info_hk.py --financial 00700` |
-| `tools/stock_quote_hk.py` | 港股历史K线 | `python tools/stock_quote_hk.py --code 00700` |
-| `tools/stock_screen_hk.py` | 港股质量筛选 | `python tools/stock_screen_hk.py --code 00700` |
+| `tools/hk_stock/stock_financial.py` | 港股信息查询、财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
+| `tools/hk_stock/stock_screen.py` | 港股质量筛选 | `python tools/hk_stock/stock_screen.py --code 00700` |
 
 **数据源**：东方财富、新浪财经
 
@@ -260,7 +260,7 @@ pdftoppm -png -r 600 601899_2025年报.pdf output/page
 
 ```bash
 # 步骤1：下载年报PDF
-python tools/stock_equity.py --code 601899 --download-report
+python tools/a_share/stock_equity.py --code 601899 --download-report
 
 # 步骤2：检查PDF类型（文本版 vs 扫描版）
 pdftotext -layout 601899_2025年报.pdf - | head -100
@@ -318,7 +318,7 @@ grep -n "净利润\|营业收入\|毛利率\|ROE" 601899_2025年报.txt
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `tools/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证） | `python tools/financial_rigor.py verify-valuation --pe 25.5 --eps 10.2` |
+| `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证） | `python tools/common/financial_rigor.py verify-valuation --pe 25.5 --eps 10.2` |
 
 ### 网络搜索工具
 
@@ -326,7 +326,7 @@ grep -n "净利润\|营业收入\|毛利率\|ROE" 601899_2025年报.txt
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `tools/web_search.py` | 网络信息搜索（阿里云百炼） | `python tools/web_search.py "紫金矿业 2025年净利润"` |
+| `tools/common/web_search.py` | 网络信息搜索（阿里云百炼） | `python tools/common/web_search.py "紫金矿业 2025年净利润"` |
 
 ---
 

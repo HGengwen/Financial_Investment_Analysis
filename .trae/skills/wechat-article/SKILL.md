@@ -63,16 +63,16 @@ disable-model-invocation: true
 
 **A股相关主题**：
 ```bash
-python tools/web_search.py "{搜索关键词}"
+python tools/common/web_search.py "{搜索关键词}"
 ```
 
 **港股/美股/国际主题**：
 ```bash
 # 优先使用Tavily搜索
-python tools/tavily_search.py "{搜索关键词}" --max-results 5
+python tools/common/tavily_search.py "{搜索关键词}" --max-results 5
 
 # 备选WebSearch
-python tools/web_search.py "{搜索关键词}"
+python tools/common/web_search.py "{搜索关键词}"
 ```
 
 **重要内容建议同时调用两个工具**，互为补充。
@@ -245,7 +245,7 @@ python tools/web_search.py "{搜索关键词}"
    - 格式：`https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt={prompt}&image_size={image_size}`
    - `image_size` 选项：square_hd, square, portrait_4_3, portrait_16_9, landscape_4_3, landscape_16_9
    - 提示词必须具体、写实，遵循 SDXL 最佳实践
-2. **网络搜索图片**：使用 `tools/web_search.py` 搜索相关图片，下载后保存到 `assets/{主题简称}/` 目录
+2. **网络搜索图片**：使用 `tools/common/web_search.py` 搜索相关图片，下载后保存到 `assets/{主题简称}/` 目录
 
 ---
 
@@ -269,14 +269,14 @@ python tools/web_search.py "{搜索关键词}"
 
 #### A股相关主题
 
-- 网络搜索：`python tools/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
+- 网络搜索：`python tools/common/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
 
 #### 港股/美股/国际主题
 
-- **优先使用 Tavily 搜索**：`python tools/tavily_search.py "{搜索关键词}" --max-results 5`
+- **优先使用 Tavily 搜索**：`python tools/common/tavily_search.py "{搜索关键词}" --max-results 5`
   - Tavily 提供更高质量的内容和更详细的信息
   - 返回 title、url、content 三个字段
-- **备选 WebSearch**：`python tools/web_search.py "{搜索关键词}"`
+- **备选 WebSearch**：`python tools/common/web_search.py "{搜索关键词}"`
 
 #### 重要内容建议同时调用两个工具
 
@@ -284,8 +284,8 @@ python tools/web_search.py "{搜索关键词}"
 
 ```bash
 # 同时调用两个工具（并行执行）
-python tools/tavily_search.py "Qwen3 技术报告 论文解读"
-python tools/web_search.py "Qwen3 技术报告 论文解读"
+python tools/common/tavily_search.py "Qwen3 技术报告 论文解读"
+python tools/common/web_search.py "Qwen3 技术报告 论文解读"
 ```
 
 **注意**：WebSearch/WebFetch 在中国大陆不可用，所有网络信息必须使用本地工具。
@@ -374,7 +374,7 @@ print(f'图片大小: {os.path.getsize(\"assets/论文主题/fig1-核心架构.p
 
 ```bash
 # 1. 下载年报PDF（A股公司）
-python tools/stock_equity.py --code 601899 --download-report
+python tools/a_share/stock_equity.py --code 601899 --download-report
 
 # 2. 提取文本内容
 pdftotext -layout 601899_2025年报.pdf 601899_2025年报.txt
@@ -411,7 +411,7 @@ tesseract output/page-5.png output/page-5 -l eng
 
 Poppler 工具集的完整使用说明，请参考独立的 PDF 提取技能文档：
 
-- **技能文档**：[PDF文档内容提取技能](../tools-scripts/SKILL.md)
+- **技能文档**：[PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)
 - **快速指南**：[PDF提取 README](../tools-scripts/README.md)
 
 该文档包含：

@@ -143,7 +143,7 @@ Layer 4：
 
 **重要约束**：
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
-- 使用本地工具 `tools/web_search.py`（阿里云百炼API）
+- 使用本地工具 `tools/common/web_search.py`（阿里云百炼API）
 - 所有数据必须标注来源
 
 ---
@@ -198,9 +198,9 @@ B级瓶颈（有压力）：
 #### 4.1 对每个S级和A级瓶颈，找出所有相关上市公司
 
 搜索方式：
-- `python tools/web_search.py "{瓶颈环节} supplier listed company"`
-- `python tools/web_search.py "{瓶颈环节} manufacturer stock"`
-- `python tools/web_search.py "{瓶颈产品} market share company"`
+- `python tools/common/web_search.py "{瓶颈环节} supplier listed company"`
+- `python tools/common/web_search.py "{瓶颈环节} manufacturer stock"`
+- `python tools/common/web_search.py "{瓶颈产品} market share company"`
 
 #### 4.2 初筛标准（快速过滤）
 
@@ -480,21 +480,21 @@ B级瓶颈（有压力）：
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `tools/web_search.py` | 网络信息搜索（阿里云百炼） | `python tools/web_search.py "AI supply chain bottleneck 2026"` |
-| `tools/stock_info.py` | A股信息查询 | `python tools/stock_info.py --search 新易盛` |
-| `tools/stock_quote.py` | A股行情数据 | `python tools/stock_quote.py --code 300502` |
-| `tools/stock_financial.py` | A股财务指标 | `python tools/stock_financial.py --code 300502` |
-| `tools/stock_info_hk.py` | 港股信息查询 | `python tools/stock_info_hk.py --financial 00700` |
+| `tools/common/web_search.py` | 网络信息搜索（阿里云百炼） | `python tools/common/web_search.py "AI supply chain bottleneck 2026"` |
+| `tools/a_share/stock_info.py` | A股信息查询 | `python tools/a_share/stock_info.py --search 新易盛` |
+| `tools/a_share/stock_quote.py` | A股行情数据 | `python tools/a_share/stock_quote.py --code 300502` |
+| `tools/a_share/stock_financial.py` | A股财务指标 | `python tools/a_share/stock_financial.py --code 300502` |
+| `tools/hk_stock/stock_financial.py` | 港股信息查询 | `python tools/hk_stock/stock_financial.py --financial 00700` |
 
 ### 精确计算工具
 
 ```bash
 # 估值指标验证
-python tools/financial_rigor.py verify-valuation \
+python tools/common/financial_rigor.py verify-valuation \
   --price {股价} --eps {EPS} --bvps {每股净资产}
 
 # 三情景估值模型
-python tools/financial_rigor.py three-scenario \
+python tools/common/financial_rigor.py three-scenario \
   --price {股价} --eps {EPS} --shares {股本亿} \
   --growth {乐观} {中性} {悲观} --pe {乐观PE} {中性PE} {悲观PE}
 ```

@@ -61,10 +61,10 @@ AI无法和管理层吃饭，但可以通过公开信息做到：
 
 | 上市情况 | 工具 | 命令示例 |
 |---------|------|---------|
-| 仅A股 | `tools/stock_equity.py` | `python tools/stock_equity.py --code 601899` |
-| 仅港股 | `tools/stock_info_hk.py` | `python tools/stock_info_hk.py --financial 00700` |
+| 仅A股 | `tools/a_share/stock_equity.py` | `python tools/a_share/stock_equity.py --code 601899` |
+| 仅港股 | `tools/hk_stock/stock_financial.py` | `python tools/hk_stock/stock_financial.py --financial 00700` |
 | A+H股 | **同时使用两个工具** | 见下方详细说明 |
-| 港股+美股ADR | **港股工具 + WebSearch** | 港股：`python tools/stock_info_hk.py --financial 09988`<br>美股：`python tools/web_search.py "阿里巴巴 ADR 期权占比"` |
+| 港股+美股ADR | **港股工具 + WebSearch** | 港股：`python tools/hk_stock/stock_financial.py --financial 09988`<br>美股：`python tools/common/web_search.py "阿里巴巴 ADR 期权占比"` |
 
 **A+H股股权结构综合分析**：
 
@@ -72,13 +72,13 @@ AI无法和管理层吃饭，但可以通过公开信息做到：
 
 ```bash
 # 1. 获取A股股权结构数据
-python tools/stock_equity.py --code 601899 --export
+python tools/a_share/stock_equity.py --code 601899 --export
 
 # 2. 获取港股财务指标数据（包含股权结构）
-python tools/stock_info_hk.py --financial 02899
+python tools/hk_stock/stock_financial.py --financial 02899
 
 # 3. 搜索两地上市公司的股权结构差异
-python tools/web_search.py "紫金矿业 A股 H股 股权结构 差异"
+python tools/common/web_search.py "紫金矿业 A股 H股 股权结构 差异"
 ```
 
 **返回数据包括**：
@@ -129,17 +129,17 @@ python tools/web_search.py "紫金矿业 A股 H股 股权结构 差异"
 
 **使用财报下载工具获取年报**：
 
-对于A股公司，使用 `tools/stock_equity.py` 下载年报、半年报、季报PDF：
+对于A股公司，使用 `tools/a_share/stock_equity.py` 下载年报、半年报、季报PDF：
 
 ```bash
 # 下载最新年报
-python tools/stock_equity.py --code 601899 --download-report
+python tools/a_share/stock_equity.py --code 601899 --download-report
 
 # 下载最新半年报
-python tools/stock_equity.py --code 601899 --download-report --report-type semiannual
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type semiannual
 
 # 下载最新季报
-python tools/stock_equity.py --code 601899 --download-report --report-type quarterly
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly
 ```
 
 **下载的财报保存位置**：
@@ -202,7 +202,7 @@ python tools/stock_equity.py --code 601899 --download-report --report-type quart
 
 **回购记录**：
 
-使用 `tools/financial_rigor.py verify-valuation` 校验回购时和当前的PE等估值指标。
+使用 `tools/common/financial_rigor.py verify-valuation` 校验回购时和当前的PE等估值指标。
 
 | 时间 | 回购金额 | 平均回购价 | 当时PE | 事后回看 | 评分(1-5) |
 |------|---------|-----------|:------:|---------|:---------:|
@@ -240,7 +240,7 @@ python tools/stock_equity.py --code 601899 --download-report --report-type quart
 
 ```bash
 # 搜索公司上市情况
-python tools/web_search.py "{公司名} A股 港股 股票代码"
+python tools/common/web_search.py "{公司名} A股 港股 股票代码"
 ```
 
 **使用股权结构工具获取详细数据**：
@@ -249,12 +249,12 @@ python tools/web_search.py "{公司名} A股 港股 股票代码"
 
 **情况1：仅A股上市**
 ```bash
-python tools/stock_equity.py --code 601899 --export
+python tools/a_share/stock_equity.py --code 601899 --export
 ```
 
 **情况2：仅港股上市**
 ```bash
-python tools/stock_info_hk.py --financial 00700
+python tools/hk_stock/stock_financial.py --financial 00700
 ```
 
 **情况3：A+H股两地上市（需要综合分析）**
@@ -263,19 +263,19 @@ python tools/stock_info_hk.py --financial 00700
 
 ```bash
 # 1. 获取A股股权结构数据
-python tools/stock_equity.py --code 601899 --export
+python tools/a_share/stock_equity.py --code 601899 --export
 
 # 2. 获取港股财务指标数据
-python tools/stock_info_hk.py --financial 02899
+python tools/hk_stock/stock_financial.py --financial 02899
 
 # 3. 获取A股最新股价（用于A股/H股溢价计算）
-python tools/stock_quote.py --code 601899
+python tools/a_share/stock_quote.py --code 601899
 
 # 4. 获取H股最新股价（用于A股/H股溢价计算）
-python tools/stock_quote_hk.py --code 02899
+python tools/hk_stock/stock_quote.py --code 02899
 
 # 5. 搜索两地上市的股权结构差异和H股占比
-python tools/web_search.py "{公司名} A股 H股 股权结构 占比"
+python tools/common/web_search.py "{公司名} A股 H股 股权结构 占比"
 ```
 
 **A+H股股权结构分析要点**：
@@ -426,11 +426,11 @@ AI无法和管理层面对面交流，但可以通过公开渠道的侧面信息
 
 ### 网络信息搜索（使用本地 WebSearch 工具）
 
-Anthropic 官方 WebSearch/WebFetch 在中国大陆被地域封锁，不可用。使用本地 `tools/web_search.py` 工具替代，该工具通过阿里云百炼 WebSearch MCP 服务实现网络搜索。
+Anthropic 官方 WebSearch/WebFetch 在中国大陆被地域封锁，不可用。使用本地 `tools/common/web_search.py` 工具替代，该工具通过阿里云百炼 WebSearch MCP 服务实现网络搜索。
 
 | 工具 | 用途 | 命令示例 |
 |------|------|---------|
-| `tools/web_search.py` | 网络信息搜索 | `python tools/web_search.py "腾讯控股 管理层"` |
+| `tools/common/web_search.py` | 网络信息搜索 | `python tools/common/web_search.py "腾讯控股 管理层"` |
 
 **WebSearch 适用场景**：
 
@@ -453,21 +453,21 @@ Anthropic 官方 WebSearch/WebFetch 在中国大陆被地域封锁，不可用�
 **命令格式**：
 ```bash
 # 基本搜索
-python tools/web_search.py "搜索关键词"
+python tools/common/web_search.py "搜索关键词"
 
 # 指定结果数量
-python tools/web_search.py "搜索关键词" --num 10
+python tools/common/web_search.py "搜索关键词" --num 10
 
 # JSON 格式输出
-python tools/web_search.py "搜索关键词" --json
+python tools/common/web_search.py "搜索关键词" --json
 ```
 
 ### A股股权结构数据获取
 
 | 工具 | 用途 | 命令示例 |
 |------|------|---------|
-| `tools/stock_equity.py` | 股权结构数据 | `python tools/stock_equity.py --code 601899` |
-| `tools/stock_equity.py` | 导出Excel | `python tools/stock_equity.py --code 601899 --export` |
+| `tools/a_share/stock_equity.py` | 股权结构数据 | `python tools/a_share/stock_equity.py --code 601899` |
+| `tools/a_share/stock_equity.py` | 导出Excel | `python tools/a_share/stock_equity.py --code 601899 --export` |
 
 **股权结构数据包含**：
 - 前十大股东（总股本口径）
@@ -483,21 +483,21 @@ python tools/web_search.py "搜索关键词" --json
 **使用示例**：
 ```bash
 # 获取紫金矿业股权结构
-python tools/stock_equity.py --code 601899
+python tools/a_share/stock_equity.py --code 601899
 
 # 导出为Excel文件（便于详细分析）
-python tools/stock_equity.py --code 601899 --export
+python tools/a_share/stock_equity.py --code 601899 --export
 
 # JSON格式输出（便于程序处理）
-python tools/stock_equity.py --code 601899 --json
+python tools/a_share/stock_equity.py --code 601899 --json
 ```
 
 ### A股股价数据获取
 
 | 工具 | 用途 | 命令示例 |
 |------|------|---------|
-| `tools/stock_quote.py` | A股实时行情 | `python tools/stock_quote.py --code 601899` |
-| `tools/stock_quote.py` | A股历史K线 | `python tools/stock_quote.py --code 601899 --start 20250101 --end 20260716` |
+| `tools/a_share/stock_quote.py` | A股实时行情 | `python tools/a_share/stock_quote.py --code 601899` |
+| `tools/a_share/stock_quote.py` | A股历史K线 | `python tools/a_share/stock_quote.py --code 601899 --start 20250101 --end 20260716` |
 
 **股价数据包含**：
 - 最新开盘价、收盘价、最高价、最低价
@@ -512,19 +512,19 @@ python tools/stock_equity.py --code 601899 --json
 **使用示例**：
 ```bash
 # 获取紫金矿业最新股价
-python tools/stock_quote.py --code 601899
+python tools/a_share/stock_quote.py --code 601899
 
 # 获取指定日期范围的历史K线
-python tools/stock_quote.py --code 601899 --start 20260101 --end 20260716
+python tools/a_share/stock_quote.py --code 601899 --start 20260101 --end 20260716
 ```
 
 ### 财报PDF下载
 
 | 工具 | 用途 | 命令示例 |
 |------|------|---------|
-| `tools/stock_equity.py` | 下载年报PDF | `python tools/stock_equity.py --code 601899 --download-report` |
-| `tools/stock_equity.py` | 下载半年报PDF | `python tools/stock_equity.py --code 601899 --download-report --report-type semiannual` |
-| `tools/stock_equity.py` | 下载季报PDF | `python tools/stock_equity.py --code 601899 --download-report --report-type quarterly` |
+| `tools/a_share/stock_equity.py` | 下载年报PDF | `python tools/a_share/stock_equity.py --code 601899 --download-report` |
+| `tools/a_share/stock_equity.py` | 下载半年报PDF | `python tools/a_share/stock_equity.py --code 601899 --download-report --report-type semiannual` |
+| `tools/a_share/stock_equity.py` | 下载季报PDF | `python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly` |
 
 **在管理层研究中的应用**：
 1. **承诺追踪**：下载年报，查找管理层承诺，追踪兑现情况
@@ -540,16 +540,16 @@ python tools/stock_quote.py --code 601899 --start 20260101 --end 20260716
 **使用示例**：
 ```bash
 # 下载紫金矿业2025年年报
-python tools/stock_equity.py --code 601899 --download-report
+python tools/a_share/stock_equity.py --code 601899 --download-report
 
 # 下载紫金矿业2026年半年报
-python tools/stock_equity.py --code 601899 --download-report --report-type semiannual
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type semiannual
 
 # 下载紫金矿业2026年Q1季报
-python tools/stock_equity.py --code 601899 --download-report --report-type quarterly
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly
 
 # 指定保存目录
-python tools/stock_equity.py --code 601899 --download-report --report-dir ./reports
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-dir ./reports
 ```
 
 **注意事项**：
@@ -584,7 +584,7 @@ Poppler 是开源的 PDF 渲染库，提供三个核心工具：
 
 ```bash
 # 1. 下载年报PDF
-python tools/stock_equity.py --code 601899 --download-report
+python tools/a_share/stock_equity.py --code 601899 --download-report
 
 # 2. 检查PDF类型（文本版 vs 扫描版）
 pdftotext -layout 601899_2025年报.pdf - | head -50
@@ -635,7 +635,7 @@ pdftoppm -png -r 300 -f 100 -l 120 601899_2025年报.pdf output/page
 
 Poppler 工具集的完整使用说明，请参考独立的 PDF 提取技能文档：
 
-- **技能文档**：[PDF文档内容提取技能](../tools-scripts/SKILL.md)
+- **技能文档**：[PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)
 - **快速指南**：[PDF提取 README](../tools-scripts/README.md)
 
 该文档包含：
@@ -649,15 +649,15 @@ Poppler 工具集的完整使用说明，请参考独立的 PDF 提取技能文�
 
 | 工具 | 用途 | 命令示例 |
 |------|------|---------|
-| `tools/financial_rigor.py` | 精确财务计算（PE、ROE等） | `python tools/financial_rigor.py verify-valuation --help` |
+| `tools/common/financial_rigor.py` | 精确财务计算（PE、ROE等） | `python tools/common/financial_rigor.py verify-valuation --help` |
 
 ### A股财务数据获取（优先使用本地 akshare 工具）
 
 | 工具 | 用途 | 命令示例 |
 |------|------|---------|
-| `tools/stock_info.py` | 股票代码查询 | `python tools/stock_info.py --search 腾讯` |
-| `tools/stock_financial.py` | 财务指标查询 | `python tools/stock_financial.py --code 300502` |
-| `tools/stock_screen.py` | 质量筛选7条指标 | `python tools/stock_screen.py --code 300502` |
+| `tools/a_share/stock_info.py` | 股票代码查询 | `python tools/a_share/stock_info.py --search 腾讯` |
+| `tools/a_share/stock_financial.py` | 财务指标查询 | `python tools/a_share/stock_financial.py --code 300502` |
+| `tools/a_share/stock_screen.py` | 质量筛选7条指标 | `python tools/a_share/stock_screen.py --code 300502` |
 
 **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
@@ -665,18 +665,18 @@ Poppler 工具集的完整使用说明，请参考独立的 PDF 提取技能文�
 
 | 工具 | 用途 | 命令示例 |
 |------|------|---------|
-| `tools/stock_info_hk.py` | 港股信息查询 | `python tools/stock_info_hk.py --search 腾讯` |
-| `tools/stock_info_hk.py` | 港股财务指标 | `python tools/stock_info_hk.py --financial 00700` |
-| `tools/stock_quote_hk.py` | 港股历史K线 | `python tools/stock_quote_hk.py --code 00700` |
-| `tools/stock_quote_hk.py` | 港股指数 | `python tools/stock_quote_hk.py --index HSI` |
-| `tools/stock_screen_hk.py` | 港股质量筛选7条指标 | `python tools/stock_screen_hk.py --code 00700` |
+| `tools/hk_stock/stock_info.py` | 港股信息查询 | `python tools/hk_stock/stock_info.py --search 腾讯` |
+| `tools/hk_stock/stock_financial.py` | 港股财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
+| `tools/hk_stock/stock_quote.py` | 港股指数 | `python tools/hk_stock/stock_quote.py --index HSI` |
+| `tools/hk_stock/stock_screen.py` | 港股质量筛选7条指标 | `python tools/hk_stock/stock_screen.py --code 00700` |
 
 ### 港股股价数据获取
 
 | 工具 | 用途 | 命令示例 |
 |------|------|---------|
-| `tools/stock_quote_hk.py` | 港股实时行情 | `python tools/stock_quote_hk.py --code 00700` |
-| `tools/stock_quote_hk.py` | 港股历史K线 | `python tools/stock_quote_hk.py --code 00700 --start 20250101 --end 20260716` |
+| `tools/hk_stock/stock_quote.py` | 港股实时行情 | `python tools/hk_stock/stock_quote.py --code 00700` |
+| `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700 --start 20250101 --end 20260716` |
 
 **股价数据包含**：
 - 最新开盘价、收盘价、最高价、最低价
@@ -691,10 +691,10 @@ Poppler 工具集的完整使用说明，请参考独立的 PDF 提取技能文�
 **使用示例**：
 ```bash
 # 获取腾讯控股最新股价
-python tools/stock_quote_hk.py --code 00700
+python tools/hk_stock/stock_quote.py --code 00700
 
 # 获取指定日期范围的历史K线
-python tools/stock_quote_hk.py --code 00700 --start 20260101 --end 20260716
+python tools/hk_stock/stock_quote.py --code 00700 --start 20260101 --end 20260716
 ```
 
 ### 美股信息与数据搜集
@@ -719,13 +719,13 @@ python tools/stock_quote_hk.py --code 00700 --start 20260101 --end 20260716
 **使用示例**：
 ```bash
 # 获取苹果公司股价和财务数据
-python tools/web_search.py "Apple AAPL stock price financial statements"
+python tools/common/web_search.py "Apple AAPL stock price financial statements"
 
 # 获取特斯拉管理层信息
-python tools/web_search.py "Tesla Elon Musk CEO management team"
+python tools/common/web_search.py "Tesla Elon Musk CEO management team"
 
 # 获取阿里巴巴ADR信息
-python tools/web_search.py "Alibaba BABA ADR 期权占比 流动性"
+python tools/common/web_search.py "Alibaba BABA ADR 期权占比 流动性"
 ```
 
 **美股数据搜集注意事项**：
@@ -747,22 +747,22 @@ python tools/web_search.py "Alibaba BABA ADR 期权占比 流动性"
 
 ```bash
 # 第一步：搜索确认上市情况和股票代码
-python tools/web_search.py "紫金矿业 A股 H股 股票代码"
+python tools/common/web_search.py "紫金矿业 A股 H股 股票代码"
 
 # 第二步：获取A股股权结构数据（详细的前十大股东、股本变动等）
-python tools/stock_equity.py --code 601899 --export
+python tools/a_share/stock_equity.py --code 601899 --export
 
 # 第三步：获取港股财务指标数据（补充港股视角）
-python tools/stock_info_hk.py --financial 02899
+python tools/hk_stock/stock_financial.py --financial 02899
 
 # 第四步：获取A股最新股价（用于A股/H股溢价计算）
-python tools/stock_quote.py --code 601899
+python tools/a_share/stock_quote.py --code 601899
 
 # 第五步：获取H股最新股价（用于A股/H股溢价计算）
-python tools/stock_quote_hk.py --code 02899
+python tools/hk_stock/stock_quote.py --code 02899
 
 # 第六步：搜索H股占比和两地上市影响
-python tools/web_search.py "紫金矿业 H股占比 A股H股 差异"
+python tools/common/web_search.py "紫金矿业 H股占比 A股H股 差异"
 ```
 
 **分析要点**：
@@ -803,10 +803,10 @@ python tools/web_search.py "紫金矿业 H股占比 A股H股 差异"
 
 ```bash
 # 港股数据为主（港股信息披露更完整）
-python tools/stock_info_hk.py --financial 09988
+python tools/hk_stock/stock_financial.py --financial 09988
 
 # 搜索美股ADR信息（补充美股视角）
-python tools/web_search.py "阿里巴巴 ADR 期权占比 流动性"
+python tools/common/web_search.py "阿里巴巴 ADR 期权占比 流动性"
 ```
 
 **美股信息与数据搜集**：
@@ -836,16 +836,16 @@ python tools/web_search.py "阿里巴巴 ADR 期权占比 流动性"
 
 ```bash
 # 优先获取A股数据（作为主要分析依据）
-python tools/stock_equity.py --code 688235 --export
+python tools/a_share/stock_equity.py --code 688235 --export
 
 # 补充港股数据
-python tools/stock_info_hk.py --financial 06160
+python tools/hk_stock/stock_financial.py --financial 06160
 
 # 搜索三地上市差异
-python tools/web_search.py "百济神州 A股 港股 美股 上市 差异"
+python tools/common/web_search.py "百济神州 A股 港股 美股 上市 差异"
 
 # 搜索美股信息（补充美股视角）
-python tools/web_search.py "百济神州 BGNE stock price financial statements"
+python tools/common/web_search.py "百济神州 BGNE stock price financial statements"
 ```
 
 **美股信息与数据搜集**：
