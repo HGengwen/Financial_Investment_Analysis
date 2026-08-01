@@ -116,6 +116,14 @@
 | `tools/hk_stock/stock_financial.py` | 港股信息查询与财务指标 | `python tools/hk_stock/stock_financial.py --financial {股票代码}` |
 | `tools/hk_stock/stock_quote.py` | 港股历史K线、指数数据 | `python tools/hk_stock/stock_quote.py --code {股票代码}` |
 
+#### 美股数据
+
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `tools/us_stock/stock_info.py` | 美股实时行情与估值指标 | `python tools/us_stock/stock_info.py --realtime AAPL` |
+| `tools/us_stock/stock_quote.py` | 美股历史K线、三大指数 | `python tools/us_stock/stock_quote.py --daily AAPL` |
+| `tools/us_stock/stock_financial.py` | 美股财务报表、分红、机构持仓 | `python tools/us_stock/stock_financial.py --financials AAPL` |
+
 ### 财务计算与验证工具
 
 | 工具 | 功能 |
@@ -127,13 +135,25 @@
 
 | 工具 | 适用范围 | 命令示例 |
 |------|---------|---------|
-| `tools/common/web_search.py` | A股公司（阿里云百炼） | `python tools/common/web_search.py "{关键词}"` |
-| `tools/common/tavily_search.py` | 港股/美股公司 | `python tools/common/tavily_search.py "{关键词}" --max-results 5` |
+| `tools/common/doubao_search.py` | **推荐**：跨市场检索、财经定向、SEC公告 | `python tools/common/doubao_search.py "{关键词}" --finance --need-content --export` |
+| `tools/common/tavily_search.py` | 深度内容搜索（管理层讨论、分析师点评） | `python tools/common/tavily_search.py "{关键词}" --max-results 5` |
+| `tools/common/web_search.py` | 多源视角交叉验证 | `python tools/common/web_search.py "{关键词}"` |
 
 **重要约束**：
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
 - 使用本地工具进行网络搜索和数据获取
-- 港股/美股重要分析建议同时调用 Tavily 和 WebSearch 互为补充
+- **优先使用豆包搜索**（`doubao_search.py`），支持 `--finance`（财经定向）、`--need-content`（抓正文）、`--export`（导出报告）、`--sites`（定向 SEC/港交所披露易）
+- 港股/美股重要分析建议以豆包搜索为主，Tavily 和 WebSearch 互为补充
+
+### PDF文档提取
+
+| 工具 | 功能 |
+|------|------|
+| Poppler 工具集（`pdftotext`/`pdfinfo`/`pdftoppm`） | 从年报 PDF 提取财务数据作为一手数据源 |
+
+### 公共工具规范
+
+详细的工具使用规范详见 `tools-scripts/` 目录下的公共技能文件，完整索引见 [公共工具索引](../tools-scripts/common-tools-guide.md)。
 
 ---
 
@@ -153,6 +173,7 @@
 
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
 - 所有数据必须标注来源，关键财务数据至少两个独立来源交叉验证
+- **关键财务数据须从年报 PDF 一手数据源交叉验证**：使用 `stock_equity.py --download-report` 下载年报，再按 PDF 提取流程（Poppler 工具集）提取
 - 估计值必须明确标注"估计"
 - 产业链扫描需覆盖 A股/港股/美股/国际市场，不遗漏重要标的
 - 每个产业链环节至少分析 2-3 家头部公司
@@ -185,8 +206,9 @@
 
 ## 版本信息
 
-- **版本**：1.0.0
+- **版本**：1.1.0
 - **创建日期**：2026-07-21
+- **最后更新**：2026-08-01（同步 SKILL.md 工具引用：新增美股工具、豆包搜索、PDF提取）
 - **维护状态**：活跃维护
 
 ---
