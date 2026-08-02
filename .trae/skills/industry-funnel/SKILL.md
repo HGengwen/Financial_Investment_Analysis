@@ -199,7 +199,134 @@ disable-model-invocation: true
 - 10-20 年后这家公司的终局？
 - 是不是赢家通吃格局？
 
-### 4.5 综合推荐度
+### 4.5 管理层深度分析与接班人评估（段永平+巴菲特）
+
+对终选 3 家公司逐家做管理层深度分析，**特别关注接班人问题**。
+
+#### 4.5.1 现任管理层画像
+
+- **CEO/创始人**：姓名、年龄、任职起止时间、关键决策记录（近 3-5 年）
+- **核心高管团队**：CFO/COO/技术负责人等关键岗位的稳定性
+- **持股比例与利益对齐**：
+  - 创始人/CEO 持股比例及变化趋势
+  - 高管团队整体持股比例
+  - 近 1-2 年是否有异常增减持
+- **薪酬结构**：是否与长期业绩挂钩，有无短期主义倾向
+
+#### 4.5.2 管理层评估五条底层原则（价值投资共通）
+
+对终选 3 家公司的管理层分析，必须贯穿以下五条底层原则。这五条是段永平、巴菲特、芒格、李录的共通标准，**任何一条触碰红线即应严肃质疑甚至一票否决**。
+
+| # | 原则 | 核心要求 | 红线 / 触发条件 |
+|---|------|---------|----------------|
+| 1 | **人品优先于能力** | 价值观正、诚信透明；能力强但价值观扭曲的管理层，再高业绩也坚决排除 | 财务造假、关联交易输送利益、频繁误导市场、监管处罚涉及诚信 → **一票否决** |
+| 2 | **长期主义压倒短期业绩** | 不看单年利润，从十年维度评估决策对护城河的影响；容忍短期阵痛换长期壁垒 | 为冲短期业绩削减研发/品牌投入、靠并购凑增长、股权激励行权期过短 |
+| 3 | **资本行为是照妖镜** | 系统分析回购、分红、并购、减持、薪酬政策——这些是真金白银的选择，直接暴露管理层真实想法 | 高位减持、低价不发回购却乱并购、并购溢价高且战略逻辑不清、薪酬与短期股价强挂钩 |
+| 4 | **能力圈聚焦** | 优秀管理层懂得守住主业，不在不懂的领域盲目扩张；跨界并购是危险信号 | 跨主业大额并购、追逐热点概念、非主业投资占比快速上升 |
+| 5 | **可验证、可追溯** | 所有判断基于过往历史行为（签约、公告、资本动作），而非口头演讲与画饼 | 战略仅停留在发布会、无落地节点、承诺与实际资本配置矛盾 |
+
+**应用方式**：
+- 原则 1 是**硬门槛**——一旦触碰红线，无论其他维度多优秀，管理层评级直接判 C 并建议淘汰
+- 原则 2-5 是**分析框架**——逐条列出证据，在 4.5.3 评级表中打分
+
+#### 4.5.3 管理层质量评级
+
+按以下维度评级（A/B/C），**人品与价值观为一票否决项**：
+
+| 维度 | 评价要点 | 对应原则 | 等级 |
+|------|---------|---------|------|
+| **人品与价值观**（一票否决） | 信息披露透明度、是否有财务粉饰/造假/关联输送/监管诚信处罚 | 原则 1 | 触红线即 C |
+| 长期主义倾向 | 十年维度决策对护城河的影响；研发/品牌投入的持续性；是否为短期业绩牺牲长期 | 原则 2 | |
+| 资本配置行为 | 回购时机（低位回购为加分）、分红稳定性、并购回报率、高管减持模式、薪酬与长期业绩挂钩度 | 原则 3 | |
+| 能力圈聚焦度 | 主业专注度、跨界并购记录、非主业投资占比、是否追逐热点概念 | 原则 4 | |
+| 战略执行力 | 过去 3-5 年战略承诺的兑现率（基于公告/签约等可验证事件，非演讲） | 原则 5 | |
+| 危机应对 | 是否经历过行业危机/公司危机，应对表现 | — | |
+
+**评级标准**：
+- **A**：六维均优秀，无红线，长期主义与能力圈聚焦表现突出
+- **B**：多数维度良好，有 1-2 项待观察但无硬伤
+- **C**：触碰原则 1 红线，或 3 项以上维度不达标 → 建议淘汰
+
+#### 4.5.4 接班人问题专项分析（关键）
+
+**触发条件**（满足任一即触发专项分析）：
+- 创始人/CEO 年龄 ≥ 60 岁
+- 创始人/CEO 任职超过 15 年
+- 近 1 年有 CEO/董事长变更传闻或公告
+- 家族企业且二代已进入高管层
+- 公司章程或公告中提及接班人计划
+
+**专项分析内容**：
+
+1. **现任领导者依赖度评估**
+   - 公司是否高度依赖创始人个人魅力/资源/决策
+   - 创始人离开对公司品牌、客户关系、员工凝聚力的冲击
+   - 是否存在"创始人溢价"（当前估值隐含了对创始人的信任）
+
+2. **接班人计划现状**
+   - 是否有公开的接班人计划
+   - 内部培养的接班候选人（如总裁/COO 的履历和能力）
+   - 外部空降的可能性
+   - 接班时间表（如有）
+
+3. **历史接班人事件**（搜索最新信息）
+   - 近 3-5 年是否有高管离职潮
+   - 曾被看好的接班人选是否已离开
+   - 家族企业二代的能力与意愿
+   - 同行业可比公司的接班案例参考
+
+4. **接班人风险对投资的影响**
+   - 接班不确定性对估值的折价程度
+   - 最坏情景下的下行风险
+   - 接班顺利的正面催化
+
+#### 4.5.5 管理层信息搜索规范
+
+对每家终选公司，必须搜索以下信息（使用豆包搜索 + Tavily 互为补充）：
+
+```bash
+# 1. 现任管理层最新动态
+python tools/common/doubao_search.py "{公司名} CEO 管理层 变动 2025" --finance --need-content
+
+# 2. 接班人/高管离职相关
+python tools/common/doubao_search.py "{公司名} 接班人 高管离职 董事长变更" --finance
+
+# 3. 资本行为核查（原则3照妖镜）：回购/减持/并购/薪酬
+python tools/common/doubao_search.py "{公司名} 回购 减持 并购 关联交易 监管处罚" --finance --need-content
+
+# 4. 港股/美股公司补充（英文信源）
+python tools/common/tavily_search.py "{Company English Name} CEO succession management change buyback insider trading"
+
+# 5. A股公司股权结构与高管持股（数据接口）
+python tools/a_share/stock_equity.py --code {股票代码}
+# 港股
+python tools/hk_stock/stock_financial.py --financial {股票代码}
+```
+
+**信息时效要求**：管理层变动信息必须覆盖最近 12 个月，关键事件需标注具体日期和来源链接。
+
+#### 4.5.6 管理层简评模板
+
+```markdown
+**管理层评级**：A / B / C（一句话总评）
+
+**五条原则快速核查**：
+- [ ] 原则1 人品优先：通过 / 触红线（说明）
+- [ ] 原则2 长期主义：强 / 中 / 弱（关键证据）
+- [ ] 原则3 资本行为：一致 / 存疑（关键证据）
+- [ ] 原则4 能力圈聚焦：专注 / 跨界扩张（关键证据）
+- [ ] 原则5 可验证可追溯：充分 / 不足（关键证据）
+
+**核心结论**：
+- 现任管理层质量：[1-2 句话]
+- 接班人风险：[低/中/高] — [一句话理由]
+- 关键观察指标：[未来需要持续跟踪的管理层信号]
+
+**预警信号**（如有）：
+- [列出值得警惕的具体事件或趋势]
+```
+
+### 4.6 综合推荐度
 
 ```markdown
 推荐度：★★★★☆
@@ -270,56 +397,58 @@ A = 数据充分可信；B = 部分缺失但不影响主结论；C = 缺失较�
 
 ## 工具使用指南
 
-### 财务数据获取工具
+本技能的工具使用规范详见以下公共技能文件：
 
-#### A股数据
+- A股/港股数据获取：[A股数据](../tools-scripts/a-share-data.md) / [港股数据](../tools-scripts/hk-share-data.md)
+- 美股数据获取：[美股工具使用指南](../../../docs/美股工具使用指南.md)（`tools/us_stock/` 目录下三个模块）
+- 财务计算与验证：[financial-calc](../tools-scripts/financial-calc.md)
+- 网络信息搜索：[web-search-tools](../tools-scripts/web-search-tools.md)
+- 报告审核与抽检：[report-audit](../tools-scripts/report-audit.md)
+- 全局约束规范：[global-constraints](../tools-scripts/global-constraints.md)
+- PDF文档提取：[pdf-extraction](../tools-scripts/pdf-extraction.md)（年报一手数据提取）
+- 完整索引：[公共工具索引](../tools-scripts/common-tools-guide.md)
 
-- 股票信息：`python tools/a_share/stock_info.py --search {公司名}`
-- 财务指标：`python tools/a_share/stock_financial.py --code {股票代码}`
-- 股票行情：`python tools/a_share/stock_quote.py --code {股票代码}`
-- 股权结构：`python tools/a_share/stock_equity.py --code {股票代码}`
+### 漏斗筛选的特殊工具使用注意
 
-#### 港股数据
+1. **全市场扫描需覆盖全市场**：A股/港股/美股/国际市场，不遗漏重要标的
+   - A股：`tools/a_share/`（东方财富/新浪/巨潮）
+   - 港股：`tools/hk_stock/`（东方财富/新浪）
+   - 美股：`tools/us_stock/`（yfinance，免费无需 token）
+2. **5 条硬指标数据须精确验算**：使用 `financial_rigor.py` 验算 PE/ROE/市值等，禁止 LLM 心算
+3. **重要分析优先使用豆包搜索（`doubao_search.py`）**：支持 `--finance`（财经定向+权威信源）、`--need-content`（抓正文）、`--export`（导出 Markdown）、`--sites`（定向 SEC/港交所披露易），详见 [web-search-tools](../tools-scripts/web-search-tools.md)
+4. **关键财务数据须从年报 PDF 一手数据源交叉验证**：使用 `stock_equity.py --download-report` 下载年报，再按 [pdf-extraction](../tools-scripts/pdf-extraction.md) 流程提取
 
-- 股票信息与财务：`python tools/hk_stock/stock_financial.py --financial {股票代码}`
-- 股票行情：`python tools/hk_stock/stock_quote.py --code {股票代码}`
+### 网络搜索多源验证示例
 
-### 财务计算与验证工具
-
-- 精确计算：`python tools/common/financial_rigor.py`（PE、ROE、市值校验等）
-- 报告审核：`python tools/common/report_audit.py`（数据抽检）
-
-### 网络信息获取
-
-#### A股公司
-
-- 网络搜索：`python tools/common/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
-
-#### 港股/美股公司（非国内上市）
-
-- **优先使用 Tavily 搜索**：`python tools/common/tavily_search.py "{搜索关键词}" --max-results 5`
-  - Tavily 提供更高质量的内容和更详细的信息
-  - 返回 title、url、content 三个字段
-  - 支持高级搜索（search_depth="advanced"）
-- **备选 WebSearch**：`python tools/common/web_search.py "{搜索关键词}"`
-  - 作为补充信息源
-
-#### 重要内容（同时调用）
-
-对于港股/美股的重要分析，建议**同时调用两个工具**，互为补充：
-
-- Tavily 搜索：获取详细内容和深度分析
-- WebSearch 搜索：获取更多来源和不同视角
-
-**示例**：
+对于港股/美股的重要分析，建议以豆包搜索为主，Tavily 和 WebSearch 互为补充（详见 [web-search-tools](../tools-scripts/web-search-tools.md#重要内容多源验证推荐)）：
 
 ```bash
-# 同时调用两个工具（并行执行）
-python tools/common/tavily_search.py "腾讯 行业地位 竞争格局"
-python tools/common/web_search.py "腾讯 行业地位 竞争格局"
+# 主：豆包搜索（正文 + 权威度 + 报告导出）
+python tools/common/doubao_search.py "AI算力 全球竞争格局" --need-content --export
+
+# 补充1：Tavily（深度内容，适合管理层讨论、分析师点评）
+python tools/common/tavily_search.py "AI算力 行业地位 竞争格局"
+
+# 补充2：WebSearch（多源视角，交叉验证）
+python tools/common/web_search.py "AI算力 行业地位 竞争格局"
 ```
 
-**注意**：WebSearch/WebFetch 在中国大陆不可用，所有网络信息必须使用本地工具。
+### 美股公司数据获取示例
+
+```bash
+# 实时行情与估值指标（PE、PB、市值、ROE 等）
+python tools/us_stock/stock_info.py --realtime NVDA
+
+# 历史K线（前复权）
+python tools/us_stock/stock_quote.py --daily NVDA
+
+# 财务报表/分红/机构持仓/分析师评级
+python tools/us_stock/stock_financial.py --financials NVDA
+python tools/us_stock/stock_financial.py --all NVDA --json
+
+# 定向检索 SEC EDGAR 公告
+python tools/common/doubao_search.py "NVDA 10-K" --sites sec.gov
+```
 
 ---
 
@@ -332,6 +461,8 @@ python tools/common/web_search.py "腾讯 行业地位 竞争格局"
 5. **每层留淘汰记录**：被淘汰的公司也要留名字+理由，不能黑箱
 6. **语言风格**：中文，直接、犀利、不说废话
 7. **数据标注**：所有数据标注来源，估计值标"估计"
+8. **管理层分析必填**：终选 3 家必须输出管理层深度分析（4.5 节模板），接班人风险评估不得省略——若信息不足，标注"数据不足"并说明缺口，不得用推测填充
+9. **管理层信息时效**：接班人/管理层变动信息必须覆盖最近 12 个月，使用豆包搜索 `--finance --need-content` + Tavily 双源验证
 
 ---
 
@@ -413,30 +544,70 @@ AI算力
 | 英伟达 | 核心 | ★★★★★ | 50% | AI芯片绝对龙头，护城河深厚 | 估值过高，周期性风险 |
 ...
 
-## 四、信息充分度自评
+## 四、管理层深度分析
+
+### 4.1 英伟达（NVDA）
+
+**管理层评级**：A — 黄仁勋战略前瞻与执行力顶级
+
+**五条原则快速核查**：
+- [x] 原则1 人品优先：通过 — 无财务造假/关联输送/监管诚信处罚记录
+- [x] 原则2 长期主义：强 — 持续 10 年以上重投 CUDA 生态与架构研发，不为短期业绩牺牲长期壁垒
+- [x] 原则3 资本行为：一致 — 低位回购为主、无高管异常减持、并购（Mellanox）战略逻辑清晰且回报验证
+- [x] 原则4 能力圈聚焦：专注 — 聚焦加速计算与 AI，未盲目跨界
+- [x] 原则5 可验证可追溯：充分 — CUDA 生态、Mellanox 并购、H100 量产均有公告与落地节点可查
+
+**现任管理层画像**：
+- CEO 黄仁勋（创始人，任职 32 年，年龄 62 岁）
+- 关键决策：2018 年 All-in CUDA 生态、2020 年收购 Mellanox、2023 年 H100 主导 AI 算力
+- 持股比例约 3.5%，长期持有无异常减持
+
+**接班人风险评估**：[中]
+- 触发条件：年龄 ≥ 60 岁 + 任职超 30 年
+- 现状：暂无公开接班人计划，内部总裁 Jensen 系家族成员引发市场关注
+- 依赖度：高度依赖黄仁勋个人战略判断与行业号召力
+- 折价：估算接班人不确定性对估值折价约 5-10%
+
+**预警信号**：
+- 持续关注黄仁勋公开露面频率及高管团队离职情况
+
+### 4.2 {公司B}（{代码}）
+[同上模板：管理层评级 → 五条原则快速核查 → 现任管理层画像 → 接班人风险评估 → 预警信号]
+
+### 4.3 {公司C}（{代码}）
+[同上模板]
+
+---
+
+## 五、信息充分度自评
 
 | 维度 | 等级 | 说明 |
 |-----|------|-----|
 | 公司财务数据完整性 | A | 主要公司财报完整 |
 | 估值数据时效性 | A | 市值和PE数据实时 |
 | 行业格局判断 | B | 部分未上市公司信息不足 |
-| 管理层信息 | B | 国际公司管理层信息有限 |
+| 管理层信息 | A | 已覆盖近 12 个月管理层动态 |
+| 接班人风险评估 | B | 部分公司接班计划未公开 |
 ```
 
 ---
 
 ## 数据抽检（准出流程）
 
-报告写入后，执行数据抽检，通过方可发布：
+报告写入后必须执行数据抽检，通过方可发布。具体流程详见 **[报告审核与数据抽检](../tools-scripts/report-audit.md)**。
 
 ```bash
-# Step 1 — 提取抽检清单（15% 随机抽样）
+# Step 1 - 提取抽检清单（15%随机抽样）
 python tools/common/report_audit.py extract \
   --report reports/{行业名}-funnel-{YYYYMMDD}.md
 
-# Step 2 — 对清单每项从可靠信源取数
+# Step 2 - 对清单每项从可靠信源取数（按市场分别使用对应工具）
+#   A股：tools/a_share/stock_financial.py（东方财富主） -> 巨潮资讯副 -> 年报PDF原始一手
+#   港股：tools/hk_stock/stock_financial.py（aastocks/东方财富） -> HKEX披露易
+#   美股：tools/us_stock/stock_financial.py（Yahoo Finance） -> SEC EDGAR
+#   计算验算：tools/common/financial_rigor.py（禁止 LLM 心算）
 
-# Step 3 — 输出准出/打回判决
+# Step 3 - 输出准出/打回判决
 python tools/common/report_audit.py verdict \
   --results '<填好的JSON>' \
   --report {行业名}-funnel-{YYYYMMDD}.md
@@ -451,6 +622,6 @@ python tools/common/report_audit.py verdict \
 漏斗终选 3 家后，对每家可单独执行：
 - `/investment-team` —— 完整四大师并行深度研究（独立子目录 + 5 文档）
 - `/investment-checklist` —— 巴菲特买入前 checklist 系统过一遍
-- `/management-deep-dive` —— 管理层纵深研究
+- `/management-deep-dive` —— **若 4.5 节管理层评级为 B/C 或接班人风险为中/高，必须执行此 skill 做纵深研究**
 
 `/industry-funnel` 是入口，后续 skill 是深挖。

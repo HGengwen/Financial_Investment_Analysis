@@ -84,7 +84,8 @@
 二、价值投资5条硬指标粗筛（≤10家保留）
 三、精细分析（每家300-500字）
 四、终选3家四大师深度分析（每家800-1200字）
-五、综合输出（组合表+ETF替代+行业判断+信息充分度自评）
+五、管理层深度分析（3家，含接班人风险评估）
+六、综合输出（组合表+ETF替代+行业判断+信息充分度自评）
 ```
 
 ---
@@ -122,7 +123,7 @@
 - 估值快评（当前PE/PS/EV/EBITDA+历史区间+同业对比）
 - 进入终选3家？是/否（理由）
 
-### 第四层：四大师深度分析（3家，每家800-1200字）
+### 第四层：四大师深度分析 + 管理层深挖（3家，每家800-1200字）
 
 | 大师 | 视角 | 核心问题 |
 |------|------|---------|
@@ -130,6 +131,19 @@
 | 巴菲特 | 护城河深度 | 五类护城河打分（★1-5），10年后还在吗？ |
 | 芒格 | 风险与失败模式 | 最可能怎么失败？最坏情景值多少钱？ |
 | 李录 | 文明级趋势定位 | 是"范式转移"还是"阶段性热潮"？ |
+| **管理层深挖** | **段永平+巴菲特** | **管理层质量评级 + 接班人风险专项评估** |
+
+#### 管理层深度分析（必填）
+
+对终选 3 家逐家输出：
+- 现任管理层画像（CEO/创始人、关键决策、持股比例）
+- 管理层质量评级（诚信度/资本配置/战略执行/危机应对，A/B/C）
+- **接班人问题专项分析**（触发条件：年龄≥60、任职≥15年、近1年变更传闻、家族企业二代进入高管层）
+  - 现任领导者依赖度评估
+  - 接班人计划现状
+  - 历史接班人事件（搜索最近 12 个月信息）
+  - 接班人风险对估值的折价
+- 管理层简评模板（评级 + 核心结论 + 预警信号）
 
 ### 终选3家选择标准
 
@@ -146,38 +160,59 @@
 
 ### A股数据
 
-| 工具 | 功能 |
-|------|------|
-| `tools/a_share/stock_info.py` | A股信息查询 |
-| `tools/a_share/stock_financial.py` | A股财务指标 |
-| `tools/a_share/stock_quote.py` | A股行情数据 |
-| `tools/a_share/stock_equity.py` | A股股权结构 |
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `tools/a_share/stock_info.py` | A股信息查询 | `python tools/a_share/stock_info.py --search {公司名}` |
+| `tools/a_share/stock_financial.py` | A股财务指标 | `python tools/a_share/stock_financial.py --code {股票代码}` |
+| `tools/a_share/stock_quote.py` | A股行情数据 | `python tools/a_share/stock_quote.py --code {股票代码}` |
+| `tools/a_share/stock_equity.py` | A股股权结构与财报下载 | `python tools/a_share/stock_equity.py --code {股票代码}` |
 
 ### 港股数据
 
-| 工具 | 功能 |
-|------|------|
-| `tools/hk_stock/stock_info.py` | 港股信息查询与财务指标 |
-| `tools/hk_stock/stock_quote.py` | 港股行情数据 |
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `tools/hk_stock/stock_financial.py` | 港股信息查询与财务指标 | `python tools/hk_stock/stock_financial.py --financial {股票代码}` |
+| `tools/hk_stock/stock_quote.py` | 港股历史K线、指数数据 | `python tools/hk_stock/stock_quote.py --code {股票代码}` |
+
+### 美股数据
+
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `tools/us_stock/stock_info.py` | 美股实时行情与估值指标 | `python tools/us_stock/stock_info.py --realtime NVDA` |
+| `tools/us_stock/stock_quote.py` | 美股历史K线、三大指数 | `python tools/us_stock/stock_quote.py --daily NVDA` |
+| `tools/us_stock/stock_financial.py` | 美股财务报表、分红、机构持仓 | `python tools/us_stock/stock_financial.py --financials NVDA` |
 
 ### 财务计算与验证
 
 | 工具 | 功能 |
 |------|------|
 | `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值校验等） |
-| `tools/common/report_audit.py` | 报告数据抽检（准出流程） |
+| `tools/common/report_audit.py` | 报告审核与数据抽检 |
 
 ### 网络信息获取
 
-| 工具 | 适用范围 |
-|------|---------|
-| `tools/common/web_search.py` | A股公司（阿里云百炼） |
-| `tools/common/tavily_search.py` | 港股/美股公司（优先使用，质量更高） |
+| 工具 | 适用范围 | 命令示例 |
+|------|---------|---------|
+| `tools/common/doubao_search.py` | **推荐**：跨市场检索、财经定向、SEC公告 | `python tools/common/doubao_search.py "{关键词}" --finance --need-content --export` |
+| `tools/common/tavily_search.py` | 深度内容搜索（管理层讨论、分析师点评） | `python tools/common/tavily_search.py "{关键词}" --max-results 5` |
+| `tools/common/web_search.py` | 多源视角交叉验证 | `python tools/common/web_search.py "{关键词}"` |
 
 **重要约束**：
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
-- 港股/美股重要分析建议同时调用 Tavily 和 WebSearch 互为补充
+- 使用本地工具进行网络搜索和数据获取
+- **优先使用豆包搜索**（`doubao_search.py`），支持 `--finance`（财经定向）、`--need-content`（抓正文）、`--export`（导出报告）、`--sites`（定向 SEC/港交所披露易）
+- 港股/美股重要分析建议以豆包搜索为主，Tavily 和 WebSearch 互为补充
 - 关键数据必须至少两个独立来源交叉验证，误差>1%须标记
+
+### PDF文档提取
+
+| 工具 | 功能 |
+|------|------|
+| Poppler 工具集（`pdftotext`/`pdfinfo`/`pdftoppm`） | 从年报 PDF 提取财务数据作为一手数据源 |
+
+### 公共工具规范
+
+详细的工具使用规范详见 `tools-scripts/` 目录下的公共技能文件，完整索引见 [公共工具索引](../tools-scripts/common-tools-guide.md)。
 
 ---
 
@@ -231,8 +266,9 @@
 
 ## 版本信息
 
-- **版本**：1.0.0
+- **版本**：1.2.0
 - **创建日期**：2026-07-21
+- **最后更新**：2026-08-01（新增第四层管理层深度分析与接班人风险评估）
 - **维护状态**：活跃维护
 
 ---
