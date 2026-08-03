@@ -129,20 +129,33 @@
 
 ## 工具依赖
 
-| 工具 | 功能 |
-|------|------|
-| `tools/a_share/stock_info.py` | A股股票代码查询 |
-| `tools/a_share/stock_financial.py` | A股财务指标查询 |
-| `tools/a_share/stock_screen.py` | A股质量筛选7条指标 |
-| `tools/hk_stock/stock_info.py` | 港股信息查询与财务指标 |
-| `tools/hk_stock/stock_quote.py` | 港股历史K线与指数数据 |
-| `tools/hk_stock/stock_screen.py` | 港股质量筛选7条指标 |
-| `tools/common/web_search.py` | 网络信息搜索（阿里云百炼，A股/行业动态） |
-| `tools/common/tavily_search.py` | 港股/美股网络信息搜索 |
+### 去劣筛选的核心工具：stock_screen.py
+
+本技能的核心是7条指标的自动化筛选，A股和港股均有专用的 `stock_screen.py`：
+
+| 市场 | 工具 | 命令示例 |
+|------|------|---------|
+| A股 | `tools/a_share/stock_screen.py` | `python tools/a_share/stock_screen.py --code {股票代码}` |
+| 港股 | `tools/hk_stock/stock_screen.py` | `python tools/hk_stock/stock_screen.py --code {股票代码}`（支持多只：`--code 00700,03690,01810`） |
+
+**美股暂无 `stock_screen.py` 一键筛选工具**，需基于 `tools/us_stock/stock_financial.py` 取数后手工对照 7 条指标。
+
+### 其他工具
+
+A股/港股/美股的行情、财务、信息查询工具的完整命令示例详见公共技能文件，此处不重复列举。以下仅强调去劣筛选中的关键约束：
+
+- **财务计算验算**：使用 `tools/common/financial_rigor.py`，**禁止 LLM 心算** PE/ROE/市值等
+- **年报一手数据**：使用 `stock_equity.py --download-report` 下载年报，再按 [pdf-extraction](../tools-scripts/pdf-extraction.md) 流程提取（关键财务数据须从一手数据源交叉验证）
+- **网络信息搜索**：优先使用豆包搜索（`doubao_search.py --finance`），多源验证规范详见 [web-search-tools](../tools-scripts/web-search-tools.md)
+
+### 公共工具规范
+
+详细的工具使用规范详见 `tools-scripts/` 目录下的公共技能文件，完整索引见 [公共工具索引](../tools-scripts/common-tools-guide.md)。
 
 **重要约束**：
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
 - 使用本地工具进行网络搜索和数据获取
+- **优先使用豆包搜索**（`doubao_search.py`），支持 `--finance`（财经定向）、`--need-content`（抓正文）、`--export`（导出报告）、`--sites`（定向 SEC/港交所披露易）
 - **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
 ### 数据来源优先级
@@ -150,9 +163,11 @@
 | 数据类型 | 优先来源 | 备用来源 |
 |---------|---------|---------|
 | A股财务指标 | `tools/a_share/stock_screen.py` | 公司年报、券商研报 |
-| 港股财务指标 | `tools/hk_stock/stock_screen.py` | WebSearch、手动获取 |
-| 非A股公司信息 | `tools/common/web_search.py` | 用户手动提供 |
-| 行业动态/新闻 | `tools/common/web_search.py` | 用户手动提供 |
+| 港股财务指标 | `tools/hk_stock/stock_screen.py` | 豆包搜索、手动获取 |
+| 美股财务指标 | `tools/us_stock/stock_financial.py` | 豆包搜索、SEC EDGAR |
+| 非A股公司信息 | `tools/common/doubao_search.py` | 用户手动提供 |
+| 行业动态/新闻 | `tools/common/doubao_search.py` | 用户手动提供 |
+| 年报一手数据 | `stock_equity.py --download-report` + PDF 提取 | 巨潮/HKEX披露易/SEC EDGAR |
 
 ---
 
@@ -204,8 +219,9 @@
 
 ## 版本信息
 
-- **版本**：1.0.0
+- **版本**：1.1.0
 - **创建日期**：2026-07-26
+- **最后更新**：2026-08-01（同步 SKILL.md 工具引用精简：删除与公共技能文件重复的通用工具表，保留去劣筛选核心工具 stock_screen.py 与数据来源优先级表）
 - **维护状态**：活跃维护
 
 ---
