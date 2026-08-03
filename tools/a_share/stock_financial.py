@@ -210,7 +210,7 @@ def main():
             result = {}
             for name in requested:
                 # 在映射中查找
-                matched = None
+                matched_key = None  # 初始化，避免未匹配时 UnboundLocalError
                 for eng_name, cn_name in KEY_INDICATORS.items():
                     if name in (eng_name, cn_name) or name == cn_name:
                         matched_key = eng_name

@@ -76,7 +76,7 @@ disable-model-invocation: true
 **模式判断**：
 - 如果输入是具体公司名/代码 → **个股模式**，直接进入第二步
 - 如果输入是行业/市场/主题 → **批量模式**，先执行以下操作：
-  1. 用 WebSearch 工具搜索该行业/市场/主题下的主要上市公司
+  1. 用本地搜索工具（优先 `doubao_search.py --finance`，见工具使用指南）搜索该行业/市场/主题下的主要上市公司
   2. 行业模式：覆盖该行业市值前15-20家上市公司
   3. 指数模式：拉取完整成分股列表
   4. 主题模式：搜索相关公司，覆盖15-30家
@@ -88,104 +88,38 @@ disable-model-invocation: true
 
 ### 工具软件使用指南
 
-**A股财务数据获取（优先使用本地 akshare 工具）**：
+本技能的工具使用规范详见以下公共技能文件：
 
-| 工具 | 用途 | 命令示例 |
-|------|------|---------|
-| `tools/a_share/stock_info.py` | 股票代码查询 | `python tools/a_share/stock_info.py --search 腾讯` |
-| `tools/a_share/stock_financial.py` | 财务指标查询 | `python tools/a_share/stock_financial.py --code 300502` |
-| `tools/a_share/stock_screen.py` | 质量筛选7条指标 | `python tools/a_share/stock_screen.py --code 300502` |
-
-**港股数据获取（使用独立的港股工具）**：
-
-| 工具 | 用途 | 命令示例 |
-|------|------|---------|
-| `tools/hk_stock/stock_info.py` | 港股信息查询 | `python tools/hk_stock/stock_info.py --search 腾讯` |
-| `tools/hk_stock/stock_financial.py` | 港股财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
-| `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
-| `tools/hk_stock/stock_quote.py` | 港股指数 | `python tools/hk_stock/stock_quote.py --index HSI` |
-| `tools/hk_stock/stock_screen.py` | 港股质量筛选7条指标 | `python tools/hk_stock/stock_screen.py --code 00700` |
+- A股/港股数据获取：[A股数据](../tools-scripts/a-share-data.md) / [港股数据](../tools-scripts/hk-share-data.md)
+- 美股数据获取：[美股工具使用指南](../../../docs/美股工具使用指南.md)（`tools/us_stock/` 目录下三个模块）
+- 财务计算与验证：[financial-calc](../tools-scripts/financial-calc.md)
+- 网络信息搜索：[web-search-tools](../tools-scripts/web-search-tools.md)
+- 全局约束规范：[global-constraints](../tools-scripts/global-constraints.md)
+- PDF文档提取：[pdf-extraction](../tools-scripts/pdf-extraction.md)（年报一手数据提取）
+- 完整索引：[公共工具索引](../tools-scripts/common-tools-guide.md)
 
 **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
----
+#### 去劣筛选的核心工具：stock_screen.py
 
-**港股数据获取注意事项**：
+本技能的核心是7条指标的自动化筛选，A股和港股均有专用的 `stock_screen.py`：
 
-1. **港股代码格式**：港股代码为5位数字字符串（如腾讯控股 `00700`）
-2. **数据源稳定性**：东方财富港股接口在中国大陆网络连接不稳定（非地理封锁），工具已内置重试机制
-3. **数据可用性**：新浪接口可获取历史K线数据，支持前复权、后复权
-4. **财务数据**：已支持通过 `stock_info_hk.py --financial` 获取港股财务指标（ROE、毛利率、净利率等）
-
-**港股工具使用示例**：
-
-```bash
-# 搜索港股公司
-python tools/hk_stock/stock_info.py --search 腾讯
-
-# 获取港股财务指标（年度数据）
-python tools/hk_stock/stock_financial.py --financial 00700
-
-# 获取港股财务指标（报告期数据）
-python tools/hk_stock/stock_financial.py --financial 00700 --indicator 报告期
-
-# 港股质量筛选（单只股票）
-python tools/hk_stock/stock_screen.py --code 00700
-
-# 港股质量筛选（多只股票）
-python tools/hk_stock/stock_screen.py --code 00700,03690,01810
-
-# 获取港股历史数据
-python tools/hk_stock/stock_quote.py --code 00700
-
-# 指定日期范围
-python tools/hk_stock/stock_quote.py --code 00700 --start 20260101 --end 20260710
-
-# 获取恒生指数
-python tools/hk_stock/stock_quote.py --index HSI
-```
-
----
-
-**网络信息搜索（使用本地 WebSearch 工具替代 Anthropic WebSearch）**：
-
-Anthropic 官方 WebSearch/WebFetch 在中国大陆被地域封锁，不可用。使用本地 `tools/common/web_search.py` 工具替代，该工具通过阿里云百炼 WebSearch MCP 服务实现网络搜索。
-
-| 工具 | 用途 | 命令示例 |
+| 市场 | 工具 | 命令示例 |
 |------|------|---------|
-| `tools/common/web_search.py` | 网络信息搜索 | `python tools/common/web_search.py "腾讯控股 股价"` |
+| A股 | `tools/a_share/stock_screen.py` | `python tools/a_share/stock_screen.py --code 300502` |
+| 港股 | `tools/hk_stock/stock_screen.py` | `python tools/hk_stock/stock_screen.py --code 00700`（支持多只：`--code 00700,03690,01810`） |
 
-**WebSearch 适用场景**：
+**美股暂无 `stock_screen.py` 一键筛选工具**，需基于 `tools/us_stock/stock_financial.py` 取数后手工对照 7 条指标。
 
-| 场景 | 示例搜索关键词 | 目的 |
-|------|---------------|------|
-| **获取行业公司清单** | `中国啤酒行业上市公司排名` | 找出行业内主要公司 |
-| **获取最新股价** | `腾讯控股 港股 股价 2026` | 获取最新市值数据 |
-| **获取非A股公司信息** | `英伟达 NVIDIA 年报 2024` | 获取美股公司财务数据 |
-| **获取行业动态** | `光模块行业 AI算力 需求 2026` | 了解行业最新发展趋势 |
-| **获取公司公告** | `贵州茅台 公告 2025` | 获取公司最新公告信息 |
-| **获取新闻资讯** | `中际旭创 新闻 2026` | 获取公司最新新闻 |
+#### 其他工具说明
 
-**WebSearch 使用要点**：
+A股/港股/美股的行情、财务、信息查询工具的完整命令示例详见上述公共技能文件，此处不重复列举。以下仅强调去劣筛选中的关键约束：
 
-1. **A股财务数据**：优先使用本地 akshare 工具（`stock_screen.py`），数据更准确
-2. **港股财务数据**：优先使用本地工具 `stock_info_hk.py --financial`，WebSearch 作为补充
-3. **美股/非A股数据**：使用 WebSearch 获取，如美股、非上市公司信息
-4. **最新资讯**：使用 WebSearch 获取行业动态、公司新闻、公告信息
-5. **搜索结果验证**：网络信息需交叉验证，不要依赖单一来源
-6. **输出格式**：可使用 `--json` 参数获取结构化数据，便于程序处理
+- **财务计算验算**：使用 `tools/common/financial_rigor.py`，**禁止 LLM 心算** PE/ROE/市值等
+- **年报一手数据**：使用 `stock_equity.py --download-report` 下载年报，再按 [pdf-extraction](../tools-scripts/pdf-extraction.md) 流程提取（关键财务数据须从一手数据源交叉验证）
+- **网络信息搜索**：优先使用豆包搜索（`doubao_search.py --finance`），多源验证规范详见 [web-search-tools](../tools-scripts/web-search-tools.md)
 
-**命令格式**：
-```bash
-# 基本搜索
-python tools/common/web_search.py "搜索关键词"
-
-# 指定结果数量
-python tools/common/web_search.py "搜索关键词" --num 10
-
-# JSON 格式输出
-python tools/common/web_search.py "搜索关键词" --json
-```
+**WebSearch/WebFetch 在中国大陆不可用，所有网络信息必须使用本地工具。**
 
 ---
 
@@ -206,17 +140,20 @@ python tools/common/web_search.py "搜索关键词" --json
 | 数据类型 | 优先来源 | 备用来源 |
 |---------|---------|---------|
 | **A股财务指标** | 本地工具 `tools/a_share/stock_screen.py` | 公司年报、券商研报 |
-| **A股股票信息** | 本地工具 `tools/a_share/stock_info.py` | WebSearch |
-| **港股财务指标** | 本地工具 `tools/hk_stock/stock_screen.py` | WebSearch、手动获取 |
-| **港股历史数据** | 本地工具 `tools/hk_stock/stock_quote.py` | WebSearch、手动获取 |
-| **港股股票信息** | 本地工具 `tools/hk_stock/stock_info.py` | WebSearch、手动获取 |
-| **非A股公司信息** | WebSearch `tools/common/web_search.py` | 用户手动提供 |
-| **行业动态/新闻** | WebSearch `tools/common/web_search.py` | 用户手动提供 |
-| **最新市值/股价** | WebSearch `tools/common/web_search.py` | 本地工具（A股/港股） |
+| **A股股票信息** | 本地工具 `tools/a_share/stock_info.py` | 豆包搜索 |
+| **港股财务指标** | 本地工具 `tools/hk_stock/stock_screen.py` | 豆包搜索、手动获取 |
+| **港股历史数据** | 本地工具 `tools/hk_stock/stock_quote.py` | 豆包搜索、手动获取 |
+| **港股股票信息** | 本地工具 `tools/hk_stock/stock_financial.py` | 豆包搜索、手动获取 |
+| **美股财务指标** | 本地工具 `tools/us_stock/stock_financial.py` | 豆包搜索、SEC EDGAR |
+| **美股实时行情** | 本地工具 `tools/us_stock/stock_info.py` | 豆包搜索 |
+| **非A股公司信息** | 豆包搜索 `tools/common/doubao_search.py` | 用户手动提供 |
+| **行业动态/新闻** | 豆包搜索 `tools/common/doubao_search.py` | 用户手动提供 |
+| **最新市值/股价** | 本地工具（A股/港股/美股） | 豆包搜索 |
+| **年报一手数据** | `stock_equity.py --download-report` + [pdf-extraction](../tools-scripts/pdf-extraction.md) | 巨潮/HKEX披露易/SEC EDGAR |
 
 **港股财务指标获取说明**：
 
-港股财务数据现已支持通过本地工具自动获取，使用 `stock_info_hk.py --financial` 命令：
+港股财务数据通过本地工具自动获取，使用 `tools/hk_stock/stock_financial.py --financial` 命令：
 
 1. **获取年度财务指标**：
    ```bash
