@@ -302,6 +302,7 @@ disable-model-invocation: true
    - 美股：`tools/us_stock/`（yfinance，免费无需 token）
 2. **每个产业链环节至少分析 2-3 家头部公司**
 3. **重要分析优先使用豆包搜索（`doubao_search.py`）**：支持 `--finance`（财经定向+权威信源）、`--need-content`（抓正文）、`--export`（导出 Markdown）、`--sites`（定向 SEC/港交所披露易），详见 [web-search-tools](../tools-scripts/web-search-tools.md)
+3.1 **网络搜索必须优先获取最新数据**：搜索时须使用 `--time-range month` 或 `--time-range week` 限制时间范围，确保获取的信息和数据为最新。禁止采用过时数据（如使用2024年数据描述2026年行业现状），避免分析偏差。搜索结果须标注数据来源日期，过时数据须明确标注并说明时效性
 4. **对每家公司标注"信息充分度"**（A/B/C级），让读者知道 AI 分析的可靠程度
 5. **关键财务数据须从年报 PDF 一手数据源交叉验证**：使用 `stock_equity.py --download-report` 下载年报，再按 [pdf-extraction](../tools-scripts/pdf-extraction.md) 流程提取
 6. **大宗商品相关行业须获取价格数据**：涉及有色金属、贵金属、能源化工、新能源金属等产业链的行业，须使用 `tools/common/commodity_price.py` 获取大宗商品价格，辅助判断产业链上游成本压力与下游需求景气度
