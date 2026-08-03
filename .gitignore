@@ -1,5 +1,18 @@
+# 环境变量
 .env
+.env.*
+
+# AI工具本地目录
 .claude/
 .qoder/
+
+# 导出报表文件夹
 reports/
 cninfo_reports/
+
+# Python 缓存全量忽略
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+**/*.pyc
