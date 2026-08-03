@@ -25,6 +25,12 @@
 | `financial_rigor.py` | 精确金融计算（PE、ROE、市值校验） | `python tools/common/financial_rigor.py verify-valuation --help` |
 | `report_audit.py` | 研究报告审核 | `python tools/common/report_audit.py --help` |
 
+### 大宗商品数据工具
+
+| 工具文件 | 功能 | 命令示例 |
+|---------|------|---------|
+| `commodity_price.py` | 大宗商品价格数据获取（Akshare 优先，yfinance 回退） | `python tools/common/commodity_price.py --code cu,GC,CL` |
+
 ### 网络搜索工具
 
 | 工具文件 | 功能 | 命令示例 |
@@ -871,7 +877,117 @@ asyncio.run(main())
 
 ---
 
-## 十一、A股代码格式说明
+## 十一、commodity_price.py - 大宗商品价格数据
+
+### 功能说明
+
+获取大宗商品价格数据，支持 18 个品种（有色金属、贵金属、能源化工、新能源小金属四大类别）。采用 Akshare 优先、yfinance 回退的双数据源策略。
+
+**支持品种**：
+- **有色金属（6个）**：沪铜(cu)、沪铝(al)、沪锌(zn)、沪铅(pb)、沪镍(ni)、沪锡(sn)
+- **贵金属（6个）**：沪金(au)、沪银(ag)、COMEX黄金(GC)、COMEX白银(SI)、铂金(PL)、钯金(PA)
+- **能源化工（4个）**：上海原油(sc)、WTI原油(CL)、布伦特原油(BZ)、天然气(NG)
+- **新能源小金属（2个）**：碳酸锂(lc)、工业硅(si)
+
+**限流保护**：
+- 单次获取最多返回 10 条记录
+- 批量获取最多 10 个品种
+- yfinance 请求间隔至少 2 秒
+- 批量获取品种间间隔 1 秒
+
+### 使用方法
+
+#### 1. 列出所有支持品种
+
+```bash
+python tools/common/commodity_price.py --list
+```
+
+**输出示例**：
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "category": "有色金属",
+      "commodities": [
+        {"code": "cu", "name": "沪铜", "currency": "CNY", "exchange": "SHFE"},
+        ...
+      ]
+    },
+    ...
+  ],
+  "meta": {"total_count": 18}
+}
+```
+
+#### 2. 获取单个品种
+
+```bash
+python tools/common/commodity_price.py --code cu
+```
+
+**输出示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "code": "cu",
+    "name": "沪铜",
+    "source": "akshare",
+    "records": [
+      {
+        "date": "2026-01-15",
+        "open": 105000.0,
+        "high": 105500.0,
+        "low": 104800.0,
+        "close": 105050.0,
+        "volume": 123456
+      },
+      ...
+    ],
+    "record_count": 10
+  }
+}
+```
+
+#### 3. 批量获取多个品种
+
+```bash
+python tools/common/commodity_price.py --code cu,GC,CL
+```
+
+#### 4. 指定日期范围
+
+```bash
+python tools/common/commodity_price.py --code cu --start 2025-01-01 --end 2025-07-31
+```
+
+#### 5. 限制返回记录数
+
+```bash
+python tools/common/commodity_price.py --code cu --max-records 5
+```
+
+### 数据源策略
+
+| 品种类型 | 主数据源 | 回退数据源 |
+|---------|---------|-----------|
+| 国内品种（上期所/广期所） | Akshare | 无（仅 Akshare 支持） |
+| 外盘品种（COMEX/WTI/布伦特等） | Akshare | yfinance |
+| 铂金/钯金 | 无（Akshare 无稳定接口） | yfinance |
+
+### 注意事项
+
+1. **限流保护**：单次获取最多 10 条记录，批量获取最多 10 个品种
+2. **默认时间窗口**：14 天（约 10 个交易日）
+3. **yfinance 代理**：在中国大陆使用 yfinance 可能需要配置代理
+4. **数据延迟**：免费接口数据可能有数分钟延迟
+5. **测试文件**：单元测试 `tests/common/test_commodity_price.py`，集成测试 `tests/common/test_commodity_price_integration.py`
+
+---
+
+## 十二、A股代码格式说明
 
 A股代码统一使用**6位数字字符串**:
 
@@ -892,7 +1008,7 @@ A股代码统一使用**6位数字字符串**:
 
 ---
 
-## 十二、数据源说明
+## 十三、数据源说明
 
 ### stock_info_a_code_name()
 
@@ -990,7 +1106,7 @@ A股代码统一使用**6位数字字符串**:
 
 ---
 
-## 十三、注意事项
+## 十四、注意事项
 
 ### 1. 代码格式
 
@@ -1025,7 +1141,7 @@ A股代码必须为6位数字字符串，如 `300502`，不要添加 `.SH` 或 `
 
 ---
 
-## 十四、与港股/美股工具的区别
+## 十五、与港股/美股工具的区别
 
 | 特性 | A股工具 | 港股工具 | 美股工具 |
 |------|---------|---------|---------|
@@ -1040,7 +1156,7 @@ A股代码必须为6位数字字符串，如 `300502`，不要添加 `.SH` 或 `
 
 ---
 
-## 十五、Python路径
+## 十六、Python路径
 
 ```bash
 F:\Anaconda3\envs\Python_3_12_3\python.exe
@@ -1111,6 +1227,25 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-ty
 
 # 下载最新季报
 python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly
+```
+
+### 场景7: 获取大宗商品价格
+
+```bash
+# 列出所有支持的大宗商品品种
+python tools/common/commodity_price.py --list
+
+# 获取沪铜价格（默认最近14天，最多10条）
+python tools/common/commodity_price.py --code cu
+
+# 批量获取多个品种
+python tools/common/commodity_price.py --code cu,GC,CL
+
+# 指定日期范围
+python tools/common/commodity_price.py --code cu --start 2025-01-01 --end 2025-07-31
+
+# 限制返回记录数
+python tools/common/commodity_price.py --code cu --max-records 5
 ```
 
 ---
