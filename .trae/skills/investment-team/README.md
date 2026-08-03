@@ -150,6 +150,7 @@ investment-team 没有专属工具，但 4 个 Agent 并行研究时有以下特
 3. **美股公司数据获取**：使用 `tools/us_stock/` 三个模块（stock_info/stock_quote/stock_financial），详见 [美股工具使用指南](../../../docs/美股工具使用指南.md)
 4. **4 个 Agent 的财务计算须用 financial_rigor.py 验算**：Agent 2（巴菲特视角）的核心财务数据必须使用 `tools/common/financial_rigor.py` 交叉验证，**禁止 LLM 心算** PE/ROE/市值等
 5. **网络信息搜索优先使用豆包搜索**：支持 `--finance`（财经定向+权威信源）、`--need-content`（抓正文）、`--export`（导出 Markdown）、`--sites`（定向 SEC/港交所披露易），多源验证规范详见 [web-search-tools](../tools-scripts/web-search-tools.md)
+6. **大宗商品相关公司须获取价格数据**：Agent 3（芒格视角·行业与竞争分析）在分析涉及大宗商品产业链的公司（如矿业、能源、新能源材料等）时，须使用 `tools/common/commodity_price.py` 获取相关品种价格，辅助判断公司盈利趋势与行业景气度。覆盖18个品种（有色金属/贵金属/能源化工/新能源小金属），Akshare 优先 + yfinance 回退
 
 ### 其他工具
 
@@ -237,9 +238,9 @@ A股/港股/美股的行情、财务、信息查询工具的完整命令示例�
 
 ## 版本信息
 
-- **版本**：1.2.2
+- **版本**：1.3.0
 - **创建日期**：2026-07-22
-- **最后更新**：2026-08-02（参照 quality-screen 模式精简工具依赖：删除与公共技能文件重复的 A股/港股/美股/财务计算/网络信息/PDF 工具表，改为"特殊工具使用注意 + 公共工具规范引用 + 数据来源优先级表"三段式结构，与 SKILL.md 保持一致风格）
+- **最后更新**：2026-08-03（新增大宗商品价格工具 `commodity_price.py`，Agent 3 分析大宗商品产业链公司时须获取价格数据）
 - **维护状态**：活跃维护
 
 ---

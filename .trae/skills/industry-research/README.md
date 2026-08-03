@@ -124,6 +124,14 @@
 | `tools/us_stock/stock_quote.py` | 美股历史K线、三大指数 | `python tools/us_stock/stock_quote.py --daily AAPL` |
 | `tools/us_stock/stock_financial.py` | 美股财务报表、分红、机构持仓 | `python tools/us_stock/stock_financial.py --financials AAPL` |
 
+#### 大宗商品数据
+
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `tools/common/commodity_price.py` | 大宗商品价格（Akshare 优先，yfinance 回退，覆盖18个品种） | `python tools/common/commodity_price.py --code cu,GC,CL` |
+
+**适用场景**：涉及大宗商品产业链的行业（如新能源汽车上游锂矿、光伏上游工业硅、有色金属、石油石化等），须获取相关品种价格辅助判断产业链上游成本压力与下游需求景气度。
+
 ### 财务计算与验证工具
 
 | 工具 | 功能 |
@@ -206,9 +214,9 @@
 
 ## 版本信息
 
-- **版本**：1.1.0
+- **版本**：1.2.0
 - **创建日期**：2026-07-21
-- **最后更新**：2026-08-01（同步 SKILL.md 工具引用：新增美股工具、豆包搜索、PDF提取）
+- **最后更新**：2026-08-03（新增大宗商品价格工具 `commodity_price.py`，覆盖18个品种，辅助大宗商品产业链分析）
 - **维护状态**：活跃维护
 
 ---

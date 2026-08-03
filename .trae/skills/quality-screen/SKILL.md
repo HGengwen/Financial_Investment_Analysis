@@ -92,6 +92,7 @@ disable-model-invocation: true
 
 - A股/港股数据获取：[A股数据](../tools-scripts/a-share-data.md) / [港股数据](../tools-scripts/hk-share-data.md)
 - 美股数据获取：[美股工具使用指南](../../../docs/美股工具使用指南.md)（`tools/us_stock/` 目录下三个模块）
+- 大宗商品数据获取：[大宗商品价格工具](../../../docs/A股工具使用指南.md#十一commodity_pricepy---大宗商品价格数据)（`tools/common/commodity_price.py`，Akshare 优先 + yfinance 回退）
 - 财务计算与验证：[financial-calc](../tools-scripts/financial-calc.md)
 - 网络信息搜索：[web-search-tools](../tools-scripts/web-search-tools.md)
 - 全局约束规范：[global-constraints](../tools-scripts/global-constraints.md)
@@ -150,6 +151,7 @@ A股/港股/美股的行情、财务、信息查询工具的完整命令示例�
 | **行业动态/新闻** | 豆包搜索 `tools/common/doubao_search.py` | 用户手动提供 |
 | **最新市值/股价** | 本地工具（A股/港股/美股） | 豆包搜索 |
 | **年报一手数据** | `stock_equity.py --download-report` + [pdf-extraction](../tools-scripts/pdf-extraction.md) | 巨潮/HKEX披露易/SEC EDGAR |
+| **大宗商品价格**（周期性行业辅助） | `tools/common/commodity_price.py` | 豆包搜索 |
 
 **港股财务指标获取说明**：
 
