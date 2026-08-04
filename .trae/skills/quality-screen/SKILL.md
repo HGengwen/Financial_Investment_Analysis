@@ -92,6 +92,7 @@ disable-model-invocation: true
 
 - A股/港股数据获取：[A股数据](../tools-scripts/a-share-data.md) / [港股数据](../tools-scripts/hk-share-data.md)
 - 美股数据获取：[美股工具使用指南](../../../docs/美股工具使用指南.md)（`tools/us_stock/` 目录下三个模块）
+- 大宗商品数据获取：[大宗商品价格工具](../../../docs/A股工具使用指南.md#十一commodity_pricepy---大宗商品价格数据)（`tools/common/commodity_price.py`，Akshare 优先 + yfinance 回退）
 - 财务计算与验证：[financial-calc](../tools-scripts/financial-calc.md)
 - 网络信息搜索：[web-search-tools](../tools-scripts/web-search-tools.md)
 - 全局约束规范：[global-constraints](../tools-scripts/global-constraints.md)
@@ -118,6 +119,7 @@ A股/港股/美股的行情、财务、信息查询工具的完整命令示例�
 - **财务计算验算**：使用 `tools/common/financial_rigor.py`，**禁止 LLM 心算** PE/ROE/市值等
 - **年报一手数据**：使用 `stock_equity.py --download-report` 下载年报，再按 [pdf-extraction](../tools-scripts/pdf-extraction.md) 流程提取（关键财务数据须从一手数据源交叉验证）
 - **网络信息搜索**：优先使用豆包搜索（`doubao_search.py --finance`），多源验证规范详见 [web-search-tools](../tools-scripts/web-search-tools.md)
+- **网络搜索必须优先获取最新数据**：搜索时须使用 `--time-range month` 或 `--time-range week` 限制时间范围，确保获取的信息和数据为最新。禁止采用过时数据（如使用2024年数据描述2026年行业现状），避免分析偏差。搜索结果须标注数据来源日期，过时数据须明确标注并说明时效性
 
 **WebSearch/WebFetch 在中国大陆不可用，所有网络信息必须使用本地工具。**
 
@@ -150,6 +152,7 @@ A股/港股/美股的行情、财务、信息查询工具的完整命令示例�
 | **行业动态/新闻** | 豆包搜索 `tools/common/doubao_search.py` | 用户手动提供 |
 | **最新市值/股价** | 本地工具（A股/港股/美股） | 豆包搜索 |
 | **年报一手数据** | `stock_equity.py --download-report` + [pdf-extraction](../tools-scripts/pdf-extraction.md) | 巨潮/HKEX披露易/SEC EDGAR |
+| **大宗商品价格**（周期性行业辅助） | `tools/common/commodity_price.py` | 豆包搜索 |
 
 **港股财务指标获取说明**：
 

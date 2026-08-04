@@ -286,6 +286,7 @@ disable-model-invocation: true
 
 - A股/港股数据获取：[A股数据](../tools-scripts/a-share-data.md) / [港股数据](../tools-scripts/hk-share-data.md)
 - 美股数据获取：[美股工具使用指南](../../../docs/美股工具使用指南.md)（`tools/us_stock/` 目录下三个模块）
+- 大宗商品数据获取：[大宗商品价格工具](../../../docs/A股工具使用指南.md#十一commodity_pricepy---大宗商品价格数据)（`tools/common/commodity_price.py`，Akshare 优先 + yfinance 回退）
 - 财务计算与验证：[financial-calc](../tools-scripts/financial-calc.md)
 - 网络信息搜索：[web-search-tools](../tools-scripts/web-search-tools.md)
 - 报告审核与抽检：[report-audit](../tools-scripts/report-audit.md)
@@ -301,8 +302,10 @@ disable-model-invocation: true
    - 美股：`tools/us_stock/`（yfinance，免费无需 token）
 2. **每个产业链环节至少分析 2-3 家头部公司**
 3. **重要分析优先使用豆包搜索（`doubao_search.py`）**：支持 `--finance`（财经定向+权威信源）、`--need-content`（抓正文）、`--export`（导出 Markdown）、`--sites`（定向 SEC/港交所披露易），详见 [web-search-tools](../tools-scripts/web-search-tools.md)
+3.1 **网络搜索必须优先获取最新数据**：搜索时须使用 `--time-range month` 或 `--time-range week` 限制时间范围，确保获取的信息和数据为最新。禁止采用过时数据（如使用2024年数据描述2026年行业现状），避免分析偏差。搜索结果须标注数据来源日期，过时数据须明确标注并说明时效性
 4. **对每家公司标注"信息充分度"**（A/B/C级），让读者知道 AI 分析的可靠程度
 5. **关键财务数据须从年报 PDF 一手数据源交叉验证**：使用 `stock_equity.py --download-report` 下载年报，再按 [pdf-extraction](../tools-scripts/pdf-extraction.md) 流程提取
+6. **大宗商品相关行业须获取价格数据**：涉及有色金属、贵金属、能源化工、新能源金属等产业链的行业，须使用 `tools/common/commodity_price.py` 获取大宗商品价格，辅助判断产业链上游成本压力与下游需求景气度
 
 ### 网络搜索多源验证示例
 
@@ -335,6 +338,34 @@ python tools/us_stock/stock_financial.py --all AAPL --json
 # 定向检索 SEC EDGAR 公告
 python tools/common/doubao_search.py "AAPL 10-K" --sites sec.gov
 ```
+
+### 大宗商品价格获取示例
+
+涉及大宗商品产业链的行业（如新能源汽车上游锂矿、光伏上游工业硅、有色金属、石油石化等），须获取相关品种价格辅助分析：
+
+```bash
+# 列出全部支持的品种（有色金属/贵金属/能源化工/新能源小金属共18种）
+python tools/common/commodity_price.py --list
+
+# 获取碳酸锂价格（新能源产业链上游成本核心）
+python tools/common/commodity_price.py --code lc
+
+# 获取沪铜价格（有色金属产业链）
+python tools/common/commodity_price.py --code cu
+
+# 批量获取多个品种（如铜+COMEX黄金+WTI原油）
+python tools/common/commodity_price.py --code cu,GC,CL
+
+# 指定日期范围
+python tools/common/commodity_price.py --code lc --start 2026-07-25 --end 2026-07-31
+```
+
+**适用场景**：
+
+- 新能源汽车行业 → 碳酸锂（lc）、工业硅（si）
+- 有色金属行业 → 沪铜（cu）、沪铝（al）、沪锌（zn）等
+- 贵金属行业 → 沪金（au）、COMEX黄金（GC）、沪银（ag）等
+- 石油石化行业 → 上海原油（sc）、WTI原油（CL）、布伦特（BZ）等
 
 ---
 

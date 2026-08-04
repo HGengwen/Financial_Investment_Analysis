@@ -382,6 +382,7 @@ pdftoppm -png cninfo_reports/601899_2025年报.pdf cninfo_reports/601899_2025年
 
 - A股/港股数据获取：[A股数据](../tools-scripts/a-share-data.md) / [港股数据](../tools-scripts/hk-share-data.md)
 - 美股数据获取：[美股工具使用指南](../../../docs/美股工具使用指南.md)（`tools/us_stock/` 目录下三个模块）
+- 大宗商品数据获取：[大宗商品价格工具](../../../docs/A股工具使用指南.md#十一commodity_pricepy---大宗商品价格数据)（`tools/common/commodity_price.py`，Akshare 优先 + yfinance 回退）
 - 财务计算与验证：[financial-calc](../tools-scripts/financial-calc.md)
 - 网络信息搜索：[web-search-tools](../tools-scripts/web-search-tools.md)
 - 报告审核与抽检：[report-audit](../tools-scripts/report-audit.md)
@@ -396,6 +397,8 @@ pdftoppm -png cninfo_reports/601899_2025年报.pdf cninfo_reports/601899_2025年
 3. **美股公司数据获取**：使用 `tools/us_stock/` 三个模块（stock_info/stock_quote/stock_financial），详见 [美股工具使用指南](../../../docs/美股工具使用指南.md)
 4. **4 个 Agent 的财务计算须用 financial_rigor.py 验算**：Agent 2（巴菲特视角）的核心财务数据必须使用 `tools/common/financial_rigor.py` 交叉验证，**禁止 LLM 心算** PE/ROE/市值等（具体命令见 Agent 2 分析内容）
 5. **网络信息搜索优先使用豆包搜索**：支持 `--finance`（财经定向+权威信源）、`--need-content`（抓正文）、`--export`（导出 Markdown）、`--sites`（定向 SEC/港交所披露易），多源验证规范详见 [web-search-tools](../tools-scripts/web-search-tools.md)
+5.1 **网络搜索必须优先获取最新数据**：搜索时须使用 `--time-range month` 或 `--time-range week` 限制时间范围，确保获取的信息和数据为最新。禁止采用过时数据（如使用2024年数据描述2026年行业现状），避免分析偏差。搜索结果须标注数据来源日期，过时数据须明确标注并说明时效性
+6. **大宗商品相关公司须获取价格数据**：Agent 3（芒格视角·行业与竞争分析）在分析涉及大宗商品产业链的公司（如矿业、能源、新能源材料等）时，须使用 `tools/common/commodity_price.py` 获取相关品种价格，辅助判断公司盈利趋势与行业景气度
 
 ### 网络搜索多源验证示例
 
