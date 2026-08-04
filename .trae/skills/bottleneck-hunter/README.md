@@ -63,19 +63,41 @@ AI驱动的全球产业链瓶颈套利：从超级趋势的"咽喉位置"挖掘�
 
 ## 输出报告
 
-报告将保存在以下位置：
+所有报告按**趋势名**分目录管理，路径基数为 `reports/bottleneck-map/{趋势名}/`。
 
 | 报告类型 | 文件路径 |
 |---------|---------|
-| 完整扫描报告 | `reports/bottleneck-map/{趋势名}-bottleneck-{YYYYMMDD}.md` |
-| 每日扫描 | `reports/bottleneck-map/daily/{YYYY-MM-DD}-{am/pm}.md` |
-| 瓶颈总地图 | `reports/bottleneck-map/master-map.md` |
-| 观察名单 | `reports/bottleneck-map/watchlist.md` |
+| 完整扫描报告 | `reports/bottleneck-map/{趋势名}/full-scan/{趋势名}-bottleneck-{YYYYMMDD-HHMM}.md` |
+| 每日扫描（有标的） | `reports/bottleneck-map/{趋势名}/daily/{YYYY-MM-DD}/HH-MM-{标的代码1}-{标的代码2}.md` |
+| 每日扫描（仅信号） | `reports/bottleneck-map/{趋势名}/daily/{YYYY-MM-DD}/HH-MM-信号扫描.md` |
+| 瓶颈总地图 | `reports/bottleneck-map/{趋势名}/master-map.md`（固定名，持续更新） |
+| 观察名单 | `reports/bottleneck-map/{趋势名}/watchlist.md`（固定名，持续更新） |
+| 深度分析 | `reports/bottleneck-map/{趋势名}/deep-dive/{公司代码}-{公司名}-deep-{YYYYMMDD}.md` |
+
+**命名要素**：
+- **{趋势名}**：用户输入的趋势名（如 `AI基础设施`、`创新药`），作为一级子目录
+- **{YYYYMMDD-HHMM}**：完整日期时间戳（如 `20260804-1430`）
+- **{标的代码}**：通过估值检查的公司股票代码（如 `FORM`、`300502`）
 
 **每日扫描文件命名规则**（通过文件名一眼看出有没有标的）：
-- 发现明确标的：`HH-MM-标的代码1-标的代码2.md`
+- 发现明确标的：`HH-MM-{标的代码1}-{标的代码2}.md`
 - 仅有信号扫描：`HH-MM-信号扫描.md`
 - 无新发现：不生成文件
+
+**示例**：
+```
+reports/bottleneck-map/AI基础设施/
+├── master-map.md
+├── watchlist.md
+├── full-scan/
+│   └── AI基础设施-bottleneck-20260804-1430.md
+├── daily/
+│   └── 2026-08-04/
+│       ├── 09-00-FORM-IBDN.md
+│       └── 14-00-信号扫描.md
+└── deep-dive/
+    └── 300502-中际旭创-deep-20260804.md
+```
 
 ---
 

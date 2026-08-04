@@ -63,6 +63,8 @@ python tools/us_stock/stock_financial.py --code {股票代码}
 python tools/us_stock/stock_quote.py --code {股票代码}
 ```
 
+**重要**：上述工具输出完整 JSON 格式数据，**禁止使用 `tail`、`head`、`grep` 等管道命令截断输出**，否则会导致 JSON 解析失败。应直接获取完整输出后解析。
+
 使用 `tools/common/financial_rigor.py verify-valuation` 校验估值数据。
 
 如果已有该公司的 `/investment-research` 或 `/investment-team` 报告，优先从中读取。
