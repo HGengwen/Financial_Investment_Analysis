@@ -142,21 +142,76 @@
 
 ## 工具依赖
 
+### 本地数据获取工具（投资类文章适用）
+
+根据上市地点选择相应的工具：
+
+| 市场 | 工具 | 功能 | 命令示例 |
+|------|------|------|---------|
+| A股 | `tools/a_share/stock_info.py` | 股票信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
+| A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
+| A股 | `tools/a_share/stock_quote.py` | 历史股价与实时行情 | `python tools/a_share/stock_quote.py --code 601899` |
+| A股 | `tools/a_share/stock_equity.py` | 股权结构与财报下载 | `python tools/a_share/stock_equity.py --code 601899` |
+| 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| 港股 | `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
+| 港股 | `tools/hk_stock/stock_screen.py` | 港股质量筛选 | `python tools/hk_stock/stock_screen.py --code 00700` |
+| 美股 | `tools/us_stock/stock_info.py` | 美股信息查询 | `python tools/us_stock/stock_info.py --search Apple` |
+| 美股 | `tools/us_stock/stock_financial.py` | 美股财务指标 | `python tools/us_stock/stock_financial.py --code AAPL` |
+| 美股 | `tools/us_stock/stock_quote.py` | 美股行情数据 | `python tools/us_stock/stock_quote.py --code AAPL` |
+
+**Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
+
+**数据源**：东方财富、新浪财经、巨潮资讯（A股）；东方财富、新浪财经（港股）；yfinance（美股）
+
+详细使用说明请参考：
+- **A股工具**：[docs/A股工具使用指南.md](../../docs/A股工具使用指南.md)
+- **港股工具**：[docs/港股工具使用指南.md](../../docs/港股工具使用指南.md)
+- **美股工具**：[docs/美股工具使用指南.md](../../docs/美股工具使用指南.md)
+
+### 网络搜索工具
+
+由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具收集素材。
+
+**工具优先级**（基于主题涉及的市场）：
+
+| 主题类型 | 主搜索工具 | 辅助搜索工具 | 说明 |
+|---------|-----------|------------|------|
+| A股相关主题 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
+| 港股/美股/国际主题 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
+| 技术/论文主题 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 建议多源互补 |
+
+**搜索规范**：
+- 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
+- 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
+- 港股/美股/国际主题须 Doubao + Tavily 双源验证
+- 关键信息缺失时标注"信息不足"，不得用推测填充
+- 重要内容建议同时调用多个工具，互为补充
+
+### PDF文档内容提取（Poppler 工具集）
+
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `pdftotext` | 将PDF转换为纯文本 | `pdftotext -layout 论文.pdf 论文.txt` |
+| `pdfinfo` | 获取PDF文档信息 | `pdfinfo 论文.pdf` |
+| `pdftoppm` | 将PDF页面渲染为图像 | `pdftoppm -png -r 900 论文.pdf output/page` |
+
+**关键提示**：
+- 论文解读类文章须用 `pdftoppm` 提取高清原图（≥500KB，900 DPI 起步）
+- 扫描版PDF无法用 `pdftotext` 提取文本，须用 `pdftoppm` 渲染为图像后人工核对
+- 从PDF提取的数据必须与其他来源交叉验证
+- 详细工作流见 [SKILL.md](./SKILL.md) "PDF文档内容提取"章节
+
+### 其他工具
+
 | 工具 | 功能 |
 |------|------|
-| `tools/common/web_search.py` | A股网络信息搜索（阿里云百炼） |
-| `tools/common/tavily_search.py` | 港股/美股/国际主题网络搜索 |
-| `pdftotext` | PDF转纯文本（Poppler工具集） |
-| `pdfinfo` | 获取PDF文档信息（Poppler工具集） |
-| `pdftoppm` | PDF页面渲染为图像（Poppler工具集） |
-| `tools/a_share/stock_equity.py` | A股年报PDF下载 |
-| `tools/a_share/stock_financial.py` | A股财务指标（投资类文章） |
 | Trae图片生成API | 非论文类文章配图生成 |
 
 **重要约束**：
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
 - 使用本地工具进行网络搜索和数据获取
-- 重要内容建议同时调用 `web_search.py` 和 `tavily_search.py`，互为补充
+- 港股/美股/国际主题须 Doubao + Tavily 双源验证
+- 网络搜索须使用 `--time-range month/week` 限制时间范围，优先获取最新信息
 
 ---
 
@@ -185,6 +240,9 @@
 - 表格括号注释要精确，不用模糊的动宾短语
 - 先检查PDF类型（文本版 vs 扫描版），扫描版需要特殊处理
 - 从PDF提取的数据必须与其他来源交叉验证
+- 港股/美股/国际主题须 Doubao + Tavily 双源验证
+- 网络搜索须使用 `--time-range month/week` 限制时间范围，优先获取最新信息
+- 投资类文章的关键财务数据须使用 `financial_rigor.py` 验算，禁止 LLM 心算
 
 ---
 

@@ -142,35 +142,52 @@
 
 ## 工具依赖
 
-### A股财报下载与数据
+**Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
-| 工具 | 功能 |
-|------|------|
-| `tools/a_share/stock_equity.py` | **财报PDF下载** + 股权结构数据 + 导出Excel |
-| `tools/a_share/stock_info.py` | A股股票代码查询 |
-| `tools/a_share/stock_financial.py` | A股财务指标查询 |
-| `tools/a_share/stock_quote.py` | A股实时行情与历史K线 |
-| `tools/a_share/stock_screen.py` | 质量筛选7条指标 |
+### 本地数据获取工具
 
-### 港股数据
+根据上市地点选择相应的工具：
 
-| 工具 | 功能 |
-|------|------|
-| `tools/hk_stock/stock_info.py` | 港股信息查询与财务指标 |
-| `tools/hk_stock/stock_quote.py` | 港股实时行情与历史K线 |
-| `tools/hk_stock/stock_screen.py` | 港股质量筛选7条指标 |
+| 市场 | 工具 | 功能 |
+|------|------|------|
+| A股 | `tools/a_share/stock_info.py` | 股票代码查询 |
+| A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） |
+| A股 | `tools/a_share/stock_quote.py` | 实时行情与历史K线 |
+| A股 | `tools/a_share/stock_equity.py` | **财报PDF下载** + 股权结构 + 导出Excel |
+| A股 | `tools/a_share/stock_screen.py` | 质量筛选7条指标 |
+| 港股 | `tools/hk_stock/stock_info.py` | 港股信息查询与财务指标 |
+| 港股 | `tools/hk_stock/stock_financial.py` | 港股财务指标 |
+| 港股 | `tools/hk_stock/stock_quote.py` | 港股实时行情与历史K线 |
+| 港股 | `tools/hk_stock/stock_screen.py` | 港股质量筛选7条指标 |
+| 美股 | `tools/us_stock/stock_info.py` | 美股信息查询 |
+| 美股 | `tools/us_stock/stock_financial.py` | 美股财务指标 |
+| 美股 | `tools/us_stock/stock_quote.py` | 美股行情数据 |
 
-### 财务计算
+详细使用说明请参考：
+- [A股工具使用指南](../../docs/A股工具使用指南.md)
+- [港股工具使用指南](../../docs/港股工具使用指南.md)
+- [美股工具使用指南](../../docs/美股工具使用指南.md)
+
+### 精确计算工具
 
 | 工具 | 功能 |
 |------|------|
 | `tools/common/financial_rigor.py` | 精确财务计算（PE、ROE、市值验证、回购估值等） |
 
-### 网络信息获取
+### 网络搜索工具
 
-| 工具 | 功能 |
-|------|------|
-| `tools/common/web_search.py` | 网络信息搜索（阿里云百炼，A股+美股信息搜集） |
+由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具：
+
+| 工具 | 功能 | 适用场景 |
+|------|------|---------|
+| `tools/common/doubao_search.py` | 豆包搜索（推荐首选，支持 `--finance`/`--need-content`/`--export`/`--sites`/`--time-range`） | A股/港股/美股 |
+| `tools/common/tavily_search.py` | Tavily 搜索（非境内上市辅助） | 港股/美股 |
+| `tools/common/web_search.py` | 阿里云百炼搜索 | A股/港股/美股 |
+
+**搜索规范**：
+- 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
+- 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
+- 管理层信息须覆盖最近12个月，非境内上市公司须 Doubao + Tavily 双源验证
 
 ### PDF文档内容提取（Poppler 工具集）
 
@@ -180,10 +197,16 @@
 | `pdfinfo` | 查看PDF文件信息 |
 | `pdftoppm` | 将PDF转换为图像（处理扫描版PDF） |
 
+### 报告审核工具
+
+| 工具 | 功能 |
+|------|------|
+| `tools/common/report_audit.py` | 报告数据抽检与审核 |
+
 **重要约束**：
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
 - A股公司优先使用 `stock_equity.py` 下载原始财报PDF，提取管理层承诺
-- 美股数据通过 `web_search.py` 搜索获取（多源交叉验证）
+- 美股数据使用 `tools/us_stock/` 本地工具 + `doubao_search.py`/`tavily_search.py` 搜索（多源交叉验证）
 - 多地上市公司需综合获取多个市场数据
 
 ---
@@ -207,8 +230,10 @@
 - 关键数据必须至少来自两个独立来源交叉验证
 - 市值必须手算校验：股价 × 总股本，与报告市值对比
 - 货币单位要明确（港币/人民币/美元），防止混淆
+- 网络搜索须使用 `--time-range month/week` 限制时间范围，优先获取最新信息
+- 管理层信息须覆盖最近12个月，非境内上市公司须 Doubao + Tavily 双源验证
 - A+H股公司需同时获取A股和港股数据，分析H股占比和A股/H股溢价
-- 港股+美股ADR公司需港股工具+WebSearch 综合分析
+- 港股+美股ADR公司需港股工具+美股工具/搜索综合分析
 - 三地上市公司（A股+港股+美股）信息披露更复杂，需仔细比对各市场披露差异
 - 扫描版PDF无法直接提取文本，需使用 pdftoppm 转为图像或OCR处理
 - 员工评价、客户反馈等侧面信息可能因平台限制而不完整，需标注可得性
@@ -223,7 +248,6 @@
 - **侧面信息不完整**：员工评价、客户反馈等可能因平台限制而不完整
 - **主观判断风险**：尽管遵循客观原则，评分仍有一定主观性
 - **扫描版PDF限制**：A股年报常为扫描版PDF，可能无法提取文本内容
-- **美股数据覆盖**：美股暂无专门本地工具，主要依赖网络搜索
 - **多地上市复杂性**：A+H股、港股+美股ADR等股权结构分析较复杂
 - 不构成投资建议，仅供学习研究参考
 

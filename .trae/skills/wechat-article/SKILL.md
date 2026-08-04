@@ -61,23 +61,12 @@ disable-model-invocation: true
 
 #### 网络信息获取工具
 
-**A股相关主题**：
-```bash
-python tools/common/web_search.py "{搜索关键词}"
-```
+研究Agent收集素材时，使用本地网络搜索工具（WebSearch/WebFetch 在中国大陆不可用）。工具优先级和搜索规范详见下方"工具使用指南 → 网络搜索工具"章节：
 
-**港股/美股/国际主题**：
-```bash
-# 优先使用Tavily搜索
-python tools/common/tavily_search.py "{搜索关键词}" --max-results 5
-
-# 备选WebSearch
-python tools/common/web_search.py "{搜索关键词}"
-```
-
-**重要内容建议同时调用两个工具**，互为补充。
-
-**注意**：WebSearch/WebFetch 在中国大陆不可用，所有网络信息必须使用本地工具。
+- **A股主题**：优先使用 `tools/common/doubao_search.py`，`tools/common/web_search.py` 作为辅助
+- **港股/美股/国际主题**：`tools/common/doubao_search.py` 为主，`tools/common/tavily_search.py` + `tools/common/web_search.py` 为辅（须双源验证）
+- **技术/论文主题**：多源互补，建议同时调用豆包搜索和 Tavily
+- 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
 
 ---
 
@@ -265,79 +254,101 @@ python tools/common/web_search.py "{搜索关键词}"
 
 ## 工具使用指南
 
-### 网络信息获取
+### 本地数据获取工具（投资类文章适用）
 
-#### A股相关主题
+投资主题文章需要获取财务数据时，根据上市地点选择相应工具：
 
-- 网络搜索：`python tools/common/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
+| 市场 | 工具 | 功能 | 命令示例 |
+|------|------|------|---------|
+| A股 | `tools/a_share/stock_info.py` | 股票信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
+| A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
+| A股 | `tools/a_share/stock_quote.py` | 历史股价与实时行情 | `python tools/a_share/stock_quote.py --code 601899` |
+| A股 | `tools/a_share/stock_equity.py` | 股权结构与财报下载 | `python tools/a_share/stock_equity.py --code 601899` |
+| 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| 港股 | `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
+| 港股 | `tools/hk_stock/stock_screen.py` | 港股质量筛选 | `python tools/hk_stock/stock_screen.py --code 00700` |
+| 美股 | `tools/us_stock/stock_info.py` | 美股信息查询 | `python tools/us_stock/stock_info.py --search Apple` |
+| 美股 | `tools/us_stock/stock_financial.py` | 美股财务指标 | `python tools/us_stock/stock_financial.py --code AAPL` |
+| 美股 | `tools/us_stock/stock_quote.py` | 美股行情数据 | `python tools/us_stock/stock_quote.py --code AAPL` |
 
-#### 港股/美股/国际主题
+**Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
-- **优先使用 Tavily 搜索**：`python tools/common/tavily_search.py "{搜索关键词}" --max-results 5`
-  - Tavily 提供更高质量的内容和更详细的信息
-  - 返回 title、url、content 三个字段
-- **备选 WebSearch**：`python tools/common/web_search.py "{搜索关键词}"`
+**数据源**：东方财富、新浪财经、巨潮资讯（A股）；东方财富、新浪财经（港股）；yfinance（美股）
 
-#### 重要内容建议同时调用两个工具
+详细使用说明请参考：
+- **A股工具**：[docs/A股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
+- **港股工具**：[docs/港股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/港股工具使用指南.md)
+- **美股工具**：[docs/美股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/美股工具使用指南.md)
+
+### 网络搜索工具
+
+由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具收集素材。
+
+**工具优先级**（基于主题涉及的市场）：
+
+| 主题类型 | 主搜索工具 | 辅助搜索工具 | 说明 |
+|---------|-----------|------------|------|
+| A股相关主题 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
+| 港股/美股/国际主题 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
+| 技术/论文主题 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 建议多源互补 |
+
+**搜索规范**：
+- 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
+- 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
+- 港股/美股/国际主题须 Doubao + Tavily 双源验证
+- 关键信息缺失时标注"信息不足"，不得用推测填充
+- 重要内容建议同时调用多个工具，互为补充
 
 **示例**：
 
 ```bash
-# 同时调用两个工具（并行执行）
-python tools/common/tavily_search.py "Qwen3 技术报告 论文解读"
-python tools/common/web_search.py "Qwen3 技术报告 论文解读"
+# A股主题：豆包搜索为主
+python tools/common/doubao_search.py "紫金矿业 2025年净利润" --need-content --time-range month
+
+# 港股/美股主题：双源验证
+python tools/common/doubao_search.py "Apple AI strategy 2025" --need-content --time-range month
+python tools/common/tavily_search.py "Apple AI strategy 2025" --max-results 5
+
+# 技术主题：多源互补
+python tools/common/doubao_search.py "Qwen3 技术报告 解读" --need-content --time-range month
+python tools/common/tavily_search.py "Qwen3 technical report" --max-results 5
 ```
 
-**注意**：WebSearch/WebFetch 在中国大陆不可用，所有网络信息必须使用本地工具。
+**重要约束**：
+- 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
+- 所有网络信息必须使用本地工具获取
+- 关键数据至少两个独立来源交叉验证
 
 ### PDF文档内容提取（使用 Poppler 工具集）
 
-在微信公众号文章写作中，经常需要从 PDF 格式文档（如年报、财报、技术报告、论文等）中提取数据、信息和图表。可以使用 **Poppler 工具集** 进行内容提取。
+在公众号文章写作中，常需从 PDF（论文、年报、技术报告）中提取文本内容和高清图表。使用 **Poppler 工具集**（`pdftotext` / `pdfinfo` / `pdftoppm`）进行处理。
 
-#### Poppler 工具集简介
+#### 基本工具
 
-Poppler 是开源的 PDF 渲染库，提供三个核心工具：
-
-| 工具 | 功能 | 主要用途 |
+| 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `pdftotext` | 将PDF转换为纯文本 | 提取年报中的文字内容、搜索关键信息 |
-| `pdfinfo` | 获取PDF文档信息 | 查看页数、标题、创建日期 |
-| `pdftoppm` | 将PDF页面渲染为图像 | 提取高清图表、处理扫描版PDF |
+| `pdftotext` | 将PDF转换为纯文本 | `pdftotext -layout 论文.pdf 论文.txt` |
+| `pdfinfo` | 获取PDF文档信息 | `pdfinfo 论文.pdf` |
+| `pdftoppm` | 将PDF页面渲染为图像 | `pdftoppm -png -r 900 论文.pdf output/page` |
 
-#### 在公众号文章写作中的应用场景
-
-| 应用场景 | 使用工具 | 命令示例 |
-|---------|---------|---------|
-| **提取论文核心内容** | pdftotext + grep | `grep -n "contribution\|创新\|核心" 论文.txt` |
-| **提取年报关键数据** | pdftotext + grep | `grep -n "净利润\|营业收入\|增长率" 年报.txt` |
-| **提取高清图表** | pdftoppm + PIL | 渲染论文页面为高清图像并裁切 |
-| **查找关键信息** | pdftotext + grep | 搜索特定关键词在PDF中的位置 |
-
-#### 基本使用示例
+#### 文本内容提取工作流
 
 ```bash
-# 1. 检查PDF类型（文本版 vs 扫描版）
+# 步骤1：检查PDF类型（文本版 vs 扫描版）
 pdftotext -layout 论文.pdf - | head -50
-# 如果能正常输出文本 → 文本版PDF
-# 如果输出乱码或空白 → 扫描版PDF
+# 正常输出文本 → 文本版PDF；乱码或空白 → 扫描版PDF
 
-# 2. 提取文本内容（文本版PDF）
+# 步骤2A（文本版）：提取文本并搜索关键内容
 pdftotext -layout 论文.pdf 论文.txt
-
-# 3. 搜索关键内容
 grep -n "核心贡献\|创新点\|实验结果" 论文.txt | head -20
 
-# 4. 提取特定章节（如摘要、结论）
-pdftotext -f 1 -l 3 -layout 论文.pdf 论文_摘要.txt
-
-# 5. 提取高清图表（用于文章配图）
-pdftoppm -png -r 900 -f 5 -l 8 论文.pdf output/page
-# 900 DPI起步，确保图片 ≥ 500KB
+# 步骤2B（扫描版）：渲染为图像后人工核对或 OCR
+pdftoppm -png -r 300 论文.pdf output/page
 ```
 
-#### 提取论文图表用于文章配图
+#### 论文图表提取（用于文章配图）
 
-对于论文解读类文章，必须从PDF中提取高清原图：
+论文解读类文章必须从PDF提取高清原图（≥500KB）：
 
 ```bash
 # 1. 先用150 DPI渲染全页，定位图表坐标
@@ -351,75 +362,34 @@ pdftoppm -png -r 900 -f 5 论文.pdf output/page
 # 4. 使用 PIL 裁切目标图表
 python -c "
 from PIL import Image
-import os
-
-# 加载高分辨率图像
 img = Image.open('output/page-5.png')
-
-# 裁切图表（根据预览确定的坐标，按比例放大）
-# 150 DPI时的坐标：(100, 200, 900, 600)
-# 900 DPI时的坐标：(600, 1200, 5400, 3600)
+# 按比例放大坐标（150 DPI → 900 DPI = 6倍）
 crop_region = (600, 1200, 5400, 3600)
 cropped = img.crop(crop_region)
-
-# 保存，compression_level=1 确保高质量
 cropped.save('assets/论文主题/fig1-核心架构.png', compress_level=1)
-print(f'图片大小: {os.path.getsize(\"assets/论文主题/fig1-核心架构.png\") / 1024:.1f} KB')
 "
 ```
 
-#### 提取年报/财报数据用于投资类文章
+#### 年报数据提取（投资类文章）
 
-对于投资相关的公众号文章，可能需要从年报、财报PDF中提取数据：
+投资类文章可从A股年报PDF提取财务数据：
 
 ```bash
-# 1. 下载年报PDF（A股公司）
+# 1. 下载年报PDF
 python tools/a_share/stock_equity.py --code 601899 --download-report
 
-# 2. 提取文本内容
+# 2. 提取文本并搜索关键财务数据
 pdftotext -layout 601899_2025年报.pdf 601899_2025年报.txt
-
-# 3. 搜索关键财务数据
 grep -n "净利润\|营业收入\|毛利率\|ROE\|增长率" 601899_2025年报.txt | head -30
-
-# 4. 提取管理层讨论章节（通常在前50页）
-pdftotext -f 20 -l 50 -layout 601899_2025年报.pdf 管理层讨论.txt
 ```
 
-#### 扫描版PDF处理
+#### 注意事项
 
-**重要**：部分论文、年报可能为扫描版PDF（图像格式），无法直接提取文本。
-
-```bash
-# 渲染为高分辨率图像
-pdftoppm -png -r 300 论文.pdf output/page
-
-# 使用OCR工具识别文字（如 tesseract）
-tesseract output/page-5.png output/page-5 -l eng
-
-# 对于重要图表，人工核对后使用
-```
-
-#### 使用注意事项
-
-1. **图表质量要求**：文章配图必须 ≥ 500KB，确保在手机上清晰可见
-2. **文本版 vs 扫描版**：先检查PDF类型，扫描版PDF需要特殊处理
-3. **数据验证**：从PDF提取的数据必须与其他来源交叉验证
-4. **工具安装**：Windows 用户需安装 [Poppler for Windows](http://blog.alivate.com.au/poppler-windows/)
-
-#### 详细使用指南
-
-Poppler 工具集的完整使用说明，请参考独立的 PDF 提取技能文档：
-
-- **技能文档**：[PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)
-- **快速指南**：[PDF提取 README](../tools-scripts/README.md)
-
-该文档包含：
-- Poppler 工具集详细介绍（pdftotext、pdfinfo、pdftoppm）
-- 完整的论文/年报数据提取工作流
-- 文本版 vs 扫描版PDF处理策略
-- 高清图表提取技巧
-- 使用注意事项和替代方案
+- **扫描版PDF**：无法用 `pdftotext` 提取文本，须用 `pdftoppm` 渲染为图像后人工核对（或配合 OCR 工具如 tesseract）
+- **图表质量**：文章配图必须 ≥ 500KB，确保手机上清晰可见；900 DPI 起步，不够则升到 1200/1500 DPI
+- **数据验证**：从PDF提取的数据必须与其他来源交叉验证
+- **工具安装**：Windows 需安装 [Poppler for Windows](http://blog.alivate.com.au/poppler-windows/)；Linux/macOS 通常已预装
+- 详细使用指南见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)
 
 ---
 

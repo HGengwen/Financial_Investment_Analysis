@@ -237,48 +237,65 @@ disable-model-invocation: true
 
 ## 工具使用指南
 
-### 网络信息获取
+### 本地数据获取工具
 
-#### A股公司
+根据上市地点选择相应的工具：
 
-- 网络搜索：`python tools/common/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
+| 市场 | 工具 | 功能 | 命令示例 |
+|------|------|------|---------|
+| A股 | `tools/a_share/stock_info.py` | 股票信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
+| A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
+| A股 | `tools/a_share/stock_quote.py` | 历史股价与实时行情 | `python tools/a_share/stock_quote.py --code 601899` |
+| 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| 港股 | `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
+| 美股 | `tools/us_stock/stock_info.py` | 美股信息查询 | `python tools/us_stock/stock_info.py --search Apple` |
+| 美股 | `tools/us_stock/stock_financial.py` | 美股财务指标 | `python tools/us_stock/stock_financial.py --code AAPL` |
+| 美股 | `tools/us_stock/stock_quote.py` | 美股行情数据 | `python tools/us_stock/stock_quote.py --code AAPL` |
 
-#### 港股/美股公司（非国内上市）
+**Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
-- **优先使用 Tavily 搜索**：`python tools/common/tavily_search.py "{搜索关键词}" --max-results 5`
-  - Tavily 提供更高质量的内容和更详细的信息
-  - 返回 title、url、content 三个字段
-  - 支持高级搜索（search_depth="advanced"）
-- **备选 WebSearch**：`python tools/common/web_search.py "{搜索关键词}"`
-  - 作为补充信息源
+**数据源**：东方财富、新浪财经、巨潮资讯（A股）；东方财富、新浪财经（港股）；yfinance（美股）
 
-#### 重要内容（同时调用）
+详细使用说明请参考：
+- **A股工具**：[docs/A股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
+- **港股工具**：[docs/港股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/港股工具使用指南.md)
+- **美股工具**：[docs/美股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/美股工具使用指南.md)
 
-对于港股/美股的重要侦察，建议**同时调用两个工具**，互为补充：
+### 网络搜索工具
 
-- Tavily 搜索：获取详细内容和深度分析
-- WebSearch 搜索：获取更多来源和不同视角
+由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
 
-**示例**：
+**工具优先级**（基于上市地点）：
+
+| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
+|---------|-----------|------------|------|
+| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
+| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
+
+**搜索工具能力**：
+
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `tools/common/doubao_search.py` | 豆包搜索（推荐首选，支持财务/内容/导出/站点过滤） | `python tools/common/doubao_search.py "腾讯 监管 2026年7月" --finance --need-content --time-range week` |
+| `tools/common/tavily_search.py` | Tavily 搜索（非境内上市辅助，支持高级搜索） | `python tools/common/tavily_search.py "Apple AAPL latest news" --max-results 5` |
+| `tools/common/web_search.py` | 阿里云百炼搜索 | `python tools/common/web_search.py "紫金矿业 最新消息"` |
+
+**搜索规范**（必须遵守）：
+1. **时效性优先**：使用 `--time-range month/week` 限制时间范围，优先获取最新信息，避免使用过时数据
+2. **数据源日期**：搜索结果必须包含数据来源日期；过时数据须明确标注时效性说明
+3. **双源验证**：非境内上市公司须 Doubao + Tavily 双源验证
+4. **多角度搜索**：从公司事件、监管政策、行业动态、市场情绪等多维度收集信息
+5. **信息缺口标注**：关键信息缺失时标注"信息不足"，不得用推测填充
+
+**重要内容（同时调用）**：
+
+对于港股/美股的重要侦察，建议**同时调用多个工具**，互为补充：
 
 ```bash
-# 同时调用两个工具（并行执行）
-python tools/common/tavily_search.py "腾讯 监管 2026年7月"
-python tools/common/web_search.py "腾讯 监管 2026年7月"
+# 港股/美股：双源验证（并行执行）
+python tools/common/doubao_search.py "腾讯 监管 2026年7月" --finance --need-content --time-range week
+python tools/common/tavily_search.py "腾讯 监管 2026年7月" --max-results 5
 ```
-
-### A股数据获取
-
-- 股票信息：`python tools/a_share/stock_info.py --search {公司名}`
-- 财务指标：`python tools/a_share/stock_financial.py --code {股票代码}`
-- 股票行情：`python tools/a_share/stock_quote.py --code {股票代码}`
-
-### 港股数据获取
-
-- 股票信息与财务：`python tools/hk_stock/stock_financial.py --financial {股票代码}`
-- 股票行情：`python tools/hk_stock/stock_quote.py --code {股票代码}`
-
-**注意**：WebSearch/WebFetch 在中国大陆不可用，所有网络信息必须使用本地工具。
 
 ---
 
@@ -292,6 +309,8 @@ python tools/common/web_search.py "腾讯 监管 2026年7月"
 6. **尊重信息可得性**——C 级公司可能就是查不到任何新闻，这个结论本身就要写出来
 7. **遵循客观性原则**——所有判断附数据来源，区分事实与观点
 8. **不替用户做决策**——给出归因和行动建议清单，但买卖决策由用户做
+9. **网络搜索时效性**：使用 `--time-range month/week` 限制时间范围，优先获取最新信息
+10. **非境内上市双源验证**：港股/美股公司须 Doubao + Tavily 双源验证
 
 ---
 

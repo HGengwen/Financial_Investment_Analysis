@@ -45,30 +45,23 @@ disable-model-invocation: true
 
 ### A0：数据收集
 
-#### A股数据获取
+根据上市地点选择相应的数据获取工具（详见"工具使用指南"）：
 
 ```bash
-# 股票信息查询
+# A股
 python tools/a_share/stock_info.py --search {公司名}
-
-# 财务指标
 python tools/a_share/stock_financial.py --code {股票代码}
-
-# 股票行情
 python tools/a_share/stock_quote.py --code {股票代码}
-```
 
-#### 港股数据获取
-
-```bash
-# 股票信息与财务指标
+# 港股
 python tools/hk_stock/stock_financial.py --financial {股票代码}
-
-# 股票行情
 python tools/hk_stock/stock_quote.py --code {股票代码}
-```
 
-#### 估值数据校验
+# 美股
+python tools/us_stock/stock_info.py --search {公司名}
+python tools/us_stock/stock_financial.py --code {股票代码}
+python tools/us_stock/stock_quote.py --code {股票代码}
+```
 
 使用 `tools/common/financial_rigor.py verify-valuation` 校验估值数据。
 
@@ -166,28 +159,43 @@ python tools/hk_stock/stock_quote.py --code {股票代码}
 
 ### B2：收集最新数据
 
-#### A股数据更新
+根据上市地点使用相应工具获取最新数据（详见"工具使用指南"）：
 
 ```bash
-# 最新财务指标
+# A股数据更新
 python tools/a_share/stock_financial.py --code {股票代码}
-
-# 最新行情
 python tools/a_share/stock_quote.py --code {股票代码}
-```
 
-#### 港股数据更新
-
-```bash
-# 最新财务指标和行情
+# 港股数据更新
 python tools/hk_stock/stock_financial.py --financial {股票代码}
 python tools/hk_stock/stock_quote.py --code {股票代码}
+
+# 美股数据更新
+python tools/us_stock/stock_financial.py --code {股票代码}
+python tools/us_stock/stock_quote.py --code {股票代码}
 ```
 
 #### 网络信息获取
 
-- A股：`python tools/common/web_search.py "{公司名} 最新财报 管理层变动 监管政策"`
-- 港股/美股：优先使用 `python tools/common/tavily_search.py "{公司名} 最新财报 管理层变动 监管政策"`
+| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
+|---------|-----------|------------|------|
+| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
+| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
+
+**搜索规范**：
+- 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
+- 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
+- 非境内上市公司须 Doubao + Tavily 双源验证
+
+**搜索示例**：
+```bash
+# A股：获取最新财报和管理层变动
+python tools/common/doubao_search.py "{公司名} 最新财报 管理层变动 监管政策" --time-range month
+
+# 港股/美股：双源验证
+python tools/common/doubao_search.py "{公司名} latest earnings management changes" --time-range month
+python tools/common/tavily_search.py "{公司名} latest earnings management changes" --max-results 5
+```
 
 收集内容：
 1. 最新财报数据（如果有新的季报/年报）
@@ -308,36 +316,80 @@ X / 10分
 
 ## 工具使用指南
 
-### 财务数据验证
+### 本地数据获取工具
 
-- 精确计算：`python tools/common/financial_rigor.py`（PE、ROE、市值校验、三情景估值等）
-- 报告审核：`python tools/common/report_audit.py`（数据抽检）
+根据上市地点选择相应的工具：
 
-### 数据获取工具
+| 市场 | 工具 | 功能 | 命令示例 |
+|------|------|------|---------|
+| A股 | `tools/a_share/stock_info.py` | 股票信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
+| A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
+| A股 | `tools/a_share/stock_quote.py` | 历史股价 | `python tools/a_share/stock_quote.py --code 601899` |
+| 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| 港股 | `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
+| 美股 | `tools/us_stock/stock_info.py` | 美股信息查询 | `python tools/us_stock/stock_info.py --search Apple` |
+| 美股 | `tools/us_stock/stock_financial.py` | 美股财务指标 | `python tools/us_stock/stock_financial.py --code AAPL` |
+| 美股 | `tools/us_stock/stock_quote.py` | 美股行情数据 | `python tools/us_stock/stock_quote.py --code AAPL` |
 
-#### A股数据
+**Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
-- 股票信息：`python tools/a_share/stock_info.py --search {公司名}`
-- 财务指标：`python tools/a_share/stock_financial.py --code {股票代码}`
-- 股票行情：`python tools/a_share/stock_quote.py --code {股票代码}`
+**数据源**：东方财富、新浪财经、巨潮资讯（A股）；东方财富、新浪财经（港股）；yfinance（美股）
 
-#### 港股数据
+详细使用说明请参考：
+- **A股工具**：[docs/A股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
+- **港股工具**：[docs/港股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/港股工具使用指南.md)
+- **美股工具**：[docs/美股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/美股工具使用指南.md)
 
-- 股票信息与财务：`python tools/hk_stock/stock_financial.py --financial {股票代码}`
-- 股票行情：`python tools/hk_stock/stock_quote.py --code {股票代码}`
+### 精确计算工具
 
-### 网络信息获取
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证、三情景估值） | `python tools/common/financial_rigor.py verify-valuation --pe 25.5 --eps 10.2` |
 
-#### A股公司
+**关键计算命令**：
 
-- 网络搜索：`python tools/common/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
+```bash
+# 估值指标验证
+python tools/common/financial_rigor.py verify-valuation \
+  --price {股价} --eps {EPS} --bvps {每股净资产} --fcf-per-share {每股FCF} --dividend {每股股息}
 
-#### 港股/美股公司（非国内上市）
+# 三情景估值模型
+python tools/common/financial_rigor.py three-scenario \
+  --price {股价} --eps {EPS} --shares {股本亿} \
+  --growth {乐观} {中性} {悲观} --pe {乐观PE} {中性PE} {悲观PE} --currency {币种}
+```
 
-- **优先使用 Tavily 搜索**：`python tools/common/tavily_search.py "{搜索关键词}" --max-results 5`
-- **备选 WebSearch**：`python tools/common/web_search.py "{搜索关键词}"`
+### 网络搜索工具
 
-**注意**：WebSearch/WebFetch 在中国大陆不可用，所有网络信息必须使用本地工具。
+由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
+
+**工具优先级**（基于上市地点）：
+
+| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
+|---------|-----------|------------|------|
+| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
+| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
+
+**搜索工具能力**：
+
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `tools/common/doubao_search.py` | 豆包搜索（推荐首选，支持财务/内容/导出/站点过滤） | `python tools/common/doubao_search.py "腾讯 最新财报" --finance --need-content --time-range month` |
+| `tools/common/tavily_search.py` | Tavily 搜索（非境内上市辅助，支持高级搜索） | `python tools/common/tavily_search.py "Apple AAPL latest earnings" --max-results 5` |
+| `tools/common/web_search.py` | 阿里云百炼搜索 | `python tools/common/web_search.py "紫金矿业 最新消息"` |
+
+**搜索规范**（必须遵守）：
+1. **时效性优先**：使用 `--time-range month/week` 限制时间范围，优先获取最新信息，避免使用过时数据
+2. **数据源日期**：搜索结果必须包含数据来源日期；过时数据须明确标注时效性说明
+3. **双源验证**：非境内上市公司须 Doubao + Tavily 双源验证
+4. **多角度搜索**：从最新财报、管理层变动、监管政策、竞争动态等多维度收集信息
+5. **信息缺口标注**：关键信息缺失时标注"信息不足"，不得用推测填充
+
+### 报告审核工具
+
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `tools/common/report_audit.py` | 报告数据抽检与审核 | `python tools/common/report_audit.py extract --report reports/xxx.md` |
 
 ---
 
@@ -351,6 +403,8 @@ X / 10分
 6. **不预设立场** — 不因为持有就倾向于"论文完整"，证据指向哪边就写哪边
 7. **数据准确性** — 关键数据至少两个来源交叉验证
 8. **客观性原则** — 区分事实与观点，用数据支撑判断
+9. **网络搜索时效性** — 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
+10. **非境内上市双源验证** — 港股/美股公司须 Doubao + Tavily 双源验证
 
 ---
 
@@ -360,18 +414,21 @@ X / 10分
 2. **估值估算主观性**：内在价值估算存在主观判断，不同方法可能得出不同结论
 3. **假设验证滞后性**：某些假设需要多个季度才能验证，短期内难以判断
 4. **非实时数据**：工具获取的数据可能有延迟，不是实时数据
-5. **不构成投资建议**：本技能仅用于学习与研究，不构成任何投资建议
-6. **论文建立质量依赖**：如果初始论文建立质量不高，后续追踪效果会大打折扣
+5. **论文建立质量依赖**：如果初始论文建立质量不高，后续追踪效果会大打折扣
+6. **不构成投资建议**：本技能仅用于学习与研究，不构成任何投资建议
 
 ---
 
-## 与现有 Skill 的关系
+## 与其他Skill的关系
 
 | Skill | 定位 | 何时用 |
 |-------|------|--------|
 | **`/thesis-tracker`（本Skill）** | **建立和追踪投资论文** | **首次建立论文或季度检查** |
 | `/thesis-drift` | 论文漂移检测 | 有新财报或重大事件时，对比旧论文 |
+| `/investment-research` | 四大师综合投资研究 | 首次深度研究一家公司 |
 | `/investment-team` | 四Agent全面公司研究 | 首次研究一家公司 |
+| `/investment-checklist` | 巴菲特买入前Checklist | 买入前过六关检查 |
+| `/management-deep-dive` | 管理层纵深研究 | 管理层是核心投资逻辑时 |
 | `/earnings-team` | 六Agent团队精读 + 公众号发布 | 重要公司的关键财报 |
 | `/portfolio-review` | 组合层面审视与优化 | 季度组合审视 |
 

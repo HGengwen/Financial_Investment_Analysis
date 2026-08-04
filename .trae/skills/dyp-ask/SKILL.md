@@ -196,17 +196,46 @@ disable-model-invocation: true
 
 本技能为问答型技能，通常不需要调用外部工具。但在分析具体公司时，可参考以下数据源：
 
-### A股数据获取
-- 股票信息：`python tools/a_share/stock_info.py --search {公司名}`
-- 股票行情：`python tools/a_share/stock_quote.py --code {股票代码}`
-- 财务指标：`python tools/a_share/stock_financial.py --code {股票代码}`
+### 本地数据获取工具
 
-### 港股数据获取
-- 股票信息与财务：`python tools/hk_stock/stock_financial.py --financial {股票代码}`
-- 股票行情：`python tools/hk_stock/stock_quote.py --code {股票代码}`
+根据上市地点选择相应的工具：
 
-### 网络信息获取
-- 网络信息搜索：`python tools/common/web_search.py "{搜索关键词}"`（阿里云百炼）
+| 市场 | 工具 | 功能 | 命令示例 |
+|------|------|------|---------|
+| A股 | `tools/a_share/stock_info.py` | 股票信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
+| A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
+| A股 | `tools/a_share/stock_quote.py` | 历史股价与实时行情 | `python tools/a_share/stock_quote.py --code 601899` |
+| 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| 港股 | `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
+| 美股 | `tools/us_stock/stock_info.py` | 美股信息查询 | `python tools/us_stock/stock_info.py --search Apple` |
+| 美股 | `tools/us_stock/stock_financial.py` | 美股财务指标 | `python tools/us_stock/stock_financial.py --code AAPL` |
+| 美股 | `tools/us_stock/stock_quote.py` | 美股行情数据 | `python tools/us_stock/stock_quote.py --code AAPL` |
+
+**Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
+
+**数据源**：东方财富、新浪财经、巨潮资讯（A股）；东方财富、新浪财经（港股）；yfinance（美股）
+
+详细使用说明请参考：
+- **A股工具**：[docs/A股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
+- **港股工具**：[docs/港股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/港股工具使用指南.md)
+- **美股工具**：[docs/美股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/美股工具使用指南.md)
+
+### 网络搜索工具
+
+由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
+
+**工具优先级**（基于上市地点）：
+
+| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
+|---------|-----------|------------|------|
+| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
+| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
+
+**搜索规范**：
+- 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
+- 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
+- 非境内上市公司须 Doubao + Tavily 双源验证
+- 关键信息缺失时标注"信息不足"，不得用推测填充
 
 **注意**：段永平强调"毛估估"，不需要精确数据。工具获取的数据仅供参考，重点在于理解生意模式和企业文化。
 

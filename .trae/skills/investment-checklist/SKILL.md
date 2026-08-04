@@ -47,54 +47,34 @@ disable-model-invocation: true
 7. **管理层记录**：CEO履历、关键决策、持股、资本配置记录
 8. **最新动态**：近6个月重大事件（业绩、并购、监管、管理层变动等）
 
-**数据获取工具规范**：
+**数据获取工具规范**（详见"工具使用指南"章节）：
 - A股数据：使用 `tools/a_share/stock_info.py`、`tools/a_share/stock_quote.py`、`tools/a_share/stock_financial.py`、`tools/a_share/stock_screen.py`
 - 港股数据：使用 `tools/hk_stock/stock_info.py`、`tools/hk_stock/stock_quote.py`、`tools/hk_stock/stock_screen.py`
+- 美股数据：使用 `tools/us_stock/stock_info.py`、`tools/us_stock/stock_financial.py`、`tools/us_stock/stock_quote.py`
 - 精确计算：使用 `tools/common/financial_rigor.py` 进行PE、ROE、市值等指标的精确计算
-- 网络搜索：根据公司上市地点选择相应工具（详见下方说明）
+- 网络搜索：根据公司上市地点选择相应工具（详见"工具使用指南"）
 
-#### 网络信息获取工具选择
+#### 网络搜索工具选择
 
-**A股公司**：
-- 使用 `tools/common/web_search.py`（阿里云百炼 WebSearch）
-- 命令示例：`python tools/common/web_search.py "{公司名} 护城河 竞争优势"`
+| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
+|---------|-----------|------------|------|
+| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
+| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
 
-**港股/美股公司（非国内上市）**：
-- **优先使用 Tavily 搜索**：`tools/common/tavily_search.py`
-  - Tavily 提供更高质量的内容和更详细的信息
-  - 返回 title、url、content 三个字段
-  - 支持高级搜索（search_depth="advanced"）
-- **备选 WebSearch**：`tools/common/web_search.py`
-  - 作为补充信息源
-- 命令示例：
-  ```bash
-  python tools/common/tavily_search.py "腾讯 管理层 马化腾 CEO" --max-results 5
-  python tools/common/web_search.py "腾讯 管理层 马化腾 CEO"
-  ```
+**搜索规范**（必须遵守）：
+1. **时效性优先**：使用 `--time-range month/week` 限制时间范围，优先获取最新信息，避免使用过时数据
+2. **数据源日期**：搜索结果必须包含数据来源日期；过时数据须明确标注时效性说明
+3. **双源验证**：非境内上市公司须 Doubao + Tavily 双源验证
+4. **多角度搜索**：从竞争格局、护城河、管理层、最新动态等多维度收集信息
 
-**重要内容（同时调用）**：
-对于港股/美股的重要公司研究，建议**同时调用两个工具**，互为补充：
-- Tavily 搜索：获取详细内容和深度分析
-- WebSearch 搜索：获取更多来源和不同视角
+**搜索示例**：
 
-#### 网络搜索具体应用场景
-
-| 数据收集维度 | A股搜索示例 | 港股/美股搜索示例 |
-|------------|-----------|-----------------|
-| **竞争格局** | `python tools/common/web_search.py "{公司名} 行业排名 市场份额"` | `python tools/common/tavily_search.py "{公司名} market share competitors" --max-results 5` |
-| **护城河证据** | `python tools/common/web_search.py "{公司名} 护城河 竞争优势"` | `python tools/common/tavily_search.py "{公司名} competitive advantage moat" --max-results 5` |
-| **管理层记录** | `python tools/common/web_search.py "{公司名} CEO 履历 资本配置"` | `python tools/common/tavily_search.py "{公司名} CEO management capital allocation" --max-results 5` |
-| **最新动态** | `python tools/common/web_search.py "{公司名} 最新消息 2026"` | `python tools/common/tavily_search.py "{公司名} latest news 2026" --max-results 5` |
-
-#### 网络搜索工具对比
-
-| 特性 | Tavily 搜索 | WebSearch 搜索 |
-|------|-----------|--------------|
-| **内容质量** | 高质量、详细内容 | 来源多样、覆盖面广 |
-| **适用市场** | 港股、美股、国际市场 | A股、国内信息 |
-| **高级搜索** | 支持（search_depth="advanced"） | 不支持 |
-| **返回字段** | title、url、content | 标题、链接、摘要 |
-| **推荐用途** | 深度分析、国际信息 | 补充信息、交叉验证 |
+| 数据收集维度 | A股搜索 | 港股/美股搜索 |
+|------------|---------|--------------|
+| 竞争格局 | `python tools/common/doubao_search.py "{公司名} 行业排名 市场份额" --time-range month` | `python tools/common/doubao_search.py "{公司名} market share competitors" --time-range month` |
+| 护城河证据 | `python tools/common/doubao_search.py "{公司名} 护城河 竞争优势" --time-range month` | `python tools/common/tavily_search.py "{公司名} competitive advantage moat" --max-results 5` |
+| 管理层记录 | `python tools/common/doubao_search.py "{公司名} CEO 履历 资本配置" --time-range month` | `python tools/common/tavily_search.py "{公司名} CEO management capital allocation" --max-results 5` |
+| 最新动态 | `python tools/common/doubao_search.py "{公司名} 最新消息" --time-range week` | `python tools/common/doubao_search.py "{公司名} latest news" --time-range week` |
 
 **重要约束**：
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
@@ -311,24 +291,39 @@ python tools/common/financial_rigor.py three-scenario \
 
 ## 工具使用指南
 
-### A股数据工具
+### 本地数据获取工具
 
-| 工具 | 功能 | 命令示例 |
-|------|------|---------|
-| `tools/a_share/stock_info.py` | A股信息查询 | `python tools/a_share/stock_info.py --search 新易盛` |
-| `tools/a_share/stock_quote.py` | A股行情数据 | `python tools/a_share/stock_quote.py --code 300502` |
-| `tools/a_share/stock_financial.py` | A股财务指标 | `python tools/a_share/stock_financial.py --code 300502` |
-| `tools/a_share/stock_screen.py` | 质量筛选7条指标 | `python tools/a_share/stock_screen.py --code 300502` |
+根据上市地点选择相应的工具：
 
-### 港股数据工具
+| 市场 | 工具 | 功能 | 命令示例 |
+|------|------|------|---------|
+| A股 | `tools/a_share/stock_info.py` | 股票信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
+| A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
+| A股 | `tools/a_share/stock_quote.py` | 历史股价 | `python tools/a_share/stock_quote.py --code 601899` |
+| A股 | `tools/a_share/stock_screen.py` | 质量筛选7条指标 | `python tools/a_share/stock_screen.py --code 601899` |
+| 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| 港股 | `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
+| 港股 | `tools/hk_stock/stock_screen.py` | 港股质量筛选 | `python tools/hk_stock/stock_screen.py --code 00700` |
+| 美股 | `tools/us_stock/stock_info.py` | 美股信息查询 | `python tools/us_stock/stock_info.py --search Apple` |
+| 美股 | `tools/us_stock/stock_financial.py` | 美股财务指标 | `python tools/us_stock/stock_financial.py --code AAPL` |
+| 美股 | `tools/us_stock/stock_quote.py` | 美股行情数据 | `python tools/us_stock/stock_quote.py --code AAPL` |
 
-| 工具 | 功能 | 命令示例 |
-|------|------|---------|
-| `tools/hk_stock/stock_financial.py` | 港股信息查询、财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
-| `tools/hk_stock/stock_quote.py` | 港股历史K线、指数数据 | `python tools/hk_stock/stock_quote.py --code 00700` |
-| `tools/hk_stock/stock_screen.py` | 港股质量筛选7条指标 | `python tools/hk_stock/stock_screen.py --code 00700` |
+**Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
+
+**数据源**：东方财富、新浪财经、巨潮资讯（A股）；东方财富、新浪财经（港股）；yfinance（美股）
+
+详细使用说明请参考：
+- **A股工具**：[docs/A股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
+- **港股工具**：[docs/港股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/港股工具使用指南.md)
+- **美股工具**：[docs/美股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/美股工具使用指南.md)
 
 ### 精确计算工具
+
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证、三情景估值） | `python tools/common/financial_rigor.py verify-valuation --pe 25.5 --eps 10.2` |
+
+**关键计算命令**：
 
 ```bash
 # 估值指标验证
@@ -343,64 +338,35 @@ python tools/common/financial_rigor.py three-scenario \
 
 ### 网络搜索工具
 
-#### A股公司
+由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
 
-- 网络搜索：`python tools/common/web_search.py "{搜索关键词}"`（阿里云百炼 WebSearch）
+**工具优先级**（基于上市地点）：
 
-**搜索示例**：
-```bash
-# 获取竞争格局信息
-python tools/common/web_search.py "贵州茅台 行业排名 市场份额"
+| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
+|---------|-----------|------------|------|
+| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
+| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
 
-# 获取护城河证据
-python tools/common/web_search.py "贵州茅台 护城河 品牌溢价"
+**搜索工具能力**：
 
-# 获取管理层信息
-python tools/common/web_search.py "贵州茅台 CEO 履历 管理层"
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `tools/common/doubao_search.py` | 豆包搜索（推荐首选，支持财务/内容/导出/站点过滤） | `python tools/common/doubao_search.py "腾讯 护城河" --finance --need-content --time-range month` |
+| `tools/common/tavily_search.py` | Tavily 搜索（非境内上市辅助，支持高级搜索） | `python tools/common/tavily_search.py "Apple AAPL competitive advantage" --max-results 5` |
+| `tools/common/web_search.py` | 阿里云百炼搜索 | `python tools/common/web_search.py "紫金矿业 最新消息"` |
 
-# 获取最新动态
-python tools/common/web_search.py "贵州茅台 最新消息 2026"
-```
+**搜索规范**（必须遵守）：
+1. **时效性优先**：使用 `--time-range month/week` 限制时间范围，优先获取最新信息，避免使用过时数据
+2. **数据源日期**：搜索结果必须包含数据来源日期；过时数据须明确标注时效性说明
+3. **双源验证**：非境内上市公司须 Doubao + Tavily 双源验证
+4. **多角度搜索**：从竞争格局、护城河、管理层、最新动态等多维度收集信息
+5. **信息缺口标注**：关键信息缺失时标注"信息不足"，不得用推测填充
 
-#### 港股/美股公司（非国内上市）
+### 报告审核工具
 
-- **优先使用 Tavily 搜索**：`python tools/common/tavily_search.py "{搜索关键词}" --max-results 5`
-  - Tavily 提供更高质量的内容和更详细的信息
-  - 返回 title、url、content 三个字段
-  - 支持高级搜索（search_depth="advanced"）
-- **备选 WebSearch**：`python tools/common/web_search.py "{搜索关键词}"`
-  - 作为补充信息源
-
-**搜索示例**：
-```bash
-# 基本搜索
-python tools/common/tavily_search.py "腾讯 管理层 马化腾 CEO" --max-results 5
-
-# 高级搜索（更详细的内容）
-python tools/common/tavily_search.py "腾讯 competitive advantage moat" --search-depth advanced --max-results 5
-
-# 获取管理层记录
-python tools/common/tavily_search.py "腾讯 capital allocation buyback dividend" --max-results 5
-
-# 获取最新动态
-python tools/common/tavily_search.py "腾讯 latest news 2026" --max-results 5
-```
-
-#### 重要内容建议同时调用
-
-对于港股/美股的重要公司研究，建议**同时调用两个工具**，互为补充：
-
-```bash
-# 同时调用两个工具（并行执行）
-python tools/common/tavily_search.py "腾讯 competitive advantage" --max-results 5
-python tools/common/web_search.py "腾讯 护城河 竞争优势"
-```
-
-**工具对比**：
-- **Tavily 搜索**：内容质量高、信息详细、支持高级搜索，适合深度分析
-- **WebSearch 搜索**：来源多样、响应快速，适合补充信息和交叉验证
-
-**注意**：WebSearch/WebFetch 在中国大陆不可用，所有网络信息必须使用本地工具。
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `tools/common/report_audit.py` | 报告数据抽检与审核 | `python tools/common/report_audit.py extract --report reports/xxx.md` |
 
 ---
 
@@ -420,13 +386,27 @@ python tools/common/web_search.py "腾讯 护城河 竞争优势"
 - 所有估计值必须明确标注"估计"
 - 市值必须手算校验：股价 × 总股本
 - 货币单位要明确（港币/人民币/美元），防止混淆
-- PE/ROE等指标用 `tools/common/financial_rigor.py` 精确计算
+- PE/ROE等指标用 `tools/common/financial_rigor.py` 精确计算，禁止LLM心算
+- 网络搜索须使用 `--time-range month/week` 限制时间范围，优先获取最新信息
+- 非境内上市公司须 Doubao + Tavily 双源验证
 
 ---
 
-## 局限性说明
+## 局限性
 
-- 数据依赖本地工具和API可用性
-- 东方财富港股接口在中国大陆网络连接不稳定（已内置重试机制）
-- 对于信息稀缺的C级公司，无法保证分析完整性
-- 不构成投资建议，仅供学习研究参考
+1. **网络限制**：WebSearch/WebFetch 在中国大陆不可用，需使用本地搜索工具
+2. **数据源覆盖**：本地工具覆盖A股、港股、美股，但美股数据源依赖 yfinance
+3. **实时性**：本地工具数据可能滞后1-2天，最新财报建议查原始来源
+4. **港股接口稳定性**：东方财富港股接口在中国大陆网络连接不稳定（已内置重试机制）
+5. **信息稀缺公司**：对于C级公司（信息稀缺），无法保证分析完整性
+6. 不构成投资建议，仅供学习研究参考
+
+---
+
+## 与其他Skill的关系
+
+- **数据支撑**：使用 `financial-data` 技能的数据源规范和交叉验证流程
+- **深度研究**：通过 Checklist 后可使用 `investment-research` 技能进行完整投资研究
+- **管理层深化**：管理层评估部分可深化为 `management-deep-dive` 技能
+- **质量筛选**：研究前可先用 `quality-screen` 技能快速筛选
+- **财报跟踪**：研究后可用 `thesis-tracker` 技能持续跟踪

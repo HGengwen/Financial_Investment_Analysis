@@ -3,7 +3,6 @@ name: "bottleneck-hunter"
 description: "Execute supply chain bottleneck scanning and arbitrage opportunity discovery for mega-trends. Invoke when user requests supply chain analysis, bottleneck identification, or finding second/third layer investment opportunities in trends like AI infrastructure, energy transition, defense modernization."
 disable-model-invocation: true
 ---
-
 # 供应链瓶颈猎手：AI驱动的全球产业链瓶颈套利
 
 对指定超级趋势执行供应链瓶颈扫描与套利机会挖掘。
@@ -26,12 +25,12 @@ disable-model-invocation: true
 
 不在小风口里找幻觉，只追符合以下全部条件的超级趋势：
 
-| 标准 | 要求 | 验证方法 |
-|------|------|---------|
-| 持续性 | 至少3-5年确定性增长 | 搜索行业预测、资本开支计划 |
-| 物理性 | 需要实际硬件/材料/设备建设 | 区分"软件升级"和"物理扩建" |
-| 规模性 | 全球资本开支>500亿美元/年 | 搜索头部玩家capex指引 |
-| 加速性 | 需求增速>供给扩产速度 | 对比需求增长率vs产能扩张计划 |
+| 标准   | 要求                       | 验证方法                     |
+| ------ | -------------------------- | ---------------------------- |
+| 持续性 | 至少3-5年确定性增长        | 搜索行业预测、资本开支计划   |
+| 物理性 | 需要实际硬件/材料/设备建设 | 区分"软件升级"和"物理扩建"   |
+| 规模性 | 全球资本开支>500亿美元/年  | 搜索头部玩家capex指引        |
+| 加速性 | 需求增速>供给扩产速度      | 对比需求增长率vs产能扩张计划 |
 
 #### 1.2 当前跟踪的超级趋势清单
 
@@ -136,14 +135,18 @@ Layer 4：
 #### 2.4 其他趋势的拆解
 
 对每个确认的超级趋势执行类似拆解。使用工具搜索：
+
 - "{趋势} supply chain bottleneck 2026"
 - "{趋势} shortage critical component"
 - "{趋势} capacity constraint"
 - "{趋势} sole source supplier"
 
 **重要约束**：
+
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
-- 使用本地工具 `tools/common/web_search.py`（阿里云百炼API）
+- 使用本地工具 `tools/common/doubao_search.py`（推荐首选）、`tools/common/tavily_search.py`（港股/美股辅助）或 `tools/common/web_search.py`（阿里云百炼API）
+- 港股/美股公司须 Doubao + Tavily 双源验证
+- 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
 - 所有数据必须标注来源
 
 ---
@@ -154,16 +157,17 @@ Layer 4：
 
 对Layer 2-3的每个环节，逐条评估：
 
-| # | 标准 | 问题 | 得分 |
-|---|------|------|------|
-| 1 | **供给集中度** | 全球供应商≤3家？ | 🔴 ≤2家 / 🟡 3-5家 / 🟢 >5家 |
-| 2 | **扩产周期** | 新增产能需要多久？ | 🔴 >2年 / 🟡 1-2年 / 🟢 <1年 |
-| 3 | **替代难度** | 能否用其他技术/材料替代？ | 🔴 不可替代 / 🟡 部分可替代 / 🟢 易替代 |
-| 4 | **产能利用率** | 当前产能利用率？ | 🔴 >90% / 🟡 70-90% / 🟢 <70% |
-| 5 | **需求增速** | 下游需求增速？ | 🔴 >50%/年 / 🟡 20-50% / 🟢 <20% |
-| 6 | **客户验证周期** | 新供应商进入需要多久验证？ | 🔴 >1年 / 🟡 6-12月 / 🟢 <6月 |
+| # | 标准                   | 问题                       | 得分                                    |
+| - | ---------------------- | -------------------------- | --------------------------------------- |
+| 1 | **供给集中度**   | 全球供应商≤3家？          | 🔴 ≤2家 / 🟡 3-5家 / 🟢 >5家           |
+| 2 | **扩产周期**     | 新增产能需要多久？         | 🔴 >2年 / 🟡 1-2年 / 🟢 <1年            |
+| 3 | **替代难度**     | 能否用其他技术/材料替代？  | 🔴 不可替代 / 🟡 部分可替代 / 🟢 易替代 |
+| 4 | **产能利用率**   | 当前产能利用率？           | 🔴 >90% / 🟡 70-90% / 🟢 <70%           |
+| 5 | **需求增速**     | 下游需求增速？             | 🔴 >50%/年 / 🟡 20-50% / 🟢 <20%        |
+| 6 | **客户验证周期** | 新供应商进入需要多久验证？ | 🔴 >1年 / 🟡 6-12月 / 🟢 <6月           |
 
 **瓶颈评级**：
+
 - 🔴🔴🔴 ≥4个 → **S级瓶颈**（单点故障级，最高优先级）
 - 🔴🔴 3个 → **A级瓶颈**（严重受限）
 - 🔴 1-2个 → **B级瓶颈**（有压力但可控）
@@ -197,19 +201,21 @@ B级瓶颈（有压力）：
 
 #### 4.1 对每个S级和A级瓶颈，找出所有相关上市公司
 
-搜索方式：
-- `python tools/common/web_search.py "{瓶颈环节} supplier listed company"`
-- `python tools/common/web_search.py "{瓶颈环节} manufacturer stock"`
-- `python tools/common/web_search.py "{瓶颈产品} market share company"`
+搜索方式（优先使用 doubao_search.py，港股/美股须双源验证）：
+
+- `python tools/common/doubao_search.py "{瓶颈环节} supplier listed company" --need-content --time-range month`
+- `python tools/common/doubao_search.py "{瓶颈环节} manufacturer stock" --need-content --time-range month`
+- `python tools/common/doubao_search.py "{瓶颈产品} market share company" --need-content --time-range month`
+- 港股/美股补充：`python tools/common/tavily_search.py "{瓶颈环节} supplier listed company" --max-results 5`
 
 #### 4.2 初筛标准（快速过滤）
 
-| 标准 | 要求 | 理由 |
-|------|------|------|
-| 上市状态 | 已上市（A/港/美/日/台/欧） | 可交易 |
-| 瓶颈业务占比 | >30%收入来自瓶颈环节 | 纯正度 |
-| 市值 | 优先<100亿美元 | 大市值已被充分定价 |
-| 流动性 | 日均成交额>100万美元 | 可进出 |
+| 标准         | 要求                       | 理由               |
+| ------------ | -------------------------- | ------------------ |
+| 上市状态     | 已上市（A/港/美/日/台/欧） | 可交易             |
+| 瓶颈业务占比 | >30%收入来自瓶颈环节       | 纯正度             |
+| 市值         | 优先<100亿美元             | 大市值已被充分定价 |
+| 流动性       | 日均成交额>100万美元       | 可进出             |
 
 #### 4.2.1 估值检查（必须执行，不可跳过）
 
@@ -282,24 +288,24 @@ B级瓶颈（有压力）：
 
 #### 5.1 正向验证
 
-| 验证项 | 问题 | 搜索方式 |
-|--------|------|---------|
-| 客户验证 | 头部客户是否已签约/导入？ | 搜索公司公告、客户财报提及 |
-| 收入验证 | 瓶颈是否已体现在收入增长中？ | 搜索最近2-3个季度财报 |
-| 价格验证 | 产品是否在涨价？ | 搜索行业报价、分析师报告 |
-| 产能验证 | 产能是否真的紧张？ | 搜索交期数据、客户抱怨 |
-| 资本验证 | 是否有扩产资本开支？ | 搜索公司capex指引 |
+| 验证项   | 问题                         | 搜索方式                   |
+| -------- | ---------------------------- | -------------------------- |
+| 客户验证 | 头部客户是否已签约/导入？    | 搜索公司公告、客户财报提及 |
+| 收入验证 | 瓶颈是否已体现在收入增长中？ | 搜索最近2-3个季度财报      |
+| 价格验证 | 产品是否在涨价？             | 搜索行业报价、分析师报告   |
+| 产能验证 | 产能是否真的紧张？           | 搜索交期数据、客户抱怨     |
+| 资本验证 | 是否有扩产资本开支？         | 搜索公司capex指引          |
 
 #### 5.2 反向验证（芒格式否定）
 
-| 反向问题 | 意义 |
-|---------|------|
-| 聪明人为什么不买这只股票？ | 寻找已知的bearish论点 |
-| 这个瓶颈能被绕过吗？有什么替代路线？ | 技术路线风险 |
-| 中国/其他玩家能不能很快复制产能？ | 供给冲击风险 |
-| 终端需求如果放缓50%，这家公司会怎样？ | 下行敏感度 |
-| 管理层过去有没有在高点增发稀释？ | 管理层信任度 |
-| 当前估值隐含了什么增长假设？ | 估值合理性 |
+| 反向问题                              | 意义                  |
+| ------------------------------------- | --------------------- |
+| 聪明人为什么不买这只股票？            | 寻找已知的bearish论点 |
+| 这个瓶颈能被绕过吗？有什么替代路线？  | 技术路线风险          |
+| 中国/其他玩家能不能很快复制产能？     | 供给冲击风险          |
+| 终端需求如果放缓50%，这家公司会怎样？ | 下行敏感度            |
+| 管理层过去有没有在高点增发稀释？      | 管理层信任度          |
+| 当前估值隐含了什么增长假设？          | 估值合理性            |
 
 #### 5.3 信号交叉验证
 
@@ -313,13 +319,14 @@ B级瓶颈（有压力）：
 
 #### 6.1 瓶颈机会排名表
 
-| 排名 | 公司 | 代码 | 市值 | 年收入 | PS | PE | 瓶颈环节 | 瓶颈评级 | 市场份额 | 收入增速 | 信号强度 | 估值判断 |
-|------|------|------|------|--------|-----|-----|---------|---------|---------|---------|---------|---------|
-| 1 | | | | | x | x | | S/A | | | ★1-5 | 合理/偏高/透支 |
+| 排名 | 公司 | 代码 | 市值 | 年收入 | PS | PE | 瓶颈环节 | 瓶颈评级 | 市场份额 | 收入增速 | 信号强度 | 估值判断       |
+| ---- | ---- | ---- | ---- | ------ | -- | -- | -------- | -------- | -------- | -------- | -------- | -------------- |
+| 1    |      |      |      |        | x  | x  |          | S/A      |          |          | ★1-5    | 合理/偏高/透支 |
 
 **必填字段**：市值、年收入、PS、PE 为必填项，不可用"待核实"跳过。如果无法获取财务数据，信号强度不得超过 ★★。
 
 **信号强度评级**（估值检查结果直接影响评级）：
+
 - ★★★★★：多重交叉验证、客户已导入、收入已体现、估值绿灯
 - ★★★★：大部分验证通过、估值绿灯或黄灯（需附解释）
 - ★★★：逻辑成立但部分待验证、估值黄灯可接受
@@ -356,11 +363,11 @@ B级瓶颈（有压力）：
 
 #### 6.3 行动建议
 
-| 标的 | 建议动作 | 理由 |
-|------|---------|------|
-| A | 执行深度研究 | S级瓶颈+多重验证 |
-| B | 加入观察名单，等下季财报 | 逻辑成立但收入未体现 |
-| C | 暂不追踪 | 替代技术风险过高 |
+| 标的 | 建议动作                 | 理由                 |
+| ---- | ------------------------ | -------------------- |
+| A    | 执行深度研究             | S级瓶颈+多重验证     |
+| B    | 加入观察名单，等下季财报 | 逻辑成立但收入未体现 |
+| C    | 暂不追踪                 | 替代技术风险过高     |
 
 ---
 
@@ -369,19 +376,20 @@ B级瓶颈（有压力）：
 #### 7.1 每次运行时的增量更新
 
 1. 检查已识别瓶颈是否仍然成立
+
    - 有无新供应商进入？
    - 产能是否已扩张到解除瓶颈？
    - 替代技术是否有突破？
-
 2. 扫描新出现的瓶颈
+
    - 搜索最近7天的supply chain / shortage / bottleneck新闻
    - 检查财报季中的供应链相关disclosure
-
 3. 更新瓶颈评级（升级/降级/解除）
 
 #### 7.2 状态文件
 
 在 `reports/bottleneck-map/` 目录维护：
+
 - `master-map.md` — 瓶颈总地图（持续更新）
 - `watchlist.md` — 观察名单（持续更新）
 - `YYYY-MM-DD/` — 每天一个文件夹，包含该天所有扫描报告
@@ -411,11 +419,11 @@ B级瓶颈（有压力）：
 
 **文件命名规则**（通过文件名一眼看出有没有标的）：
 
-| 情况 | 文件名格式 | 示例 |
-|------|-----------|------|
-| 发现明确标的 | `HH-MM-标的代码1-标的代码2.md` | `09-00-FORM-IBDN.md` |
-| 有瓶颈信号但无明确标的 | `HH-MM-信号扫描.md` | `14-00-信号扫描.md` |
-| 无新发现 | 不生成文件 | — |
+| 情况                   | 文件名格式                       | 示例                   |
+| ---------------------- | -------------------------------- | ---------------------- |
+| 发现明确标的           | `HH-MM-标的代码1-标的代码2.md` | `09-00-FORM-IBDN.md` |
+| 有瓶颈信号但无明确标的 | `HH-MM-信号扫描.md`            | `14-00-信号扫描.md`  |
+| 无新发现               | 不生成文件                       | —                     |
 
 **文件名中的标的代码 = 通过估值检查、值得深入研究的公司。**
 
@@ -476,27 +484,89 @@ B级瓶颈（有压力）：
 
 ## 工具使用指南
 
-### 数据获取工具
+### 本地数据获取工具
 
-| 工具 | 功能 | 命令示例 |
-|------|------|---------|
-| `tools/common/web_search.py` | 网络信息搜索（阿里云百炼） | `python tools/common/web_search.py "AI supply chain bottleneck 2026"` |
-| `tools/a_share/stock_info.py` | A股信息查询 | `python tools/a_share/stock_info.py --search 新易盛` |
-| `tools/a_share/stock_quote.py` | A股行情数据 | `python tools/a_share/stock_quote.py --code 300502` |
-| `tools/a_share/stock_financial.py` | A股财务指标 | `python tools/a_share/stock_financial.py --code 300502` |
-| `tools/hk_stock/stock_financial.py` | 港股信息查询 | `python tools/hk_stock/stock_financial.py --financial 00700` |
+根据上市地点选择相应的工具：
+
+| 市场 | 工具                                  | 功能                      | 命令示例                                                       |
+| ---- | ------------------------------------- | ------------------------- | -------------------------------------------------------------- |
+| A股  | `tools/a_share/stock_info.py`       | 股票信息查询              | `python tools/a_share/stock_info.py --search 新易盛`         |
+| A股  | `tools/a_share/stock_financial.py`  | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 300502`      |
+| A股  | `tools/a_share/stock_quote.py`      | 历史股价与实时行情        | `python tools/a_share/stock_quote.py --code 300502`          |
+| A股  | `tools/a_share/stock_equity.py`     | 股权结构与财报下载        | `python tools/a_share/stock_equity.py --code 601899`         |
+| 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标        | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| 港股 | `tools/hk_stock/stock_quote.py`     | 港股历史K线               | `python tools/hk_stock/stock_quote.py --code 00700`          |
+| 港股 | `tools/hk_stock/stock_screen.py`    | 港股质量筛选              | `python tools/hk_stock/stock_screen.py --code 00700`         |
+| 美股 | `tools/us_stock/stock_info.py`      | 美股信息查询              | `python tools/us_stock/stock_info.py --search Apple`         |
+| 美股 | `tools/us_stock/stock_financial.py` | 美股财务指标              | `python tools/us_stock/stock_financial.py --code AAPL`       |
+| 美股 | `tools/us_stock/stock_quote.py`     | 美股行情数据              | `python tools/us_stock/stock_quote.py --code AAPL`           |
+
+**Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
+
+**数据源**：东方财富、新浪财经、巨潮资讯（A股）；东方财富、新浪财经（港股）；yfinance（美股）
+
+详细使用说明请参考：
+
+- **A股工具**：[docs/A股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
+- **港股工具**：[docs/港股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/港股工具使用指南.md)
+- **美股工具**：[docs/美股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/美股工具使用指南.md)
 
 ### 精确计算工具
+
+| 工具                                | 功能                                          | 命令示例                                                                         |
+| ----------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
+| `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证、三情景估值） | `python tools/common/financial_rigor.py verify-valuation --pe 25.5 --eps 10.2` |
+| `tools/common/report_audit.py`    | 报告数据抽检与审核                            | `python tools/common/report_audit.py extract --report reports/xxx.md`          |
+
+**关键计算命令**：
 
 ```bash
 # 估值指标验证
 python tools/common/financial_rigor.py verify-valuation \
-  --price {股价} --eps {EPS} --bvps {每股净资产}
+  --price {股价} --eps {EPS} --bvps {每股净资产} --fcf-per-share {每股FCF}
 
 # 三情景估值模型
 python tools/common/financial_rigor.py three-scenario \
   --price {股价} --eps {EPS} --shares {股本亿} \
-  --growth {乐观} {中性} {悲观} --pe {乐观PE} {中性PE} {悲观PE}
+  --growth {乐观增速} {中性增速} {悲观增速} \
+  --pe {乐观PE} {中性PE} {悲观PE} --years 3 --currency {币种}
+```
+
+### 网络搜索工具
+
+由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
+
+**工具优先级**（基于上市地点）：
+
+| 上市地点  | 主搜索工具                        | 辅助搜索工具                                                       | 说明                 |
+| --------- | --------------------------------- | ------------------------------------------------------------------ | -------------------- |
+| A股       | `tools/common/doubao_search.py` | `tools/common/web_search.py`                                     | 豆包搜索为推荐首选   |
+| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
+
+**搜索工具能力**：
+
+| 工具                              | 功能                                              | 命令示例                                                                                                                  |
+| --------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `tools/common/doubao_search.py` | 豆包搜索（推荐首选，支持财务/内容/导出/站点过滤） | `python tools/common/doubao_search.py "AI基础设施 supply chain bottleneck" --finance --need-content --time-range month` |
+| `tools/common/tavily_search.py` | Tavily 搜索（非境内上市辅助，支持高级搜索）       | `python tools/common/tavily_search.py "optical module bottleneck 2026" --max-results 5`                                 |
+| `tools/common/web_search.py`    | 阿里云百炼搜索                                    | `python tools/common/web_search.py "光模块 短缺 产能"`                                                                  |
+
+**搜索规范**（必须遵守）：
+
+1. **时效性优先**：使用 `--time-range month/week` 限制时间范围，优先获取最新信息，避免使用过时数据
+2. **数据源日期**：搜索结果必须包含数据来源日期；过时数据须明确标注时效性说明
+3. **双源验证**：非境内上市公司（港股/美股）须 Doubao + Tavily 双源验证
+4. **多角度搜索**：从供应链新闻、公司公告、行业研究、客户财报等多维度收集信息
+5. **信息缺口标注**：关键信息缺失时标注"信息不足"，不得用推测填充
+
+**重要内容（同时调用）**：
+
+对于港股/美股的重要瓶颈分析，建议**同时调用多个工具**，互为补充：
+
+```bash
+# 港股/美股：双源验证（并行执行）
+python tools/common/doubao_search.py "ASML EUV bottleneck supply chain" --finance --need-content --time-range month
+python tools/common/tavily_search.py "ASML EUV bottleneck supply chain" --max-results 5
 ```
 
 ---
@@ -512,13 +582,13 @@ python tools/common/financial_rigor.py three-scenario \
 
 ## AI研究偏见自觉
 
-| 偏见 | 表现 | 应对 |
-|------|-----|------|
+| 偏见     | 表现                     | 应对                                      |
+| -------- | ------------------------ | ----------------------------------------- |
 | 龙头偏好 | 搜索结果被大市值公司占据 | 刻意搜索小市值供应商、加"small cap"关键词 |
-| 英文偏好 | 遗漏日韩台公司 | 必须搜索日/韩/台湾市场的供应商 |
-| 叙事偏好 | 被"AI概念"标签吸引 | 只看实际供应链位置，不看市场标签 |
-| 确认偏见 | 找到瓶颈后只找正面证据 | 强制执行反向验证（第五步） |
-| 时效偏见 | 依赖过时信息 | 优先搜索最近30天的数据 |
+| 英文偏好 | 遗漏日韩台公司           | 必须搜索日/韩/台湾市场的供应商            |
+| 叙事偏好 | 被"AI概念"标签吸引       | 只看实际供应链位置，不看市场标签          |
+| 确认偏见 | 找到瓶颈后只找正面证据   | 强制执行反向验证（第五步）                |
+| 时效偏见 | 依赖过时信息             | 优先搜索最近30天的数据                    |
 
 ---
 
@@ -533,6 +603,8 @@ python tools/common/financial_rigor.py three-scenario \
 7. **小市值≠好机会** — 小市值也可能是烂公司，必须过财务质量关
 8. **瓶颈真实≠投资机会** — 一家公司可以坐在最紧的瓶颈上，但如果PS>30x或仍在亏损，当前价格就不是买点。**估值是硬门槛**
 9. **遵循客观性原则** — 不预设看多，先数据后结论
+10. **网络搜索时效性** — 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
+11. **非境内上市双源验证** — 港股/美股公司须 Doubao + Tavily 双源验证
 
 ---
 
@@ -544,6 +616,9 @@ python tools/common/financial_rigor.py three-scenario \
 - 关键财务数据必须至少来自两个独立来源进行交叉验证
 - 不预设立场：先摆数据 → 推逻辑 → 出结论
 - 呈现正反两面：每个核心判断附反面论据
+- 网络搜索须使用 `--time-range month/week` 限制时间范围，优先获取最新信息
+- 港股/美股公司须 Doubao + Tavily 双源验证，确保信息准确性
+- 估值数据须使用 `financial_rigor.py` 校验，禁止 LLM 心算
 
 ---
 

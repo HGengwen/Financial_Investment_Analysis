@@ -32,11 +32,13 @@
 
 ### 数据源优先级
 
-| 市场 | 主数据源 | 副数据源 | 原始一手来源 |
-|------|---------|---------|-------------|
-| 美股 | macrotrends.net | stockanalysis.com | SEC EDGAR（10-K/10-Q） |
-| 港股 | aastocks.com | macrotrends（ADR代码） | HKEX披露易（年报PDF） |
-| A股 | 东方财富 | 巨潮资讯 | 巨潮资讯（年报PDF） |
+**核心原则**：优先使用本地工具（基于 yfinance / akshare 库）获取数据，浏览器手动访问作为补充，原始财报作为最终核对依据。
+
+| 市场 | 主数据源（本地工具） | 副数据源（浏览器） | 原始一手来源 |
+|------|---------------------|-------------------|-------------|
+| 美股 | `tools/us_stock/stock_financial.py`（yfinance） | macrotrends.net / stockanalysis.com | SEC EDGAR（10-K/10-Q） |
+| 港股 | `tools/hk_stock/stock_financial.py`（东方财富/新浪） | aastocks.com / macrotrends（ADR） | HKEX披露易（年报PDF） |
+| A股 | `tools/a_share/stock_financial.py`（akshare） | eastmoney.com | 巨潮资讯（年报PDF，通过 `stock_equity.py --download-report` 下载） |
 
 ---
 
@@ -52,13 +54,13 @@
 ```
 /financial-data 00700
 ```
- 使用 `stock_info_hk.py` 获取腾讯财务指标，与 aastocks 交叉验证
+ 使用 `tools/hk_stock/stock_financial.py --financial 00700` 获取腾讯财务指标，与 aastocks 交叉验证
 
 ### 示例3：获取美股财务数据
 ```
 /financial-data PDD
 ```
- 通过浏览器手动访问 macrotrends/stockanalysis，与SEC EDGAR原始财报交叉验证
+ 使用 `tools/us_stock/stock_financial.py --code PDD`（yfinance）获取数据，或通过浏览器手动访问 macrotrends/stockanalysis，与 SEC EDGAR 原始财报交叉验证
 
 ---
 
@@ -133,51 +135,92 @@
 
 ## 工具依赖
 
-### A股数据工具
+### 本地数据获取工具
 
-| 工具 | 功能 | 命令示例 |
-|------|------|---------|
-| `tools/a_share/stock_info.py` | A股信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
-| `tools/a_share/stock_financial.py` | A股财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
-| `tools/a_share/stock_quote.py` | A股历史股价 | `python tools/a_share/stock_quote.py --code 601899` |
-| `tools/a_share/stock_equity.py` | 股权结构与年报下载 | `python tools/a_share/stock_equity.py --code 601899` |
+根据上市地点选择相应的工具：
+
+| 市场 | 工具 | 功能 | 命令示例 |
+|------|------|------|---------|
+| A股 | `tools/a_share/stock_info.py` | 股票信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
+| A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
+| A股 | `tools/a_share/stock_quote.py` | 历史股价与实时行情 | `python tools/a_share/stock_quote.py --code 601899` |
+| A股 | `tools/a_share/stock_equity.py` | 股权结构与财报下载 | `python tools/a_share/stock_equity.py --code 601899` |
+| 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| 港股 | `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
+| 港股 | `tools/hk_stock/stock_screen.py` | 港股质量筛选 | `python tools/hk_stock/stock_screen.py --code 00700` |
+| 美股 | `tools/us_stock/stock_info.py` | 美股信息查询 | `python tools/us_stock/stock_info.py --search Apple` |
+| 美股 | `tools/us_stock/stock_financial.py` | 美股财务指标 | `python tools/us_stock/stock_financial.py --code AAPL` |
+| 美股 | `tools/us_stock/stock_quote.py` | 美股行情数据 | `python tools/us_stock/stock_quote.py --code AAPL` |
 
 **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
-### 港股数据工具
+**数据源**：东方财富、新浪财经、巨潮资讯（A股）；东方财富、新浪财经（港股）；yfinance（美股）
+
+详细使用说明请参考：
+- **A股工具**：[docs/A股工具使用指南.md](../../docs/A股工具使用指南.md)
+- **港股工具**：[docs/港股工具使用指南.md](../../docs/港股工具使用指南.md)
+- **美股工具**：[docs/美股工具使用指南.md](../../docs/美股工具使用指南.md)
+
+### 精确计算工具
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `tools/hk_stock/stock_financial.py` | 港股信息查询、财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
-| `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
-| `tools/hk_stock/stock_screen.py` | 港股质量筛选 | `python tools/hk_stock/stock_screen.py --code 00700` |
+| `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证） | `python tools/common/financial_rigor.py verify-valuation --pe 25.5 --eps 10.2` |
 
-### 精确计算与网络搜索
+### 网络搜索工具
 
-| 工具 | 功能 |
-|------|------|
-| `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证） |
-| `tools/common/web_search.py` | 网络信息搜索（阿里云百炼） |
+由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
+
+**工具优先级**（基于上市地点）：
+
+| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
+|---------|-----------|------------|------|
+| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
+| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
+
+**搜索规范**：
+- 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
+- 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
+- 非境内上市公司须 Doubao + Tavily 双源验证
+- 关键信息缺失时标注"信息不足"，不得用推测填充
 
 ### PDF文档内容提取（Poppler 工具集）
 
-| 工具 | 功能 |
-|------|------|
-| `pdftotext` | 将PDF转换为纯文本（提取年报文字内容） |
-| `pdfinfo` | 获取PDF文档信息（页数、标题、作者等） |
-| `pdftoppm` | 将PDF页面渲染为图像（处理扫描版PDF） |
+A股年报/半年报/季报PDF通过 `tools/a_share/stock_equity.py --download-report` 下载：
 
-### 美股数据获取（浏览器手动）
+```bash
+# 下载年报/半年报/季报 PDF
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type annual      # 年报
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type semiannual   # 半年报
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly    # 季报
+```
 
-由于 WebSearch/WebFetch 不可用，美股数据需通过浏览器手动访问：
+下载的PDF保存于 `cninfo_reports/` 目录，命名格式：`{股票代码}_{年份}年报.pdf`。使用 Poppler 工具集提取内容：
+
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `pdftotext` | 将PDF转换为纯文本 | `pdftotext -layout 601899_2025年报.pdf output.txt` |
+| `pdfinfo` | 获取PDF文档信息 | `pdfinfo 601899_2025年报.pdf` |
+| `pdftoppm` | 将PDF页面渲染为图像 | `pdftoppm -png -r 300 601899_2025年报.pdf output/page` |
+
+**关键提示**：
+- 扫描版PDF无法用 `pdftotext` 提取文本，须用 `pdftoppm` 渲染为图像后人工核对
+- 从PDF提取的数据必须与其他来源交叉验证
+- 详细工作流见 [SKILL.md](./SKILL.md) "PDF文档内容提取"章节
+
+### 美股数据补充获取（浏览器手动）
+
+当本地工具无法获取完整数据时，可通过浏览器手动访问：
 - **主数据源**：macrotrends.net/stocks/charts/{ticker}
 - **副数据源**：stockanalysis.com/stocks/{ticker}/financials
 - **原始财报**：sec.gov/cgi-bin/browse-edgar（10-K/10-Q）
 
 **重要约束**：
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
-- A股和港股数据使用本地工具获取（akshare 数据源）
-- 美股数据通过浏览器手动访问
+- A股、港股、美股数据优先使用本地工具获取
+- 美股数据可通过浏览器手动访问作为补充
+- 港股/美股公司须 Doubao + Tavily 双源验证
+- 网络搜索须使用 `--time-range month/week` 限制时间范围
 
 ---
 
@@ -195,13 +238,16 @@
 ## 注意事项
 
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
-- A股和港股数据使用本地工具获取（数据源：东方财富、新浪财经、巨潮资讯）
-- 美股数据通过浏览器手动访问 macrotrends/stockanalysis
+- A股、港股、美股数据优先使用本地工具获取（akshare / 东方财富+新浪 / yfinance）
 - 每个关键数据必须来自两个独立来源，误差>1%须标记
 - 涉及历史价格的分析统一用前复权，同一分析内不得混用复权口径
 - 当前市值/当前PE 用当前实际股价 × 当前总股本即可，与复权无关
 - 未上市公司数据前标记 `[估计]`，不执行交叉验证
-- 关键数据建议人工复核，不要完全依赖工具提取
+- 港股/美股公司须 Doubao + Tavily 双源验证
+- 网络搜索须使用 `--time-range month/week` 限制时间范围，优先获取最新信息
+- 扫描版PDF无法直接提取文本，须用 `pdftoppm` 渲染为图像后人工核对
+- 从PDF提取的数据必须与其他来源交叉验证
+- 关键财务数据须使用 `financial_rigor.py` 验算，禁止 LLM 心算
 
 ---
 

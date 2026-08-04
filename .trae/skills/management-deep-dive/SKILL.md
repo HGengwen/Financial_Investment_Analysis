@@ -32,7 +32,7 @@ AI无法和管理层吃饭，但可以通过公开信息做到：
 
 ### 第一步：识别关键管理层并启动并行数据收集
 
-使用 WebSearch 确认以下关键人物：
+使用网络搜索工具确认以下关键人物：
 
 | 角色 | 姓名 | 任期 | 背景 | 持股/期权 |
 |------|------|------|------|----------|
@@ -64,7 +64,7 @@ AI无法和管理层吃饭，但可以通过公开信息做到：
 | 仅A股 | `tools/a_share/stock_equity.py` | `python tools/a_share/stock_equity.py --code 601899` |
 | 仅港股 | `tools/hk_stock/stock_financial.py` | `python tools/hk_stock/stock_financial.py --financial 00700` |
 | A+H股 | **同时使用两个工具** | 见下方详细说明 |
-| 港股+美股ADR | **港股工具 + WebSearch** | 港股：`python tools/hk_stock/stock_financial.py --financial 09988`<br>美股：`python tools/common/web_search.py "阿里巴巴 ADR 期权占比"` |
+| 港股+美股ADR | **港股工具 + 美股工具/搜索** | 港股：`python tools/hk_stock/stock_financial.py --financial 09988`<br>美股：`python tools/us_stock/stock_info.py --search Alibaba` |
 
 **A+H股股权结构综合分析**：
 
@@ -78,7 +78,7 @@ python tools/a_share/stock_equity.py --code 601899 --export
 python tools/hk_stock/stock_financial.py --financial 02899
 
 # 3. 搜索两地上市公司的股权结构差异
-python tools/common/web_search.py "紫金矿业 A股 H股 股权结构 差异"
+python tools/common/doubao_search.py "紫金矿业 A股 H股 股权结构 差异" --time-range month
 ```
 
 **返回数据包括**：
@@ -147,7 +147,7 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-ty
 - 文件命名：`{股票代码}_{年份}{报告类型}.pdf`
 - 示例：`601899_2025年报.pdf`
 
-**从下载的年报中提取管理层承诺**：
+**从下载的年报中提取管理层承诺**（使用 Poppler 工具集，详见"工具使用指南"）：
 
 | # | 时间 | 承诺内容 | 承诺场合 | 兑现情况 | 评价 |
 |---|------|---------|---------|---------|------|
@@ -240,7 +240,7 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-ty
 
 ```bash
 # 搜索公司上市情况
-python tools/common/web_search.py "{公司名} A股 港股 股票代码"
+python tools/common/doubao_search.py "{公司名} A股 港股 股票代码" --time-range month
 ```
 
 **使用股权结构工具获取详细数据**：
@@ -275,7 +275,7 @@ python tools/a_share/stock_quote.py --code 601899
 python tools/hk_stock/stock_quote.py --code 02899
 
 # 5. 搜索两地上市的股权结构差异和H股占比
-python tools/common/web_search.py "{公司名} A股 H股 股权结构 占比"
+python tools/common/doubao_search.py "{公司名} A股 H股 股权结构 占比" --time-range month
 ```
 
 **A+H股股权结构分析要点**：
@@ -422,148 +422,107 @@ AI无法和管理层面对面交流，但可以通过公开渠道的侧面信息
 
 ---
 
-## 工具软件使用指南
+## 工具使用指南
 
-### 网络信息搜索（使用本地 WebSearch 工具）
+### 本地数据获取工具
 
-Anthropic 官方 WebSearch/WebFetch 在中国大陆被地域封锁，不可用。使用本地 `tools/common/web_search.py` 工具替代，该工具通过阿里云百炼 WebSearch MCP 服务实现网络搜索。
+根据上市地点选择相应的工具：
 
-| 工具 | 用途 | 命令示例 |
-|------|------|---------|
-| `tools/common/web_search.py` | 网络信息搜索 | `python tools/common/web_search.py "腾讯控股 管理层"` |
+| 市场 | 工具 | 功能 | 命令示例 |
+|------|------|------|---------|
+| A股 | `tools/a_share/stock_info.py` | 股票代码查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
+| A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
+| A股 | `tools/a_share/stock_quote.py` | 实时行情与历史K线 | `python tools/a_share/stock_quote.py --code 601899` |
+| A股 | `tools/a_share/stock_equity.py` | 股权结构 + 年报下载 | `python tools/a_share/stock_equity.py --code 601899` |
+| A股 | `tools/a_share/stock_screen.py` | 质量筛选7条指标 | `python tools/a_share/stock_screen.py --code 601899` |
+| 港股 | `tools/hk_stock/stock_info.py` | 港股信息查询 | `python tools/hk_stock/stock_info.py --search 腾讯` |
+| 港股 | `tools/hk_stock/stock_financial.py` | 港股财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| 港股 | `tools/hk_stock/stock_quote.py` | 港股实时行情与历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
+| 港股 | `tools/hk_stock/stock_screen.py` | 港股质量筛选 | `python tools/hk_stock/stock_screen.py --code 00700` |
+| 美股 | `tools/us_stock/stock_info.py` | 美股信息查询 | `python tools/us_stock/stock_info.py --search Apple` |
+| 美股 | `tools/us_stock/stock_financial.py` | 美股财务指标 | `python tools/us_stock/stock_financial.py --code AAPL` |
+| 美股 | `tools/us_stock/stock_quote.py` | 美股行情数据 | `python tools/us_stock/stock_quote.py --code AAPL` |
 
-**WebSearch 适用场景**：
+**Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
-| 场景 | 示例搜索关键词 | 目的 |
-|------|---------------|------|
-| **获取管理层背景信息** | `腾讯 马化腾 背景` | 了解CEO履历 |
-| **获取管理层公开发言** | `马化腾 股东信 2025` | 查找CEO发言记录 |
-| **获取公司治理结构** | `腾讯 股权结构 AB股` | 了解治理结构 |
-| **获取资本配置决策** | `腾讯 回购 2025` | 查找资本配置记录 |
-| **获取员工评价** | `腾讯 Glassdoor 员工评价` | 侧面验证管理层 |
-| **获取客户反馈** | `腾讯 客户投诉 App Store` | 了解客户满意度 |
+**数据源**：东方财富、新浪财经、巨潮资讯（A股）；东方财富、新浪财经（港股）；yfinance（美股）
 
-**WebSearch 使用要点**：
+详细使用说明请参考：
+- **A股工具**：[docs/A股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
+- **港股工具**：[docs/港股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/港股工具使用指南.md)
+- **美股工具**：[docs/美股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/美股工具使用指南.md)
 
-1. **数据来源验证**：网络信息需交叉验证，不要依赖单一来源
-2. **多角度搜索**：管理层评估需要从多个维度收集信息
-3. **时间准确性**：注意搜索时间范围，获取最新信息
-4. **信息完整性**：如关键信息缺失，标注"信息不足"而非推测
+### 财报下载与股权结构工具
 
-**命令格式**：
-```bash
-# 基本搜索
-python tools/common/web_search.py "搜索关键词"
+管理层研究的核心数据来源是年报 PDF（提取管理层承诺、战略发言、资本配置记录）。A股使用 `tools/a_share/stock_equity.py` 下载：
 
-# 指定结果数量
-python tools/common/web_search.py "搜索关键词" --num 10
+| 功能 | 命令示例 |
+|------|---------|
+| 下载年报 | `python tools/a_share/stock_equity.py --code 601899 --download-report` |
+| 下载半年报 | `python tools/a_share/stock_equity.py --code 601899 --download-report --report-type semiannual` |
+| 下载季报 | `python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly` |
+| 股权结构数据 | `python tools/a_share/stock_equity.py --code 601899` |
+| 导出Excel | `python tools/a_share/stock_equity.py --code 601899 --export` |
 
-# JSON 格式输出
-python tools/common/web_search.py "搜索关键词" --json
-```
+**文件保存位置**：默认目录 `./cninfo_reports/`，命名格式 `{股票代码}_{年份}{报告类型}.pdf`
 
-### A股股权结构数据获取
-
-| 工具 | 用途 | 命令示例 |
-|------|------|---------|
-| `tools/a_share/stock_equity.py` | 股权结构数据 | `python tools/a_share/stock_equity.py --code 601899` |
-| `tools/a_share/stock_equity.py` | 导出Excel | `python tools/a_share/stock_equity.py --code 601899 --export` |
-
-**股权结构数据包含**：
-- 前十大股东（总股本口径）
-- 前十大流通股东（流通股本口径）
-- 股本结构历史变动
-- 公司基础信息
-
-**在管理层研究中的应用**：
-1. **股权结构分析**：获取前十大股东信息，了解创始人/实控人持股比例
-2. **股本变动追踪**：查看5年股本膨胀情况，评估股东友好度
-3. **股权集中度分析**：评估股权分散风险、控制权稳定性
-
-**使用示例**：
-```bash
-# 获取紫金矿业股权结构
-python tools/a_share/stock_equity.py --code 601899
-
-# 导出为Excel文件（便于详细分析）
-python tools/a_share/stock_equity.py --code 601899 --export
-
-# JSON格式输出（便于程序处理）
-python tools/a_share/stock_equity.py --code 601899 --json
-```
-
-### A股股价数据获取
-
-| 工具 | 用途 | 命令示例 |
-|------|------|---------|
-| `tools/a_share/stock_quote.py` | A股实时行情 | `python tools/a_share/stock_quote.py --code 601899` |
-| `tools/a_share/stock_quote.py` | A股历史K线 | `python tools/a_share/stock_quote.py --code 601899 --start 20250101 --end 20260716` |
-
-**股价数据包含**：
-- 最新开盘价、收盘价、最高价、最低价
-- 成交量、成交额
-- 涨跌幅、涨跌额
-
-**在管理层研究中的应用**：
-1. **A股/H股溢价计算**：获取A股最新股价，与H股股价比较
-2. **估值分析**：结合财务数据，计算PE、PB等估值指标
-3. **市值计算**：股价 × 总股本，验证公司市值
-
-**使用示例**：
-```bash
-# 获取紫金矿业最新股价
-python tools/a_share/stock_quote.py --code 601899
-
-# 获取指定日期范围的历史K线
-python tools/a_share/stock_quote.py --code 601899 --start 20260101 --end 20260716
-```
-
-### 财报PDF下载
-
-| 工具 | 用途 | 命令示例 |
-|------|------|---------|
-| `tools/a_share/stock_equity.py` | 下载年报PDF | `python tools/a_share/stock_equity.py --code 601899 --download-report` |
-| `tools/a_share/stock_equity.py` | 下载半年报PDF | `python tools/a_share/stock_equity.py --code 601899 --download-report --report-type semiannual` |
-| `tools/a_share/stock_equity.py` | 下载季报PDF | `python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly` |
+**返回数据包括**：前十大股东、前十大流通股东、股本结构历史变动、公司基础信息、A股与H股股本占比（A+H股公司）
 
 **在管理层研究中的应用**：
 1. **承诺追踪**：下载年报，查找管理层承诺，追踪兑现情况
 2. **战略发言分析**：从年报、半年报中提取管理层战略判断
 3. **困难时期表现**：下载历史年报，分析危机应对
 4. **资本配置记录**：从年报中提取并购、回购、分红决策
+5. **股本变动追踪**：查看5年股本膨胀情况，评估股东友好度
 
-**文件保存位置**：
-- 默认目录：`./cninfo_reports/`
-- 文件命名：`{股票代码}_{年份}{报告类型}.pdf`
-- 示例：`601899_2025年报.pdf`
+### 精确计算工具
 
-**使用示例**：
-```bash
-# 下载紫金矿业2025年年报
-python tools/a_share/stock_equity.py --code 601899 --download-report
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证、回购估值等） | `python tools/common/financial_rigor.py verify-valuation --help` |
 
-# 下载紫金矿业2026年半年报
-python tools/a_share/stock_equity.py --code 601899 --download-report --report-type semiannual
+**管理层研究中的应用**：回购记录分析时，使用 `verify-valuation` 校验回购时和当前的PE等估值指标；市值必须手算校验（股价 × 总股本）。
 
-# 下载紫金矿业2026年Q1季报
-python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly
+### 网络搜索工具
 
-# 指定保存目录
-python tools/a_share/stock_equity.py --code 601899 --download-report --report-dir ./reports
-```
+由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
 
-**注意事项**：
-- 文件大小：年报通常较大（1-80MB），半年报和季报较小（100-500KB）
-- 下载延迟：为避免频繁请求，下载后会自动延迟1.2秒
-- 报告可得性：部分公司可能未发布半年报，这是正常现象
+**工具优先级**（基于上市地点）：
 
-### PDF文档内容提取（使用 Poppler 工具集）
+| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
+|---------|-----------|------------|------|
+| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
+| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
 
-下载的财报PDF可以使用 **Poppler 工具集** 进行内容提取和分析，获取管理层承诺、战略发言、资本配置记录等信息。
+**搜索工具能力**：
 
-#### Poppler 工具集简介
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `tools/common/doubao_search.py` | 豆包搜索（推荐首选，支持财务/内容/导出/站点过滤） | `python tools/common/doubao_search.py "腾讯 管理层" --finance --need-content --time-range month` |
+| `tools/common/tavily_search.py` | Tavily 搜索（非境内上市辅助） | `python tools/common/tavily_search.py "Apple AAPL management team"` |
+| `tools/common/web_search.py` | 阿里云百炼搜索 | `python tools/common/web_search.py "紫金矿业 管理层变动"` |
 
-Poppler 是开源的 PDF 渲染库，提供三个核心工具：
+**搜索规范**（必须遵守）：
+1. **时效性优先**：使用 `--time-range month/week` 限制时间范围，优先获取最新信息，避免使用过时数据
+2. **数据源日期**：搜索结果必须包含数据来源日期；过时数据须明确标注时效性说明
+3. **双源验证**：管理层信息须覆盖最近12个月，非境内上市公司须 Doubao + Tavily 双源验证
+4. **多角度搜索**：从管理层背景、公开发言、治理结构、资本配置、员工评价、客户反馈等多维度收集信息
+5. **信息缺口标注**：关键信息缺失时标注"信息不足"，不得用推测填充
+
+**典型搜索场景**：
+
+| 场景 | 示例搜索关键词 | 目的 |
+|------|---------------|------|
+| 管理层背景信息 | `腾讯 马化腾 背景` | 了解CEO履历 |
+| 管理层公开发言 | `马化腾 股东信 2025` | 查找CEO发言记录 |
+| 公司治理结构 | `腾讯 股权结构 AB股` | 了解治理结构 |
+| 资本配置决策 | `腾讯 回购 2025` | 查找资本配置记录 |
+| 员工评价 | `腾讯 Glassdoor 员工评价` | 侧面验证管理层 |
+| 客户反馈 | `腾讯 客户投诉 App Store` | 了解客户满意度 |
+
+### PDF文档内容提取（Poppler 工具集）
+
+下载的财报 PDF 可使用 Poppler 工具集提取管理层承诺、战略发言等内容。
 
 | 工具 | 功能 | 主要用途 |
 |------|------|---------|
@@ -571,16 +530,7 @@ Poppler 是开源的 PDF 渲染库，提供三个核心工具：
 | `pdfinfo` | 获取PDF文档信息 | 查看页数、标题、创建日期 |
 | `pdftoppm` | 将PDF页面渲染为图像 | 处理扫描版PDF、提取图表 |
 
-#### 在管理层研究中的应用场景
-
-| 应用场景 | 使用工具 | 命令示例 |
-|---------|---------|---------|
-| **提取管理层承诺** | pdftotext + grep | `grep -n "承诺\|计划\|目标" 年报.txt` |
-| **查找战略发言** | pdftotext + grep | `grep -n "战略\|未来\|展望" 年报.txt` |
-| **提取财务数据** | pdftotext | 提取财务报表章节 |
-| **处理扫描版年报** | pdftoppm | 渲染为高分辨率图像 |
-
-#### 基本使用示例
+**典型工作流**：
 
 ```bash
 # 1. 下载年报PDF
@@ -588,282 +538,75 @@ python tools/a_share/stock_equity.py --code 601899 --download-report
 
 # 2. 检查PDF类型（文本版 vs 扫描版）
 pdftotext -layout 601899_2025年报.pdf - | head -50
-# 如果能正常输出文本 → 文本版PDF
-# 如果输出乱码或空白 → 扫描版PDF
+# 能正常输出文本 → 文本版PDF；输出乱码或空白 → 扫描版PDF
 
 # 3. 提取文本内容（文本版PDF）
 pdftotext -layout 601899_2025年报.pdf 601899_2025年报.txt
 
-# 4. 搜索管理层承诺
+# 4. 搜索管理层承诺与战略发言
 grep -n "承诺\|计划\|目标\|未来三年" 601899_2025年报.txt | head -20
-
-# 5. 搜索战略判断
 grep -n "战略\|行业趋势\|竞争格局" 601899_2025年报.txt | head -20
 
-# 6. 提取特定章节（如"管理层讨论与分析"）
-pdftotext -f 30 -l 50 -layout 601899_2025年报.pdf 管理层讨论.txt
-```
-
-#### 扫描版PDF处理
-
-**重要**：A股年报常为扫描版PDF（图像格式），无法直接用 pdftotext 提取文本。
-
-```bash
-# 渲染为高分辨率图像
-mkdir output
+# 5. 扫描版PDF处理（图像格式，无法直接提取文本）
 pdftoppm -png -r 300 601899_2025年报.pdf output/page
-
-# 渲染指定页面（如财务报表页面）
-pdftoppm -png -r 300 -f 100 -l 120 601899_2025年报.pdf output/page
-
-# 生成文件：output/page-100.png, output/page-101.png, ...
 ```
 
-扫描版PDF的处理建议：
-- 使用 OCR 工具（如 tesseract）识别文字
-- 重要数据人工输入验证
-- 核心指标必须与其他数据源交叉验证
+**注意事项**：
+- A股年报常为扫描版PDF（图像格式），需使用 `pdftoppm` 渲染为图像或 OCR 处理
+- 提取的数据必须与其他来源交叉验证
+- Windows 用户需安装 [Poppler for Windows](http://blog.alivate.com.au/poppler-windows/)
+- 完整使用说明请参考 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)
 
-#### 使用注意事项
+### 多地上市公司数据获取
 
-1. **扫描版PDF限制**：无法直接提取文本，必须渲染为图像或使用OCR
-2. **文件大小**：高分辨率渲染会生成大量图像文件（每页1-5MB）
-3. **数据验证**：提取的数据必须与其他来源交叉验证
-4. **工具安装**：Windows 用户需安装 [Poppler for Windows](http://blog.alivate.com.au/poppler-windows/)
+对于多地上市公司，需**综合获取多个市场的数据**进行分析。常见情况：
 
-#### 详细使用指南
+| 上市类型 | 典型公司 | 数据获取策略 |
+|---------|---------|------------|
+| A+H股 | 紫金矿业（A股:601899，H股:02899） | A股工具为主 + 港股工具补充 |
+| 港股+美股ADR | 阿里巴巴（港股:09988，美股:BABA） | 港股工具为主 + 美股工具/搜索补充 |
+| A股+港股+美股 | 百济神州（A股:688235，港股:06160，美股:BGNE） | A股工具为主 + 港股/美股工具补充 |
 
-Poppler 工具集的完整使用说明，请参考独立的 PDF 提取技能文档：
-
-- **技能文档**：[PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)
-- **快速指南**：[PDF提取 README](../tools-scripts/README.md)
-
-该文档包含：
-- Poppler 工具集详细介绍（pdftotext、pdfinfo、pdftoppm）
-- 完整的年报数据提取工作流
-- 文本版 vs 扫描版PDF处理策略
-- 使用注意事项和替代方案
-- 与其他技能的集成使用
-
-### 财务计算工具
-
-| 工具 | 用途 | 命令示例 |
-|------|------|---------|
-| `tools/common/financial_rigor.py` | 精确财务计算（PE、ROE等） | `python tools/common/financial_rigor.py verify-valuation --help` |
-
-### A股财务数据获取（优先使用本地 akshare 工具）
-
-| 工具 | 用途 | 命令示例 |
-|------|------|---------|
-| `tools/a_share/stock_info.py` | 股票代码查询 | `python tools/a_share/stock_info.py --search 腾讯` |
-| `tools/a_share/stock_financial.py` | 财务指标查询 | `python tools/a_share/stock_financial.py --code 300502` |
-| `tools/a_share/stock_screen.py` | 质量筛选7条指标 | `python tools/a_share/stock_screen.py --code 300502` |
-
-**Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
-
-### 港股数据获取（使用独立的港股工具）
-
-| 工具 | 用途 | 命令示例 |
-|------|------|---------|
-| `tools/hk_stock/stock_info.py` | 港股信息查询 | `python tools/hk_stock/stock_info.py --search 腾讯` |
-| `tools/hk_stock/stock_financial.py` | 港股财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
-| `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
-| `tools/hk_stock/stock_quote.py` | 港股指数 | `python tools/hk_stock/stock_quote.py --index HSI` |
-| `tools/hk_stock/stock_screen.py` | 港股质量筛选7条指标 | `python tools/hk_stock/stock_screen.py --code 00700` |
-
-### 港股股价数据获取
-
-| 工具 | 用途 | 命令示例 |
-|------|------|---------|
-| `tools/hk_stock/stock_quote.py` | 港股实时行情 | `python tools/hk_stock/stock_quote.py --code 00700` |
-| `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700 --start 20250101 --end 20260716` |
-
-**股价数据包含**：
-- 最新开盘价、收盘价、最高价、最低价
-- 成交量、成交额
-- 涨跌幅、涨跌额
-
-**在管理层研究中的应用**：
-1. **A股/H股溢价计算**：获取H股最新股价（港元），与A股股价比较
-2. **估值分析**：结合财务数据，计算PE、PB等估值指标
-3. **市值计算**：股价 × 总股本，验证公司市值
-
-**使用示例**：
-```bash
-# 获取腾讯控股最新股价
-python tools/hk_stock/stock_quote.py --code 00700
-
-# 获取指定日期范围的历史K线
-python tools/hk_stock/stock_quote.py --code 00700 --start 20260101 --end 20260716
-```
-
-### 美股信息与数据搜集
-
-由于美股数据暂无专门的本地工具，主要采用 WebSearch 进行信息搜集。
-
-| 数据类型 | 搜索关键词示例 | 目的 |
-|---------|---------------|------|
-| **美股股价** | `{公司名} {股票代码} stock price` | 获取最新股价、市值、成交量 |
-| **美股财务数据** | `{公司名} {股票代码} financial statements` | 获取财务报表、关键指标 |
-| **美股管理层信息** | `{公司名} CEO management team` | 了解管理层背景、薪酬、持股 |
-| **美股分析师评级** | `{公司名} {股票代码} analyst rating` | 获取分析师评级、目标价 |
-| **美股新闻动态** | `{公司名} {股票代码} latest news` | 获取最新新闻、公告 |
-| **美股ADR信息** | `{公司名} ADR 期权占比 流动性` | 了解ADR占比、交易量、溢价率 |
-
-**在管理层研究中的应用**：
-1. **管理层背景调查**：搜索CEO履历、过往业绩、行业声誉
-2. **财务数据获取**：搜索财务报表、关键指标、分析师报告
-3. **资本配置记录**：搜索并购、回购、分红等重大决策
-4. **股价与估值**：搜索最新股价、PE、PB等估值指标
-
-**使用示例**：
-```bash
-# 获取苹果公司股价和财务数据
-python tools/common/web_search.py "Apple AAPL stock price financial statements"
-
-# 获取特斯拉管理层信息
-python tools/common/web_search.py "Tesla Elon Musk CEO management team"
-
-# 获取阿里巴巴ADR信息
-python tools/common/web_search.py "Alibaba BABA ADR 期权占比 流动性"
-```
-
-**美股数据搜集注意事项**：
-1. **多源验证**：美股信息需从多个来源交叉验证（如SEC文件、公司官网、财经媒体）
-2. **数据时效性**：美股财报披露有季度延迟，注意数据时间戳
-3. **ADR溢价**：关注ADR相对港股的溢价率，过高溢价可能存在套利机会
-4. **汇率转换**：美股数据以美元计价，需注意汇率转换（1美元 ≈ 7.2人民币）
-5. **监管差异**：美股与A股、港股的监管要求不同，注意披露差异
-
-### 多地上市公司股权结构数据获取
-
-对于在A股、港股、美股等多个市场上市的公司，需要**综合获取多个市场的数据**进行分析。
-
-#### A+H股公司（同时在A股和港股上市）
-
-**典型公司**：紫金矿业（A股:601899，H股:02899）、中国移动（A股:600941，H股:00941）、中国平安（A股:601318，H股:02318）
-
-**数据获取流程**：
+**A+H股数据获取流程**：
 
 ```bash
-# 第一步：搜索确认上市情况和股票代码
-python tools/common/web_search.py "紫金矿业 A股 H股 股票代码"
+# 1. 搜索确认上市情况
+python tools/common/doubao_search.py "紫金矿业 A股 H股 股票代码" --time-range month
 
-# 第二步：获取A股股权结构数据（详细的前十大股东、股本变动等）
+# 2. 获取A股股权结构数据
 python tools/a_share/stock_equity.py --code 601899 --export
 
-# 第三步：获取港股财务指标数据（补充港股视角）
+# 3. 获取港股财务指标数据
 python tools/hk_stock/stock_financial.py --financial 02899
 
-# 第四步：获取A股最新股价（用于A股/H股溢价计算）
+# 4. 获取A股和H股最新股价（用于溢价计算）
 python tools/a_share/stock_quote.py --code 601899
-
-# 第五步：获取H股最新股价（用于A股/H股溢价计算）
 python tools/hk_stock/stock_quote.py --code 02899
 
-# 第六步：搜索H股占比和两地上市影响
-python tools/common/web_search.py "紫金矿业 H股占比 A股H股 差异"
+# 5. 搜索H股占比和两地上市影响
+python tools/common/doubao_search.py "紫金矿业 H股占比 A股H股 差异" --time-range month
 ```
 
-**分析要点**：
+**A+H股股权结构分析要点**：
 
 | 分析维度 | 数据来源 | 关注点 |
 |---------|---------|-------|
-| **股权结构** | A股工具（`stock_equity.py`） | 前十大股东、实控人持股比例 |
-| **H股占比** | 港股工具+网络搜索 | H股占总股本比例，是否影响控制权 |
-| **A股股价** | A股工具（`stock_quote.py`） | 最新收盘价，用于溢价计算 |
-| **H股股价** | 港股工具（`stock_quote_hk.py`） | 最新收盘价（港元），用于溢价计算 |
-| **A股/H股溢价率** | 手动计算 | (A股价格 - H股价格 × 汇率) / (H股价格 × 汇率) × 100% |
-| **股本变动** | A股工具 | 5年股本膨胀情况 |
-| **分红差异** | 网络搜索+公司公告 | A股和H股的分红是否一致 |
+| 股权结构 | A股工具（`stock_equity.py`） | 前十大股东、实控人持股比例 |
+| H股占比 | 港股工具+网络搜索 | H股占总股本比例，是否影响控制权 |
+| A股/H股溢价率 | 手动计算 | (A股价格 - H股价格 × 汇率) / (H股价格 × 汇率) × 100% |
+| 股本变动 | A股工具 | 5年股本膨胀情况 |
+| 分红差异 | 网络搜索+公司公告 | A股和H股的分红是否一致 |
 
-**报告输出要求**：
+**报告输出要求**（A+H股公司）：
+- 关键人物速览表格中标注上市情况，如 `紫金矿业（A股:601899，H股:02899）`
+- 治理结构评估部分增加：H股占比、A股股价、H股股价、A股/H股溢价率、两地分红一致性
+- 风险评估部分增加：多地上市风险（H股占比、溢价套利、监管差异等）
 
-对于A+H股公司，在管理层深度研究报告中需要：
+### 报告审核工具
 
-1. **关键人物速览**表格中，标注上市情况：
-   - 示例：`紫金矿业（A股:601899，H股:02899）`
-
-2. **治理结构评估**部分，增加以下内容：
-   - 是否多地上市？A+H股
-   - H股占比：XX%
-   - A股股价：XX元（数据获取日期）
-   - H股股价：XX港元（数据获取日期）
-   - A股/H股溢价率：XX%
-   - 两地分红一致性：是/否
-
-3. **风险评估**部分，增加：
-   - 多地上市风险：H股占比、溢价套利、监管差异等
-
-#### 港股+美股ADR公司（同时在港股和美股上市，美股数据采用 WebSearch 搜集）
-
-**典型公司**：阿里巴巴（港股:09988，美股:BABA）、京东（港股:09618，美股:JD）
-
-**数据获取流程**：
-
-```bash
-# 港股数据为主（港股信息披露更完整）
-python tools/hk_stock/stock_financial.py --financial 09988
-
-# 搜索美股ADR信息（补充美股视角）
-python tools/common/web_search.py "阿里巴巴 ADR 期权占比 流动性"
-```
-
-**美股信息与数据搜集**：
-
-由于美股数据暂无专门的本地工具，主要采用 WebSearch 进行信息搜集：
-
-| 数据类型 | 搜索关键词示例 | 目的 |
-|---------|---------------|------|
-| **美股ADR信息** | `{公司名} ADR 期权占比 流动性` | 了解ADR占比、交易量、溢价率 |
-| **美股股价** | `{公司名} {股票代码} stock price` | 获取最新股价、市值、成交量 |
-| **美股财务数据** | `{公司名} {股票代码} financial statements` | 获取财务报表、关键指标 |
-| **美股管理层信息** | `{公司名} CEO management team` | 了解管理层背景、薪酬、持股 |
-| **美股分析师评级** | `{公司名} {股票代码} analyst rating` | 获取分析师评级、目标价 |
-| **美股新闻动态** | `{公司名} {股票代码} latest news` | 获取最新新闻、公告 |
-
-**美股数据搜集注意事项**：
-1. **多源验证**：美股信息需从多个来源交叉验证（如SEC文件、公司官网、财经媒体）
-2. **数据时效性**：美股财报披露有季度延迟，注意数据时间戳
-3. **ADR溢价**：关注ADR相对港股的溢价率，过高溢价可能存在套利机会
-4. **汇率转换**：美股数据以美元计价，需注意汇率转换（1美元 ≈ 7.2人民币）
-
-#### A股+港股+美股三地上市（美股数据采用 WebSearch 搜集）
-
-**典型公司**：百济神州（A股:688235，港股:06160，美股:BGNE）
-
-**数据获取流程**：
-
-```bash
-# 优先获取A股数据（作为主要分析依据）
-python tools/a_share/stock_equity.py --code 688235 --export
-
-# 补充港股数据
-python tools/hk_stock/stock_financial.py --financial 06160
-
-# 搜索三地上市差异
-python tools/common/web_search.py "百济神州 A股 港股 美股 上市 差异"
-
-# 搜索美股信息（补充美股视角）
-python tools/common/web_search.py "百济神州 BGNE stock price financial statements"
-```
-
-**美股信息与数据搜集**：
-
-由于美股数据暂无专门的本地工具，主要采用 WebSearch 进行信息搜集：
-
-| 数据类型 | 搜索关键词示例 | 目的 |
-|---------|---------------|------|
-| **美股股价** | `{公司名} {股票代码} stock price` | 获取最新股价、市值、成交量 |
-| **美股财务数据** | `{公司名} {股票代码} financial statements` | 获取财务报表、关键指标 |
-| **美股管理层信息** | `{公司名} CEO management team` | 了解管理层背景、薪酬、持股 |
-| **三地上市差异** | `{公司名} A股 港股 美股 差异` | 了解三地上市的股权结构、监管差异 |
-
-**注意事项**：
-- 三地上市公司的信息披露更复杂，需要仔细比对各市场的披露差异
-- 关注不同市场的监管要求和投资者结构差异
-- 注意汇率转换（人民币、港币、美元）
-- 美股信息需多源交叉验证（SEC文件、公司官网、财经媒体）
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `tools/common/report_audit.py` | 报告数据抽检与审核 | `python tools/common/report_audit.py extract --report reports/xxx.md` |
 
 ---
 
@@ -895,17 +638,28 @@ reports/
 - **数据必须标注来源** — 关键数据至少2个来源交叉验证
 - **货币单位要明确** — 港币/人民币/美元，防止混淆
 - **市值必须手算校验** — 股价 × 总股本，与报告市值对比
+- **网络搜索时效性** — 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
 - **报告写完后主动询问是否推送到GitHub**
 
 ---
 
-## 局限性声明
-
-本Skill基于公开信息进行管理层评估，存在以下局限：
+## 局限性
 
 1. **信息不对称**：AI无法像巴菲特那样和管理层面对面吃饭聊天，只能依赖公开信息
 2. **时效性限制**：公开信息可能有延迟，最新动态可能无法及时获取
 3. **侧面信息不完整**：员工评价、客户反馈等可能因平台限制而不完整
 4. **主观判断风险**：尽管遵循客观原则，评分仍有一定主观性
+5. **扫描版PDF限制**：A股年报常为扫描版PDF，可能无法提取文本内容
+6. **多地上市复杂性**：A+H股、港股+美股ADR等股权结构分析较复杂
 
 **管理层深度研究是投资决策的重要参考，但不是唯一依据。** 投资者应结合商业模式、财务分析、行业竞争等多个维度综合判断。
+
+---
+
+## 与其他Skill的关系
+
+- **上游技能**：本Skill是 `investment-research` 第五步管理层评估的深化版
+- **数据支撑**：使用 `financial-data` 技能的数据源规范和交叉验证流程
+- **质量筛选**：研究前可先用 `quality-screen` 技能快速筛选
+- **投资检查**：研究后可用 `investment-checklist` 技能做买入前检查
+- **段永平思想**：参考 `dyp-ask` 技能理解"买人"投资思想

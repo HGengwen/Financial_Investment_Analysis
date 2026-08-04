@@ -106,12 +106,12 @@ disable-model-invocation: true
 ### 阶段 1：调研（写 01-02 篇前完成）
 
 1. **阅读公司近 5 年年报、最新季报**
-   - A股公司：使用 `tools/a_share/stock_screen.py` 获取财务数据
-   - 港股公司：使用 `tools/hk_stock/stock_screen.py` 获取财务数据
-   - 非A股公司：使用 WebSearch 获取年报信息
+   - A股公司：使用 `tools/a_share/stock_screen.py` 获取财务数据；使用 `tools/common/doubao_search.py`（首选）或 `tools/common/web_search.py` 搜索年报信息
+   - 港股公司：使用 `tools/hk_stock/stock_screen.py` 获取财务数据；使用 `tools/common/doubao_search.py`（首选）或 `tools/common/tavily_search.py`（双源验证）搜索年报信息
+   - 美股公司：使用 `tools/us_stock/stock_financial.py` 获取财务数据；使用 `tools/common/doubao_search.py`（首选）或 `tools/common/tavily_search.py`（双源验证）搜索年报信息
 
 2. **阅读至少 3 份独立卖方研报**（找共识 + 反共识）
-   - 使用 `tools/common/web_search.py` 搜索券商研报
+   - 使用 `tools/common/doubao_search.py`（首选）或 `tools/common/web_search.py` 搜索券商研报
    - 或用户提供研报材料
 
 3. **使用 `/quality-screen` 先生成内部筛选底稿**
@@ -153,9 +153,9 @@ grep -r "<本机用户名>\|/Users/\|<个人身份信息>" reports/ | head
 ### 1. 先核查事实（不要直接改）
 
 如果用户说"X 数据不对"，先用工具找原始数据交叉验证：
-- A股公司：使用 `tools/a_share/stock_screen.py` 或 `tools/a_share/stock_financial.py`
-- 港股公司：使用 `tools/hk_stock/stock_screen.py` 或 `tools/hk_stock/stock_info.py`
-- 非A股公司：使用 `tools/common/web_search.py` 搜索官方披露
+- A股公司：使用 `tools/a_share/stock_screen.py` 或 `tools/a_share/stock_financial.py`；使用 `tools/common/doubao_search.py`（首选）或 `tools/common/web_search.py` 搜索官方披露
+- 港股公司：使用 `tools/hk_stock/stock_screen.py` 或 `tools/hk_stock/stock_info.py`；使用 `tools/common/doubao_search.py`（首选）或 `tools/common/tavily_search.py`（双源验证）搜索官方披露
+- 美股公司：使用 `tools/us_stock/stock_financial.py` 或 `tools/us_stock/stock_info.py`；使用 `tools/common/doubao_search.py`（首选）或 `tools/common/tavily_search.py`（双源验证）搜索官方披露
 - 给出"用户说的数据 vs 我查到的数据 vs 我之前用的数据"三方对比
 
 ### 2. 判断修订级别
@@ -190,39 +190,56 @@ grep -r "<本机用户名>\|/Users/\|<个人身份信息>" reports/ | head
 
 ## 七、数据获取工具使用指南
 
-### A股财务数据获取（优先使用本地 akshare 工具）
+### 本地数据获取工具
 
-| 工具 | 用途 | 命令示例 |
-|------|------|---------|
-| `tools/a_share/stock_info.py` | 股票代码查询 | `python tools/a_share/stock_info.py --search 腾讯` |
-| `tools/a_share/stock_financial.py` | 财务指标查询 | `python tools/a_share/stock_financial.py --code 300502` |
-| `tools/a_share/stock_screen.py` | 质量筛选7条指标 | `python tools/a_share/stock_screen.py --code 300502` |
+根据上市地点选择相应的工具：
+
+| 市场 | 工具 | 功能 | 命令示例 |
+|------|------|------|---------|
+| A股 | `tools/a_share/stock_info.py` | 股票信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
+| A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
+| A股 | `tools/a_share/stock_quote.py` | 历史股价与实时行情 | `python tools/a_share/stock_quote.py --code 601899` |
+| A股 | `tools/a_share/stock_screen.py` | 质量筛选7条指标 | `python tools/a_share/stock_screen.py --code 601899` |
+| A股 | `tools/a_share/stock_equity.py` | 股权结构与财报下载 | `python tools/a_share/stock_equity.py --code 601899` |
+| 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| 港股 | `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
+| 港股 | `tools/hk_stock/stock_screen.py` | 港股质量筛选 | `python tools/hk_stock/stock_screen.py --code 00700` |
+| 美股 | `tools/us_stock/stock_info.py` | 美股信息查询 | `python tools/us_stock/stock_info.py --search Apple` |
+| 美股 | `tools/us_stock/stock_financial.py` | 美股财务指标 | `python tools/us_stock/stock_financial.py --code AAPL` |
+| 美股 | `tools/us_stock/stock_quote.py` | 美股行情数据 | `python tools/us_stock/stock_quote.py --code AAPL` |
 
 **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
-### 港股数据获取（使用独立的港股工具）
+**数据源**：东方财富、新浪财经、巨潮资讯（A股）；东方财富、新浪财经（港股）；yfinance（美股）
 
-| 工具 | 用途 | 命令示例 |
+详细使用说明请参考：
+- **A股工具**：[docs/A股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
+- **港股工具**：[docs/港股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/港股工具使用指南.md)
+- **美股工具**：[docs/美股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/美股工具使用指南.md)
+
+### 精确计算工具
+
+| 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `tools/hk_stock/stock_info.py` | 港股信息查询 | `python tools/hk_stock/stock_info.py --search 腾讯` |
-| `tools/hk_stock/stock_financial.py` | 港股财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
-| `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
-| `tools/hk_stock/stock_quote.py` | 港股指数 | `python tools/hk_stock/stock_quote.py --index HSI` |
-| `tools/hk_stock/stock_screen.py` | 港股质量筛选7条指标 | `python tools/hk_stock/stock_screen.py --code 00700` |
+| `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证、三情景估值） | `python tools/common/financial_rigor.py verify-valuation --pe 25.5 --eps 10.2` |
+| `tools/common/report_audit.py` | 报告数据抽检与审核 | `python tools/common/report_audit.py extract --report reports/xxx.md` |
 
-### 网络信息搜索（使用本地 WebSearch 工具）
+### 网络搜索工具
 
-Anthropic 官方 WebSearch/WebFetch 在中国大陆被地域封锁，不可用。使用本地 `tools/common/web_search.py` 工具替代。
+由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
 
-| 工具 | 用途 | 命令示例 |
-|------|------|---------|
-| `tools/common/web_search.py` | 网络信息搜索 | `python tools/common/web_search.py "腾讯控股 股价"` |
+**工具优先级**（基于上市地点）：
 
-### 财务计算工具
+| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
+|---------|-----------|------------|------|
+| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
+| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
 
-| 工具 | 用途 | 命令示例 |
-|------|------|---------|
-| `tools/common/financial_rigor.py` | 精确财务计算（市值、PE、ROE等） | `python tools/common/financial_rigor.py --help` |
+**搜索规范**：
+- 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
+- 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
+- 非境内上市公司须 Doubao + Tavily 双源验证
+- 关键信息缺失时标注"信息不足"，不得用推测填充
 
 ---
 
@@ -300,8 +317,11 @@ git push
 - 市值必须手算校验：股价 × 总股本，与报告市值对比
 - 货币单位要明确（港币/人民币/美元），防止混淆
 - PE/ROE等指标用 `tools/common/financial_rigor.py` 精确计算
-- A股/港股财务数据优先使用本地工具（akshare）
+- A股/港股/美股财务数据优先使用本地工具
 - 网络信息需交叉验证，不要依赖单一来源
+- 网络搜索须使用 `--time-range month/week` 限制时间范围，优先获取最新信息
+- 港股/美股公司须 Doubao + Tavily 双源验证，确保信息准确性
+- 估值数据须使用 `financial_rigor.py` 校验，禁止 LLM 心算
 - 报告写完后主动询问是否推送到GitHub
 
 ---

@@ -10,6 +10,9 @@
 reports/
 cninfo_reports/
 
+# 本地的缓存文件
+*.slsx
+
 # Python 缓存全量忽略
 __pycache__/
 *.pyc
