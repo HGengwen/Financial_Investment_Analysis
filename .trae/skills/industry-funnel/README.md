@@ -217,7 +217,10 @@
 
 | 工具 | 功能 |
 |------|------|
-| Poppler 工具集（`pdftotext`/`pdfinfo`/`pdftoppm`） | 从年报 PDF 提取财务数据作为一手数据源 |
+| `tools/common/pdf_extract.py`（首选） | 从年报 PDF 提取财务数据作为一手数据源（文字与表格） |
+| Poppler 工具集（`pdftotext`/`pdfinfo`/`pdftoppm`） | 回退方案：`pdf_extract.py` 返回失败（退出码非0 / success=false / 扫描件）时使用 |
+
+详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)。
 
 ### 公共工具规范
 
@@ -275,9 +278,9 @@
 
 ## 版本信息
 
-- **版本**：1.3.0
+- **版本**：1.4.0
 - **创建日期**：2026-07-21
-- **最后更新**：2026-08-03（新增大宗商品价格工具 `commodity_price.py`，覆盖18个品种，辅助周期性行业分析）
+- **最后更新**：2026-08-06（PDF 文档提取首选 `pdf_extract.py`，Poppler 作为失败回退）
 - **维护状态**：活跃维护
 
 ---

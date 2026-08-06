@@ -18,11 +18,13 @@
 
 import sys
 import time
+from pathlib import Path
 
 import pytest
 
-# 将项目根目录加入 sys.path
-sys.path.insert(0, "f:/Financial_Investment_Analysis")
+# 将项目根目录加入 sys.path（动态计算，兼容跨平台）
+_PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(_PROJECT_ROOT))
 
 from tools.common.commodity_price import (
     CommodityFetchError,

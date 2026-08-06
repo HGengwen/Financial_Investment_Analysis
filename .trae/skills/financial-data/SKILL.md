@@ -65,18 +65,22 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-ty
 
 下载的PDF保存于 `cninfo_reports/` 目录，命名格式：`{股票代码}_{年份}年报.pdf`、`{股票代码}_{年份}半年报.pdf`、`{股票代码}_{年份}{季度}季报.pdf`。
 
-**PDF文档阅读工具（Poppler 工具集）**：
+**PDF文档阅读工具（首选 pdf_extract.py）**：
 
-| 工具          | 功能                | 命令示例                                                          |
-| ------------- | ------------------- | ----------------------------------------------------------------- |
-| `pdftotext` | 将PDF转换为纯文本   | `pdftotext -layout cninfo_reports/601899_2025年报.pdf 601899_2025年报.txt` |
-| `pdfinfo`   | 获取PDF文档信息     | `pdfinfo cninfo_reports/601899_2025年报.pdf`                      |
-| `pdftoppm`  | 将PDF渲染为图像     | `pdftoppm -png -r 300 cninfo_reports/601899_2025年报.pdf output/page` |
+提取 PDF 文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，能自动还原财务附表），仅当返回失败（退出码非0 / success=false / 扫描件）时回退 Poppler 工具集。
+
+| 工具 | 功能 | 命令示例 |
+| ---- | ---- | -------- |
+| `pdf_extract.py` | PDF文字与表格提取（首选） | `python tools/common/pdf_extract.py markdown cninfo_reports/601899_2025年报.pdf --save-md` |
+| `pdftotext` | 将PDF转换为纯文本（回退） | `pdftotext -layout cninfo_reports/601899_2025年报.pdf 601899_2025年报.txt` |
+| `pdfinfo` | 获取PDF文档信息（回退） | `pdfinfo cninfo_reports/601899_2025年报.pdf` |
+| `pdftoppm` | 将PDF渲染为图像（回退） | `pdftoppm -png -r 300 cninfo_reports/601899_2025年报.pdf output/page` |
 
 **注意**：
+- 首选 `pdf_extract.py` 提取文字与表格；返回失败时才回退 Poppler 工具集（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
 - 扫描版PDF无法用 pdftotext 提取文本，须用 pdftoppm 渲染为图像后人工核对
 - 从PDF提取的财务数据必须与其他来源交叉验证
-- 详细 Poppler 使用指南见下方"工具使用指南 → PDF文档内容提取"章节
+- 详细使用指南见下方"工具使用指南 → PDF文档内容提取"章节
 
 **其他说明**：由于网络限制，WebSearch/WebFetch 在中国大陆不可用，需使用本地工具替代。美股本地工具基于 yfinance 库，A股本地工具基于 akshare 库，港股本地工具基于东方财富/新浪财经接口。
 
@@ -242,9 +246,9 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-ty
 - **港股工具**：[docs/港股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/港股工具使用指南.md)
 - **美股工具**：[docs/美股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/美股工具使用指南.md)
 
-### PDF文档内容提取（使用 Poppler 工具集）
+### PDF文档内容提取（首选 pdf_extract.py）
 
-下载的财报PDF使用 **Poppler 工具集**（`pdftotext` / `pdfinfo` / `pdftoppm`）进行内容提取，命令示例见上方"A股 → PDF文档阅读工具"章节。
+下载的财报PDF提取文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库），仅当返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集。完整规范见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)。
 
 #### 年报数据提取工作流
 
@@ -252,24 +256,26 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-ty
 # 步骤1：下载年报PDF
 python tools/a_share/stock_equity.py --code 601899 --download-report
 
-# 步骤2：判断PDF类型（文本版 vs 扫描版）
-pdftotext -layout 601899_2025年报.pdf - | head -100
-# 正常输出文本 → 文本版PDF；乱码或空白 → 扫描版PDF
+# 步骤2（首选）：用 pdf_extract.py 分类检测 PDF 类型
+python tools/common/pdf_extract.py detect 601899_2025年报.pdf
+# text_based → 文本版PDF；scanned/mixed 或 scanned=true → 扫描版PDF
 
-# 步骤3A（文本版）：提取文本并搜索关键财务数据
-pdftotext -layout 601899_2025年报.pdf 601899_2025年报.txt
+# 步骤3（首选）：提取含财务附表的 Markdown 并写盘
+python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --save-md --out-dir reports/pdf
+
+# 步骤3回退：若 pdf_extract.py 返回失败，回退 Poppler
+pdftotext -layout 601899_2025年报.pdf 601899_2025年报.txt   # 文本版
 grep -n "净利润\|营业收入\|毛利率\|ROE" 601899_2025年报.txt
-
-# 步骤3B（扫描版）：渲染为图像后人工核对
-pdftoppm -png -r 300 601899_2025年报.pdf output/page
+pdftoppm -png -r 300 601899_2025年报.pdf output/page          # 扫描版
 
 # 步骤4：与其他来源（东方财富、巨潮资讯）交叉验证
 ```
 
 #### 注意事项
 
-- **扫描版PDF**：无法用 `pdftotext` 提取文本，须用 `pdftoppm` 渲染为图像后人工核对（或配合 OCR 工具如 tesseract）
-- **工具安装**：Windows 需安装 Poppler for Windows；Linux/macOS 通常已预装
+- **首选** `pdf_extract.py` 提取文字与表格；返回失败（退出码非0 / success=false / 扫描件）时回退 Poppler 工具集
+- **扫描版PDF**：`pdf_extract.py` 会返回 scanned 标志；回退 Poppler 后无法用 `pdftotext` 提取文本，须用 `pdftoppm` 渲染为图像后人工核对（或配合 OCR 工具如 tesseract）
+- **工具安装**：首选需 `pip install pdf-inspector`；回退需安装 Poppler（Windows 需安装 Poppler for Windows；Linux/macOS 通常已预装）
 - **数据验证**：从PDF提取的数据必须与其他来源交叉验证，特别关注数字、单位、小数点位置
 - **文件大小**：高分辨率渲染会生成大量图像（每页1-5MB），建议先低分辨率预览定位页面后再高分辨率渲染
 

@@ -14,10 +14,12 @@ import sys
 import unittest
 from decimal import Decimal
 from io import StringIO
+from pathlib import Path
 from unittest.mock import patch
 
-# Add parent directory to path for imports
-sys.path.insert(0, 'f:/Financial_Investment_Analysis')
+# Add parent directory to path for imports (dynamic, cross-platform)
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(_PROJECT_ROOT))
 
 from tools.common.financial_rigor import (
     exact,
@@ -353,7 +355,7 @@ class TestCLI(unittest.TestCase):
              '--currency', 'HKD'],
             capture_output=True,
             text=True,
-            cwd='f:/Financial_Investment_Analysis'
+            cwd=str(_PROJECT_ROOT)
         )
         self.assertEqual(result.returncode, 0)
         self.assertIn('市值验算', result.stdout)
@@ -366,7 +368,7 @@ class TestCLI(unittest.TestCase):
              '--price', '510', '--eps', '23.5'],
             capture_output=True,
             text=True,
-            cwd='f:/Financial_Investment_Analysis'
+            cwd=str(_PROJECT_ROOT)
         )
         self.assertEqual(result.returncode, 0)
         self.assertIn('估值指标验算', result.stdout)
@@ -379,7 +381,7 @@ class TestCLI(unittest.TestCase):
              '--expr', '510 * 9.11e9'],
             capture_output=True,
             text=True,
-            cwd='f:/Financial_Investment_Analysis'
+            cwd=str(_PROJECT_ROOT)
         )
         self.assertEqual(result.returncode, 0)
         self.assertIn('精确计算', result.stdout)
@@ -425,8 +427,8 @@ def run_tests():
 
 if __name__ == '__main__':
     import os
-    # Change to workspace directory
-    os.chdir('f:/Financial_Investment_Analysis')
+    # Change to workspace directory (dynamic, cross-platform)
+    os.chdir(_PROJECT_ROOT)
 
     # Run tests
     success = run_tests()

@@ -1,25 +1,31 @@
 ---
 name: pdf-extraction
-description: "PDF文档内容提取技能：使用Poppler工具集从PDF格式文档中提取数据和信息，支持文本版和扫描版PDF处理。适用于从下载的年报、财报等PDF文档中获取数据。"
+description: "PDF文档内容提取技能：首选使用 tools/common/pdf_extract.py（基于 pdf-inspector 库）从PDF格式文档中提取文字和表格等数据和信息；仅当该工具返回失败时才回退使用 Poppler 工具集处理。适用于从下载的年报、财报等PDF文档中获取数据。"
 disable-model-invocation: true
 ---
-
 # PDF文档内容提取技能
 
-使用 **Poppler 工具集** 从 PDF 格式文档中提取数据和信息，支持文本版和扫描版 PDF 处理。
+**首选手段**：使用 `tools/common/pdf_extract.py`（基于 pdf-inspector 库，底层 Rust）从 PDF 格式文档中提取文字和表格等数据和信息，支持文本版和扫描版 PDF 检测。
+
+**回退手段**：仅当 `tools/common/pdf_extract.py` 返回失败时，才使用 **Poppler 工具集**（pdftotext、pdfinfo、pdftoppm）从 PDF 格式文档中提取数据和信息。
 
 **适用场景**：从下载的年报、季报、半年报等财务报告中提取财务数据和信息。
 
 ## 快速开始
 
 ```
-/pdf-extraction {PDF文件路径}
+# 首选：使用 pdf_extract.py 提取（含表格）
+python tools/common/pdf_extract.py markdown {PDF文件路径} --save-md
+
+# 回退：pdf_extract.py 失败时使用 Poppler
+pdftotext -layout {PDF文件路径} -
 ```
 
 例如：
-- `/pdf-extraction 601899_2025年报.pdf`
-- `/pdf-extraction ./cninfo_reports/茅台_2024年报.pdf`
-- `/pdf-extraction reports/腾讯_2025Q2财报.pdf`
+
+- `python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --save-md`
+- `python tools/common/pdf_extract.py all ./cninfo_reports/茅台_2024年报.pdf --save-md`
+- `python tools/common/pdf_extract.py detect reports/腾讯_2025Q2财报.pdf`
 
 ## 设计理念
 
@@ -34,9 +40,65 @@ disable-model-invocation: true
 
 ---
 
-## Poppler 工具集介绍
+## 首选工具：tools/common/pdf_extract.py
 
-Poppler 是一个开源的 PDF 渲染库，提供以下命令行工具：
+`tools/common/pdf_extract.py` 是基于 **pdf-inspector** 库（Firecrawl 开源，底层 Rust，Python 绑定）开发的 PDF 文字与表格提取工具，**是 PDF 文档内容提取的首选手段**。它支持自动分类检测、文字提取、含财务附表的 Markdown 提取，能直接还原 PDF 中的表格结构。
+
+### 依赖安装
+
+```bash
+pip install pdf-inspector
+```
+
+> 当前工作环境已安装该库。若在其他环境使用，请先执行上述安装命令后再调用。
+
+### 支持的子命令
+
+| 子命令 | 功能 | 说明 |
+|--------|------|------|
+| `detect` | 分类检测 | 判断 PDF 类型（`text_based`/`scanned`/`mixed`），返回需 OCR 的页码 |
+| `text` | 纯文本提取 | 提取扁平化纯文本（不含表格排版信息），不写文件 |
+| `markdown` | 含表格的 Markdown 提取 | 自动完成类型检测 + 文字提取 + 表格识别 + 多栏重排 |
+| `all` | 全流程 | 依次执行 分类 + 纯文本 + Markdown |
+
+### 基本用法
+
+```bash
+# (1) 分类检测：判断文本版/扫描版
+python tools/common/pdf_extract.py detect 601899_2025年报.pdf
+
+# (2) 提取纯文本（不写文件，仅输出 JSON）
+python tools/common/pdf_extract.py text 601899_2025年报.pdf
+
+# (3) 提取含财务附表的 Markdown（推荐，能还原表格）
+python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --save-md --out-dir reports/pdf
+
+# (4) 仅提取指定页（0 索引，逗号分隔）
+python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --pages 0,1
+
+# (5) 全流程（分类 + 纯文本 + Markdown）
+python tools/common/pdf_extract.py all 601899_2025年报.pdf --save-md
+```
+
+### 输出与失败判定
+
+所有子命令统一在 stdout 输出 JSON，结构为 `{"success": bool, "data": {...}, "meta": {...}}`。
+
+**判定 `pdf_extract.py` 是否成功**（满足任一即视为失败，回退到 Poppler）：
+
+1. **退出码非 0**：正常返回 0；文件不存在返回 2；处理异常返回 1
+2. **`success` 字段为 `false`**：输出 JSON 中 `success` 为 false
+3. **扫描格式**：`data.scanned.scanned` 为 `true`，或 `data.pdf_type` 为 `scanned`/`mixed`，说明无法直接提取文字/表格，需转交 Poppler（pdftoppm + OCR）流程
+
+### 扫描格式处理
+
+当 `detect` 判定 PDF 为扫描格式（`scanned`/`mixed`）或存在需 OCR 页面时，`pdf_extract.py` 会返回 `data.scanned.scanned = true` 且 `content` 为空。此时应**转交 Poppler 的 pdftoppm + OCR 流程**（见下文"回退到 Poppler 工具集"），而非继续尝试提取。
+
+---
+
+## 回退手段：Poppler 工具集
+
+**仅当 `tools/common/pdf_extract.py` 返回失败时**，才使用 Poppler 工具集从 PDF 中提取数据和信息。Poppler 是一个开源的 PDF 渲染库，提供以下命令行工具：
 
 | 工具 | 功能 | 主要用途 |
 |------|------|---------|
@@ -160,7 +222,7 @@ pdftoppm -png -r 300 -f 100 -l 120 601899_2025年报.pdf financial_statements/pa
 
 ## 完整的年报数据提取工作流
 
-### 标准流程
+### 标准流程（首选 pdf_extract.py）
 
 ```bash
 # 步骤1：下载年报PDF（使用A股工具）
@@ -169,34 +231,34 @@ python tools/a_share/stock_equity.py --code 601899 --download-report
 # 下载的文件默认保存在 ./cninfo_reports/ 目录
 # 文件命名：{股票代码}_{年份}年报.pdf，如 601899_2025年报.pdf
 
-# 步骤2：检查PDF类型（文本版 vs 扫描版）
-pdftotext -layout 601899_2025年报.pdf - | head -100
+# 步骤2（首选）：用 pdf_extract.py 分类检测 PDF 类型
+python tools/common/pdf_extract.py detect 601899_2025年报.pdf
 
-# 如果能正常输出文本 -> 文本版PDF
-# 如果输出乱码或空白 -> 扫描版PDF，需要使用 pdftoppm
+# 步骤3（首选）：提取含财务附表的 Markdown 并写盘
+python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --save-md --out-dir reports/pdf
 
-# 步骤3A（文本版PDF）：提取文本内容
-pdftotext -layout 601899_2025年报.pdf 601899_2025年报.txt
+# 若需纯文本，使用 text 子命令
+python tools/common/pdf_extract.py text 601899_2025年报.pdf
 
-# 步骤3B（扫描版PDF）：渲染为图像
-mkdir output
-pdftoppm -png -r 300 601899_2025年报.pdf output/page
+# 步骤4：若 pdf_extract.py 返回失败（退出码非0 / success=false / 扫描件），回退到 Poppler
+pdftotext -layout 601899_2025年报.pdf 601899_2025年报.txt   # 文本版
+pdftoppm -png -r 300 601899_2025年报.pdf output/page         # 扫描版
 
-# 步骤4：搜索关键财务数据（文本版）
+# 步骤5：搜索关键财务数据（文本版）
 grep -n "净利润\|营业收入\|毛利率\|ROE" 601899_2025年报.txt
 
-# 步骤5：数据交叉验证
+# 步骤6：数据交叉验证
 # 将提取的数据与其他来源（东方财富、巨潮资讯）进行对比
 python tools/a_share/stock_financial.py --code 601899
 ```
 
 ### 针对不同类型PDF的处理策略
 
-| PDF类型 | 识别方法 | 处理工具 | 数据提取方式 |
-|---------|---------|---------|-------------|
-| **文本版PDF** | pdftotext 能正常输出文本 | pdftotext | 直接提取文本，用 grep 搜索关键词 |
-| **扫描版PDF** | pdftotext 输出乱码或空白 | pdftoppm + OCR | 渲染为图像，用 OCR 工具识别或人工核对 |
-| **混合版PDF** | 部分页面可提取，部分不能 | pdftotext + pdftoppm | 区分处理，文本部分直接提取，扫描部分渲染 |
+| PDF类型 | 识别方法 | 首选处理工具 | 回退处理工具 | 数据提取方式 |
+|---------|---------|-------------|-------------|-------------|
+| **文本版PDF** | pdf_extract.py detect 返回 `text_based` | `pdf_extract.py markdown` | `pdftotext` | 直接提取文字/表格，用 grep 搜索关键词 |
+| **扫描版PDF** | pdf_extract.py detect 返回 `scanned`/`mixed` 或 `scanned=true` | `pdf_extract.py` 返回标志，转 Poppler | `pdftoppm + OCR` | 渲染为图像，用 OCR 工具识别或人工核对 |
+| **混合版PDF** | 部分页面可提取，部分需 OCR | `pdf_extract.py`（自动识别表格页） | `pdftotext + pdftoppm` | 区分处理，文本部分直接提取，扫描部分渲染 |
 
 ---
 
@@ -230,9 +292,53 @@ pdftoppm -png -r 300 -f 100 -l 120 601899_2025年报.pdf output/page
 
 ### 4. 工具可用性
 
-- **Windows 用户**：需要安装 [Poppler for Windows](http://blog.alivate.com.au/poppler-windows/)
-- **Linux/macOS 用户**：系统通常已预装 Poppler 工具
-- **验证安装**：运行 `pdftotext -v` 检查是否可用
+Poppler 工具集是第三方命令行工具，需要单独安装。各平台安装方法如下：
+
+**Windows**：
+
+```bash
+# 方式A：choco 安装（推荐，需先安装 Chocolatey）
+choco install poppler
+
+# 方式B：conda 安装（适用于 Anaconda 环境）
+conda install -c conda-forge poppler
+
+# 方式C：下载预编译二进制包
+# 1. 访问 https://github.com/oschwartz10612/poppler-windows 下载最新 Release
+# 2. 解压到本地目录（如 C:\Program Files\poppler）
+# 3. 将 {解压目录}\Library\bin 添加到系统 PATH 环境变量
+```
+
+**Linux**：
+
+```bash
+# Ubuntu / Debian
+sudo apt-get install poppler-utils
+
+# CentOS / RHEL
+sudo yum install poppler-utils
+# 或 dnf 系（Fedora 等）
+sudo dnf install poppler-utils
+
+# Alpine
+apk add poppler-utils
+```
+
+**macOS**：
+
+```bash
+brew install poppler
+```
+
+**验证安装**：运行 `pdftotext -v` 检查是否可用；若显示版本信息则安装成功，若提示"命令未找到"则需将安装目录加入 PATH。
+
+```bash
+# 验证命令
+pdftotext -v
+
+# Windows 下若提示找不到命令，检查 PATH 是否已包含 Poppler 安装目录
+where pdftotext
+```
 
 ### 5. 数据验证原则
 
@@ -312,9 +418,12 @@ done
 # 步骤1：下载年报PDF
 python tools/a_share/stock_equity.py --code 601899 --download-report
 
-# 步骤2：提取PDF中的关键财务数据
-pdftotext -layout 601899_2025年报.pdf 601899_2025年报.txt
-grep -n "净利润\|营业收入" 601899_2025年报.txt
+# 步骤2（首选）：用 pdf_extract.py 提取含财务附表的 Markdown
+python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --save-md --out-dir reports/pdf
+
+# 步骤2回退：若 pdf_extract.py 失败，使用 Poppler 提取
+# pdftotext -layout 601899_2025年报.pdf 601899_2025年报.txt
+# grep -n "净利润\|营业收入" 601899_2025年报.txt
 
 # 步骤3：与其他数据源进行交叉验证
 python tools/a_share/stock_financial.py --code 601899
@@ -329,7 +438,16 @@ python tools/a_share/stock_financial.py --code 601899
 
 ### Q1: 如何判断PDF是文本版还是扫描版？
 
-**方法**：使用 pdftotext 快速测试
+**首选方法**：使用 `pdf_extract.py detect` 分类检测
+
+```bash
+python tools/common/pdf_extract.py detect 报告.pdf
+```
+
+- 返回 `pdf_type: "text_based"` -> 文本版PDF，可直接用 `pdf_extract.py markdown` 提取
+- 返回 `pdf_type: "scanned"`/`"mixed"` 或 `scanned.scanned: true` -> 扫描版PDF，转交 Poppler（pdftoppm + OCR）
+
+**回退方法**：使用 pdftotext 快速测试
 
 ```bash
 pdftotext -layout 报告.pdf - | head -50
@@ -354,9 +472,12 @@ pdftotext -layout 报告.pdf - | head -50
 
 ### Q4: Poppler 工具在哪里下载？
 
-- **Windows**: [Poppler for Windows](http://blog.alivate.com.au/poppler-windows/)
-- **Linux**: `sudo apt-get install poppler-utils`
+各平台安装方法详见上文"使用 Poppler 的注意事项 → 4. 工具可用性"，快速指引：
+
+- **Windows**: 推荐 `choco install poppler` 或 `conda install -c conda-forge poppler`；亦可在 [oschwartz10612/poppler-windows](https://github.com/oschwartz10612/poppler-windows) 下载预编译包并配置 PATH
+- **Linux**: `sudo apt-get install poppler-utils`（Debian/Ubuntu）
 - **macOS**: `brew install poppler`
+- **验证安装**: 运行 `pdftotext -v`
 
 ### Q5: 如何处理超大PDF文件（如200页年报）？
 
@@ -375,33 +496,36 @@ pdftotext -f 51 -l 100 -layout 报告.pdf 报告_第51-100页.txt
 
 ## 局限性说明
 
-1. **扫描版PDF处理限制**：扫描版PDF需要额外使用OCR工具，准确度依赖图像质量
-2. **表格数据提取困难**：PDF中的复杂表格难以完美还原，建议手动核对
+1. **扫描版PDF处理限制**：扫描版PDF需要额外使用OCR工具，准确度依赖图像质量；`pdf_extract.py` 检测到扫描格式会返回标志并转交 Poppler
+2. **表格数据提取困难**：`pdf_extract.py` 能自动还原多数财务附表，但极复杂表格仍可能需手动核对
 3. **数据验证要求**：提取的数据必须与其他来源交叉验证，不能单独使用
-4. **工具依赖性**：需要安装 Poppler 工具集，Windows 用户需要额外配置
+4. **工具依赖性**：首选方式依赖 `pdf-inspector` 库（需 `pip install pdf-inspector`）；回退方式需安装 Poppler 工具集，Windows 用户需要额外配置
 
 ---
 
 ## 快速索引
 
-| 场景 | 推荐工具 | 命令示例 |
-|------|---------|---------|
-| **提取年报全文** | pdftotext | `pdftotext -layout 年报.pdf 年报.txt` |
-| **查看PDF信息** | pdfinfo | `pdfinfo 年报.pdf` |
-| **处理扫描版PDF** | pdftoppm | `pdftoppm -png -r 300 年报.pdf output/page` |
-| **搜索关键数据** | pdftotext + grep | `grep -n "净利润" 年报.txt` |
-| **提取特定页面** | pdftotext -f -l | `pdftotext -f 80 -l 100 -layout 年报.pdf 部分.txt` |
-| **批量OCR处理** | tesseract | `tesseract page.png output -l chi_sim` |
+| 场景 | 首选工具 | 回退工具 | 命令示例 |
+|------|---------|---------|---------|
+| **分类检测** | `pdf_extract.py detect` | `pdftotext - \| head` | `python tools/common/pdf_extract.py detect 年报.pdf` |
+| **提取含表格内容** | `pdf_extract.py markdown` | `pdftotext` | `python tools/common/pdf_extract.py markdown 年报.pdf --save-md` |
+| **提取纯文本** | `pdf_extract.py text` | `pdftotext` | `python tools/common/pdf_extract.py text 年报.pdf` |
+| **全流程提取** | `pdf_extract.py all` | `pdftotext + pdftoppm` | `python tools/common/pdf_extract.py all 年报.pdf --save-md` |
+| **查看PDF信息** | `pdf_extract.py detect` | `pdfinfo` | `python tools/common/pdf_extract.py detect 年报.pdf` |
+| **处理扫描版PDF** | `pdf_extract.py`（返回标志转 Poppler） | `pdftoppm` | `python tools/common/pdf_extract.py detect 年报.pdf` |
+| **搜索关键数据** | `pdf_extract.py markdown` | `pdftotext + grep` | `python tools/common/pdf_extract.py markdown 年报.pdf` |
+| **提取特定页面** | `pdf_extract.py markdown --pages` | `pdftotext -f -l` | `python tools/common/pdf_extract.py markdown 年报.pdf --pages 80,81` |
+| **批量OCR处理** | - | `tesseract` | `tesseract page.png output -l chi_sim` |
 
 ---
 
 ## 版本信息
 
-- **版本**：1.1.0
+- **版本**：1.2.0
 - **创建日期**：2026-07-22
-- **最后更新**：2026-07-31（更新相关技能引用）
+- **最后更新**：2026-08-06（首选 pdf_extract.py 提取，Poppler 作为失败回退）
 - **维护状态**：活跃维护
-- **依赖工具**：Poppler 工具集（pdftotext、pdfinfo、pdftoppm）
+- **依赖工具**：首选 `pdf-inspector` 库（`tools/common/pdf_extract.py`）；回退 Poppler 工具集（pdftotext、pdfinfo、pdftoppm）
 - **相关技能**：[A股数据获取](./a-share-data.md)、[财务计算与验证](./financial-calc.md)、[全局约束规范](./global-constraints.md)、[公共工具索引](./common-tools-guide.md)
 
 ---

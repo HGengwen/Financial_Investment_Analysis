@@ -20,7 +20,7 @@ disable-model-invocation: true
 | [web-search-tools.md](./web-search-tools.md) | 网络信息搜索 | `doubao_search.py`（火山引擎，推荐）、`tavily_search.py`（Tavily）、`web_search.py`（阿里云百炼） |
 | [report-audit.md](./report-audit.md) | 报告审核与抽检 | `report_audit.py`（15%随机抽样、准出/打回判决） |
 | [global-constraints.md](./global-constraints.md) | 全局约束规范 | 误差处理规则、股价复权规范、七条核心约束 |
-| [pdf-extraction.md](./pdf-extraction.md) | PDF文档提取 | `pdftotext`、`pdfinfo`、`pdftoppm`（Poppler工具集） |
+| [pdf-extraction.md](./pdf-extraction.md) | PDF文档提取 | `pdf_extract.py`（首选，基于 pdf-inspector）；`pdftotext`、`pdfinfo`、`pdftoppm`（Poppler工具集，失败回退） |
 
 ---
 

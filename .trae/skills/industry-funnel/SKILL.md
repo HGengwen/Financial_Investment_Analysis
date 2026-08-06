@@ -418,7 +418,7 @@ A = 数据充分可信；B = 部分缺失但不影响主结论；C = 缺失较�
 2. **5 条硬指标数据须精确验算**：使用 `financial_rigor.py` 验算 PE/ROE/市值等，禁止 LLM 心算
 3. **重要分析优先使用豆包搜索（`doubao_search.py`）**：支持 `--finance`（财经定向+权威信源）、`--need-content`（抓正文）、`--export`（导出 Markdown）、`--sites`（定向 SEC/港交所披露易），详见 [web-search-tools](../tools-scripts/web-search-tools.md)
 3.1 **网络搜索必须优先获取最新数据**：搜索时须使用 `--time-range month` 或 `--time-range week` 限制时间范围，确保获取的信息和数据为最新。禁止采用过时数据（如使用2024年数据描述2026年行业现状），避免分析偏差。搜索结果须标注数据来源日期，过时数据须明确标注并说明时效性
-4. **关键财务数据须从年报 PDF 一手数据源交叉验证**：使用 `stock_equity.py --download-report` 下载年报，再按 [pdf-extraction](../tools-scripts/pdf-extraction.md) 流程提取
+4. **关键财务数据须从年报 PDF 一手数据源交叉验证**：使用 `stock_equity.py --download-report` 下载年报，**首选** `tools/common/pdf_extract.py` 提取文字与表格（能自动还原财务附表），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集，完整流程见 [pdf-extraction](../tools-scripts/pdf-extraction.md) 与下方"PDF 年报提取示例"
 5. **大宗商品相关行业须获取价格数据**：涉及有色金属、贵金属、能源化工、新能源金属等产业链的行业，须使用 `tools/common/commodity_price.py` 获取大宗商品价格，辅助判断周期性公司的盈利趋势与行业景气度
 
 ### 网络搜索多源验证示例
@@ -475,10 +475,36 @@ python tools/common/commodity_price.py --code lc --start 2026-07-25 --end 2026-0
 ```
 
 **适用场景**：
+
 - 新能源汽车行业 → 碳酸锂（lc）、工业硅（si）
 - 有色金属行业 → 沪铜（cu）、沪铝（al）、沪锌（zn）等
 - 贵金属行业 → 沪金（au）、COMEX黄金（GC）、沪银（ag）等
 - 石油石化行业 → 上海原油（sc）、WTI原油（CL）、布伦特（BZ）等
+
+### PDF 年报提取示例
+
+漏斗筛选的 5 条硬指标（PE/ROE/现金流/负债率）与财务质量分析，须从年报 PDF 一手数据源交叉验证。提取文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，能自动还原财务附表），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集。完整规范见 [pdf-extraction](../tools-scripts/pdf-extraction.md)。
+
+```bash
+# 1. 下载年报 PDF（A 股）
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type annual
+# 港股：HKEX 披露易手动下载；美股：SEC EDGAR 获取 10-K/10-Q
+
+# 2（首选）：分类检测 PDF 类型（text_based / scanned / mixed）
+python tools/common/pdf_extract.py detect cninfo_reports/601899_2025年报.pdf
+
+# 3（首选）：提取含财务附表的 Markdown 并写盘
+python tools/common/pdf_extract.py markdown cninfo_reports/601899_2025年报.pdf --save-md --out-dir reports/pdf
+
+# 4（回退）：pdf_extract.py 返回失败时回退 Poppler
+pdftotext -layout cninfo_reports/601899_2025年报.pdf 601899_2025年报.txt
+pdftoppm -png -r 300 cninfo_reports/601899_2025年报.pdf output/page   # 扫描版
+
+# 5. 搜索关键财务数据（交叉验证用）
+grep -n "净利润\|营业收入\|毛利率\|ROE\|资产负债率" 601899_2025年报.txt
+```
+
+**扫描版处理**：`pdf_extract.py` detect 返回 `scanned`/`mixed` 或 `scanned=true` 时，说明无法直接提取文字/表格，回退 `pdftoppm` 渲染为图像后人工核对（或配合 OCR 工具如 tesseract），并在报告中标注"资料评级：B级"。
 
 ---
 

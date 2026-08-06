@@ -172,13 +172,18 @@
 
 **流程检查点**：确认PDF文件下载成功后，方可进行后续的财报阅读分析。
 
-### PDF文档阅读工具（Poppler 工具集）
+### PDF文档阅读工具（首选 pdf_extract.py）
+
+提取文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `pdftotext` | 将PDF转换为文本格式 | `pdftotext cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年报.txt` |
-| `pdfinfo` | 查看PDF文件信息 | `pdfinfo cninfo_reports/002465_2025年报.pdf` |
-| `pdftoppm` | 将PDF转换为图像（用于扫描版PDF） | `pdftoppm -png cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年报` |
+| `pdf_extract.py` | PDF文字与表格提取（首选） | `python tools/common/pdf_extract.py markdown cninfo_reports/002465_2025年报.pdf --save-md` |
+| `pdftotext` | 将PDF转换为文本格式（回退） | `pdftotext cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年报.txt` |
+| `pdfinfo` | 查看PDF文件信息（回退） | `pdfinfo cninfo_reports/002465_2025年报.pdf` |
+| `pdftoppm` | 将PDF转换为图像（回退，用于扫描版PDF） | `pdftoppm -png cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年报` |
+
+详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)。
 
 ### 精确计算工具
 
@@ -275,8 +280,9 @@
 
 ## 版本信息
 
-- **版本**：1.0.0
+- **版本**：1.1.0
 - **创建日期**：2026-07-22
+- **最后更新**：2026-08-06（PDF 文档提取首选 `pdf_extract.py`，Poppler 作为失败回退）
 - **维护状态**：活跃维护
 
 ---

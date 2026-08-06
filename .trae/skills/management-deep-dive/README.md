@@ -189,13 +189,18 @@
 - 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
 - 管理层信息须覆盖最近12个月，非境内上市公司须 Doubao + Tavily 双源验证
 
-### PDF文档内容提取（Poppler 工具集）
+### PDF文档内容提取（首选 pdf_extract.py）
+
+提取文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
 
 | 工具 | 功能 |
 |------|------|
-| `pdftotext` | 将PDF转换为文本（提取管理层承诺、战略发言） |
-| `pdfinfo` | 查看PDF文件信息 |
-| `pdftoppm` | 将PDF转换为图像（处理扫描版PDF） |
+| `pdf_extract.py` | PDF文字与表格提取（首选，提取管理层承诺、战略发言） |
+| `pdftotext` | 将PDF转换为文本（回退） |
+| `pdfinfo` | 查看PDF文件信息（回退） |
+| `pdftoppm` | 将PDF转换为图像（回退，处理扫描版PDF） |
+
+详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)。
 
 ### 报告审核工具
 
@@ -266,8 +271,9 @@
 
 ## 版本信息
 
-- **版本**：1.0.0
+- **版本**：1.1.0
 - **创建日期**：2026-07-22
+- **最后更新**：2026-08-06（PDF 文档提取首选 `pdf_extract.py`，Poppler 作为失败回退）
 - **维护状态**：活跃维护
 
 ---

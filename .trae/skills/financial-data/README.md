@@ -184,7 +184,7 @@
 - 非境内上市公司须 Doubao + Tavily 双源验证
 - 关键信息缺失时标注"信息不足"，不得用推测填充
 
-### PDF文档内容提取（Poppler 工具集）
+### PDF文档内容提取（首选 pdf_extract.py）
 
 A股年报/半年报/季报PDF通过 `tools/a_share/stock_equity.py --download-report` 下载：
 
@@ -195,15 +195,17 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-ty
 python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly    # 季报
 ```
 
-下载的PDF保存于 `cninfo_reports/` 目录，命名格式：`{股票代码}_{年份}年报.pdf`。使用 Poppler 工具集提取内容：
+下载的PDF保存于 `cninfo_reports/` 目录，命名格式：`{股票代码}_{年份}年报.pdf`。提取文字与表格**首选** `pdf_extract.py`，返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `pdftotext` | 将PDF转换为纯文本 | `pdftotext -layout 601899_2025年报.pdf output.txt` |
-| `pdfinfo` | 获取PDF文档信息 | `pdfinfo 601899_2025年报.pdf` |
-| `pdftoppm` | 将PDF页面渲染为图像 | `pdftoppm -png -r 300 601899_2025年报.pdf output/page` |
+| `pdf_extract.py` | PDF文字与表格提取（首选） | `python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --save-md` |
+| `pdftotext` | 将PDF转换为纯文本（回退） | `pdftotext -layout 601899_2025年报.pdf output.txt` |
+| `pdfinfo` | 获取PDF文档信息（回退） | `pdfinfo 601899_2025年报.pdf` |
+| `pdftoppm` | 将PDF页面渲染为图像（回退） | `pdftoppm -png -r 300 601899_2025年报.pdf output/page` |
 
 **关键提示**：
+- 首选 `pdf_extract.py` 提取文字与表格；返回失败时才回退 Poppler 工具集（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
 - 扫描版PDF无法用 `pdftotext` 提取文本，须用 `pdftoppm` 渲染为图像后人工核对
 - 从PDF提取的数据必须与其他来源交叉验证
 - 详细工作流见 [SKILL.md](./SKILL.md) "PDF文档内容提取"章节
@@ -288,8 +290,9 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-ty
 
 ## 版本信息
 
-- **版本**：1.0.0
+- **版本**：1.1.0
 - **创建日期**：2026-07-22
+- **最后更新**：2026-08-06（PDF 文档提取首选 `pdf_extract.py`，Poppler 作为失败回退）
 - **维护状态**：活跃维护
 
 ---

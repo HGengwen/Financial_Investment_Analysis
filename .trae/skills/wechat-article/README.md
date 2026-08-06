@@ -187,15 +187,19 @@
 - 关键信息缺失时标注"信息不足"，不得用推测填充
 - 重要内容建议同时调用多个工具，互为补充
 
-### PDF文档内容提取（Poppler 工具集）
+### PDF文档内容提取（首选 pdf_extract.py）
+
+**文字与表格提取首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集；**高清图像渲染提取配图仍需使用 Poppler `pdftoppm`**（`pdf_extract.py` 不提供图像渲染能力）。
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `pdftotext` | 将PDF转换为纯文本 | `pdftotext -layout 论文.pdf 论文.txt` |
-| `pdfinfo` | 获取PDF文档信息 | `pdfinfo 论文.pdf` |
-| `pdftoppm` | 将PDF页面渲染为图像 | `pdftoppm -png -r 900 论文.pdf output/page` |
+| `pdf_extract.py` | 文字与表格提取（首选） | `python tools/common/pdf_extract.py markdown 论文.pdf --save-md --out-dir reports/pdf` |
+| `pdftotext` | 将PDF转换为纯文本（回退） | `pdftotext -layout 论文.pdf 论文.txt` |
+| `pdfinfo` | 获取PDF文档信息（回退） | `pdfinfo 论文.pdf` |
+| `pdftoppm` | 将PDF页面渲染为图像（配图/扫描件） | `pdftoppm -png -r 900 论文.pdf output/page` |
 
 **关键提示**：
+- 首选 `pdf_extract.py` 提取文字与表格；返回失败时才回退 Poppler（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
 - 论文解读类文章须用 `pdftoppm` 提取高清原图（≥500KB，900 DPI 起步）
 - 扫描版PDF无法用 `pdftotext` 提取文本，须用 `pdftoppm` 渲染为图像后人工核对
 - 从PDF提取的数据必须与其他来源交叉验证
@@ -271,8 +275,9 @@
 
 ## 版本信息
 
-- **版本**：1.0.0
+- **版本**：1.1.0
 - **创建日期**：2026-07-26
+- **最后更新**：2026-08-06（PDF 文字/表格提取首选 `pdf_extract.py`，配图渲染保留 Poppler）
 - **维护状态**：活跃维护
 
 ---

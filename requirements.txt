@@ -1,0 +1,33 @@
+# Financial Investment Analysis - 项目依赖
+#
+# 由 tools/ 与 tests/ 目录下 Python 软件实际使用的第三方库自动生成。
+# 生成方式：扫描 tools/ 与 tests/ 中所有 .py 文件的 import 语句，提取第三方库。
+# 生成日期：2026-08-06
+# Python 版本：3.12（参考环境 F:\Anaconda3\envs\Python_3_12_3）
+#
+# 使用说明：
+#   pip install -r requirements.txt
+#
+# 说明：
+#   - 标准库（argparse/json/sys/pathlib/datetime/typing/unittest 等）无需安装，未列入。
+#   - 版本号为当前环境实测版本；如需宽松安装可去掉 `==` 版本锁定。
+
+# --- 行情与财务数据获取 ---
+akshare==1.18.64        # A股/港股数据源（stock_equity/stock_info/stock_quote/stock_financial/stock_screen/commodity_price）
+yfinance==0.2.59        # 美股数据源（us_stock、specialized/momentum_backtest、commodity_price 回退）
+
+# --- 数据处理 ---
+pandas==3.0.1           # 表格数据处理（各行情/财务工具）
+
+# --- HTTP 请求 ---
+requests==2.32.5        # HTTP 客户端（stock_equity、exa_search、doubao_search）
+
+# --- 网络搜索 / MCP ---
+mcp==1.25.0             # Model Context Protocol 客户端（tavily_search、web_search）
+python-dotenv==1.2.1    # .env 环境变量加载（exa_search、tavily_search、web_search、doubao_search）
+
+# --- PDF 提取 ---
+pdf-inspector==0.2.6    # PDF 文字与表格提取（common/pdf_extract.py，底层 Rust）
+
+# --- 测试 ---
+pytest==9.0.2           # 单元/集成测试框架（tests/ 目录）

@@ -147,7 +147,7 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-ty
 - 文件命名：`{股票代码}_{年份}{报告类型}.pdf`
 - 示例：`601899_2025年报.pdf`
 
-**从下载的年报中提取管理层承诺**（使用 Poppler 工具集，详见"工具使用指南"）：
+**从下载的年报中提取管理层承诺**（首选 `pdf_extract.py`，返回失败时才回退 Poppler，详见"工具使用指南"）：
 
 | # | 时间 | 承诺内容 | 承诺场合 | 兑现情况 | 评价 |
 |---|------|---------|---------|---------|------|
@@ -520,9 +520,20 @@ AI无法和管理层面对面交流，但可以通过公开渠道的侧面信息
 | 员工评价 | `腾讯 Glassdoor 员工评价` | 侧面验证管理层 |
 | 客户反馈 | `腾讯 客户投诉 App Store` | 了解客户满意度 |
 
-### PDF文档内容提取（Poppler 工具集）
+### PDF文档内容提取（首选 pdf_extract.py）
 
-下载的财报 PDF 可使用 Poppler 工具集提取管理层承诺、战略发言等内容。
+下载的财报 PDF 提取管理层承诺、战略发言等内容时，**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，能自动还原财务附表与正文排版），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集。
+
+**首选工具**：
+```bash
+# 分类检测 PDF 类型
+python tools/common/pdf_extract.py detect 601899_2025年报.pdf
+
+# 提取 Markdown（含表格）并写盘
+python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --save-md --out-dir reports/pdf
+```
+
+**回退工具（Poppler 工具集，仅当 pdf_extract.py 返回失败时使用）**：
 
 | 工具 | 功能 | 主要用途 |
 |------|------|---------|
@@ -536,23 +547,25 @@ AI无法和管理层面对面交流，但可以通过公开渠道的侧面信息
 # 1. 下载年报PDF
 python tools/a_share/stock_equity.py --code 601899 --download-report
 
-# 2. 检查PDF类型（文本版 vs 扫描版）
-pdftotext -layout 601899_2025年报.pdf - | head -50
-# 能正常输出文本 → 文本版PDF；输出乱码或空白 → 扫描版PDF
+# 2（首选）：用 pdf_extract.py 分类检测 PDF 类型
+python tools/common/pdf_extract.py detect 601899_2025年报.pdf
+# text_based → 文本版PDF；scanned/mixed 或 scanned=true → 扫描版PDF
 
-# 3. 提取文本内容（文本版PDF）
+# 3（首选）：提取 Markdown 并搜索管理层承诺与战略发言
+python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --save-md --out-dir reports/pdf
+
+# 3回退：若 pdf_extract.py 返回失败，回退 Poppler
 pdftotext -layout 601899_2025年报.pdf 601899_2025年报.txt
-
-# 4. 搜索管理层承诺与战略发言
 grep -n "承诺\|计划\|目标\|未来三年" 601899_2025年报.txt | head -20
 grep -n "战略\|行业趋势\|竞争格局" 601899_2025年报.txt | head -20
 
-# 5. 扫描版PDF处理（图像格式，无法直接提取文本）
+# 4. 扫描版PDF处理（图像格式，无法直接提取文本）
 pdftoppm -png -r 300 601899_2025年报.pdf output/page
 ```
 
 **注意事项**：
-- A股年报常为扫描版PDF（图像格式），需使用 `pdftoppm` 渲染为图像或 OCR 处理
+- 首选 `pdf_extract.py` 提取文字与表格；返回失败时才回退 Poppler（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
+- A股年报常为扫描版PDF（图像格式），`pdf_extract.py` 会返回 scanned 标志，回退后需使用 `pdftoppm` 渲染为图像或 OCR 处理
 - 提取的数据必须与其他来源交叉验证
 - Windows 用户需安装 [Poppler for Windows](http://blog.alivate.com.au/poppler-windows/)
 - 完整使用说明请参考 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)

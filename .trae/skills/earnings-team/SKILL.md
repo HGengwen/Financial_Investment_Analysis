@@ -59,9 +59,18 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-ty
 
 #### 1.2 PDF文档阅读工具
 
-下载的财报PDF文档可采用以下工具进行阅读：
+下载的财报PDF文档提取文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
 
-**Poppler 工具集**（推荐）：
+**首选工具**：
+```bash
+# 分类检测 PDF 类型
+python tools/common/pdf_extract.py detect cninfo_reports/002465_2025年报.pdf
+
+# 提取含财务附表的 Markdown 并写盘
+python tools/common/pdf_extract.py markdown cninfo_reports/002465_2025年报.pdf --save-md --out-dir reports/pdf
+```
+
+**回退工具（Poppler 工具集，仅当 pdf_extract.py 返回失败时使用）**：
 
 - `pdftotext`：将PDF转换为文本格式
 - `pdfinfo`：查看PDF文件信息
@@ -80,6 +89,7 @@ pdftoppm -png cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年
 
 **注意事项**：
 
+- 首选 `pdf_extract.py` 提取文字与表格；返回失败时才回退 Poppler 工具集（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
 - 如果PDF无法提取信息和信息，应在报告中标注"资料评级：B级"，说明扫描版PDF限制
 
 #### 1.3 并行获取其他原始材料
@@ -550,15 +560,18 @@ python tools/common/report_audit.py verdict \
 
 **流程检查点**：确认PDF文件下载成功后，方可启动4个研究Agent。
 
-### PDF文档阅读工具（Poppler 工具集）
+### PDF文档阅读工具（首选 pdf_extract.py）
+
+提取文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，能自动还原财务附表），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `pdftotext` | 将PDF转换为文本格式 | `pdftotext cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年报.txt` |
-| `pdfinfo` | 查看PDF文件信息 | `pdfinfo cninfo_reports/002465_2025年报.pdf` |
-| `pdftoppm` | 将PDF转换为图像（用于扫描版PDF） | `pdftoppm -png cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年报` |
+| `pdf_extract.py` | PDF文字与表格提取（首选） | `python tools/common/pdf_extract.py markdown cninfo_reports/002465_2025年报.pdf --save-md` |
+| `pdftotext` | 将PDF转换为文本格式（回退） | `pdftotext cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年报.txt` |
+| `pdfinfo` | 查看PDF文件信息（回退） | `pdfinfo cninfo_reports/002465_2025年报.pdf` |
+| `pdftoppm` | 将PDF转换为图像（回退，用于扫描版PDF） | `pdftoppm -png cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年报` |
 
-**注意**：如果PDF无法提取内容，应在报告中标注"资料评级：B级"，说明扫描版PDF限制。
+**注意**：首选 `pdf_extract.py`，返回失败时才回退 Poppler（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）；如果PDF无法提取内容，应在报告中标注"资料评级：B级"，说明扫描版PDF限制。
 
 ### 精确计算工具
 

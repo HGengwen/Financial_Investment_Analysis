@@ -319,36 +319,38 @@ python tools/common/tavily_search.py "Qwen3 technical report" --max-results 5
 - 所有网络信息必须使用本地工具获取
 - 关键数据至少两个独立来源交叉验证
 
-### PDF文档内容提取（使用 Poppler 工具集）
+### PDF文档内容提取（首选 pdf_extract.py）
 
-在公众号文章写作中，常需从 PDF（论文、年报、技术报告）中提取文本内容和高清图表。使用 **Poppler 工具集**（`pdftotext` / `pdfinfo` / `pdftoppm`）进行处理。
+在公众号文章写作中，常需从 PDF（论文、年报、技术报告）中提取文本内容和高清图表。**文字与表格提取首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集；**高清图像渲染提取配图仍需使用 Poppler `pdftoppm`**（`pdf_extract.py` 不提供图像渲染能力）。
 
-#### 基本工具
+#### 首选工具（pdf_extract.py）
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `pdftotext` | 将PDF转换为纯文本 | `pdftotext -layout 论文.pdf 论文.txt` |
-| `pdfinfo` | 获取PDF文档信息 | `pdfinfo 论文.pdf` |
-| `pdftoppm` | 将PDF页面渲染为图像 | `pdftoppm -png -r 900 论文.pdf output/page` |
+| `pdf_extract.py` | 文字与表格提取（首选） | `python tools/common/pdf_extract.py markdown 论文.pdf --save-md --out-dir reports/pdf` |
+| `pdf_extract.py detect` | 分类检测 | `python tools/common/pdf_extract.py detect 论文.pdf` |
 
 #### 文本内容提取工作流
 
 ```bash
-# 步骤1：检查PDF类型（文本版 vs 扫描版）
-pdftotext -layout 论文.pdf - | head -50
-# 正常输出文本 → 文本版PDF；乱码或空白 → 扫描版PDF
+# 步骤1（首选）：用 pdf_extract.py 分类检测 PDF 类型
+python tools/common/pdf_extract.py detect 论文.pdf
+# text_based → 文本版PDF；scanned/mixed 或 scanned=true → 扫描版PDF
 
-# 步骤2A（文本版）：提取文本并搜索关键内容
+# 步骤2（首选）：提取 Markdown 并搜索关键内容
+python tools/common/pdf_extract.py markdown 论文.pdf --save-md --out-dir reports/pdf
+
+# 步骤2回退：若 pdf_extract.py 返回失败，回退 Poppler 提取文本
 pdftotext -layout 论文.pdf 论文.txt
 grep -n "核心贡献\|创新点\|实验结果" 论文.txt | head -20
 
-# 步骤2B（扫描版）：渲染为图像后人工核对或 OCR
+# 步骤3（扫描版）：渲染为图像后人工核对或 OCR（回退）
 pdftoppm -png -r 300 论文.pdf output/page
 ```
 
-#### 论文图表提取（用于文章配图）
+#### 论文图表提取（用于文章配图，使用 Poppler pdftoppm）
 
-论文解读类文章必须从PDF提取高清原图（≥500KB）：
+论文解读类文章必须从PDF提取高清原图（≥500KB）。`pdf_extract.py` 不提供图像渲染能力，此步骤**保留使用 Poppler `pdftoppm`**：
 
 ```bash
 # 1. 先用150 DPI渲染全页，定位图表坐标
@@ -378,17 +380,21 @@ cropped.save('assets/论文主题/fig1-核心架构.png', compress_level=1)
 # 1. 下载年报PDF
 python tools/a_share/stock_equity.py --code 601899 --download-report
 
-# 2. 提取文本并搜索关键财务数据
+# 2（首选）：用 pdf_extract.py 提取 Markdown 并搜索关键财务数据
+python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --save-md --out-dir reports/pdf
+
+# 2回退：若 pdf_extract.py 返回失败，回退 Poppler
 pdftotext -layout 601899_2025年报.pdf 601899_2025年报.txt
 grep -n "净利润\|营业收入\|毛利率\|ROE\|增长率" 601899_2025年报.txt | head -30
 ```
 
 #### 注意事项
 
-- **扫描版PDF**：无法用 `pdftotext` 提取文本，须用 `pdftoppm` 渲染为图像后人工核对（或配合 OCR 工具如 tesseract）
-- **图表质量**：文章配图必须 ≥ 500KB，确保手机上清晰可见；900 DPI 起步，不够则升到 1200/1500 DPI
+- **首选** `pdf_extract.py` 提取文字与表格；返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
+- **扫描版PDF**：`pdf_extract.py` 返回 scanned 标志；回退后无法用 `pdftotext` 提取文本，须用 `pdftoppm` 渲染为图像后人工核对（或配合 OCR 工具如 tesseract）
+- **图表质量**：文章配图必须 ≥ 500KB，确保手机上清晰可见；900 DPI 起步，不够则升到 1200/1500 DPI（配图渲染始终使用 Poppler `pdftoppm`）
 - **数据验证**：从PDF提取的数据必须与其他来源交叉验证
-- **工具安装**：Windows 需安装 [Poppler for Windows](http://blog.alivate.com.au/poppler-windows/)；Linux/macOS 通常已预装
+- **工具安装**：首选需 `pip install pdf-inspector`；回退需安装 [Poppler for Windows](http://blog.alivate.com.au/poppler-windows/)（Windows）/ Linux、macOS 通常已预装
 - 详细使用指南见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)
 
 ---

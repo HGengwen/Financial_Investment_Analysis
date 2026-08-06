@@ -158,7 +158,10 @@
 
 | 工具 | 功能 |
 |------|------|
-| Poppler 工具集（`pdftotext`/`pdfinfo`/`pdftoppm`） | 从年报 PDF 提取财务数据作为一手数据源 |
+| `tools/common/pdf_extract.py`（首选） | 从年报 PDF 提取财务数据作为一手数据源（文字与表格） |
+| Poppler 工具集（`pdftotext`/`pdfinfo`/`pdftoppm`） | 回退方案：`pdf_extract.py` 返回失败（退出码非0 / success=false / 扫描件）时使用 |
+
+详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)。
 
 ### 公共工具规范
 
@@ -182,7 +185,7 @@
 
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
 - 所有数据必须标注来源，关键财务数据至少两个独立来源交叉验证
-- **关键财务数据须从年报 PDF 一手数据源交叉验证**：使用 `stock_equity.py --download-report` 下载年报，再按 PDF 提取流程（Poppler 工具集）提取
+- **关键财务数据须从年报 PDF 一手数据源交叉验证**：使用 `stock_equity.py --download-report` 下载年报，**首选** `pdf_extract.py` 提取，返回失败时才回退 Poppler 工具集（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
 - 估计值必须明确标注"估计"
 - 产业链扫描需覆盖 A股/港股/美股/国际市场，不遗漏重要标的
 - 每个产业链环节至少分析 2-3 家头部公司

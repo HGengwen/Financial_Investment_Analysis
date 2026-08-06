@@ -13,6 +13,9 @@ cninfo_reports/
 # 本地的缓存文件
 *.slsx
 
+# 本地测试用文件
+*.pdf
+
 # Python 缓存全量忽略
 __pycache__/
 *.pyc

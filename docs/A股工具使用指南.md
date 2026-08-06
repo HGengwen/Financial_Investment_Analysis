@@ -32,6 +32,12 @@
 |---------|------|---------|
 | `commodity_price.py` | 大宗商品价格数据获取（Akshare 优先，yfinance 回退） | `python tools/common/commodity_price.py --code cu,GC,CL` |
 
+### PDF 文档处理工具
+
+| 工具文件 | 功能 | 命令示例 |
+|---------|------|---------|
+| `pdf_extract.py` | PDF 文字与表格提取（基于 pdf-inspector，面向财报/年报附表） | `python tools/common/pdf_extract.py markdown 601899_2025年报.pdf` |
+
 ### 网络搜索工具
 
 | 工具文件 | 功能 | 命令示例 |
@@ -1138,7 +1144,169 @@ python tools/common/commodity_price.py --code cu --max-records 5
 
 ---
 
-## 十三、A股代码格式说明
+## 十三、pdf_extract.py - PDF 文字与表格提取
+
+### 功能说明
+
+基于 Firecrawl 开源的 **pdf-inspector** 库（底层 Rust，Python 绑定，预编译二进制），从 PDF 格式文档中提取文字与表格，专门面向财报/年报等含复杂附表的文档场景。配合 `stock_equity.py --download-report` 下载的财报 PDF 使用，可完成"下载 → 提取 → 分析"的自动化流程。
+
+**核心能力**:
+- `detect` 分类检测：快速判断 PDF 类型（`text_based`/`scanned`/`mixed`），并返回需 OCR 的页码
+- `text` 纯文本提取：提取扁平化纯文本（不含表格排版信息）
+- `markdown` 含表格的 Markdown 提取：自动完成类型检测 + 文字提取 + 表格识别 + 多栏重排，输出含财务附表的 Markdown
+- `all` 全流程：依次执行 分类 + 纯文本 + Markdown
+
+**扫描格式检测**：当检测到 PDF 为扫描格式（`scanned`/`mixed` 或含需 OCR 页面）时，`data` 中返回 `"scanned": {"scanned": true, "note": "..."}` 标志，提示调用方需走 OCR 流程，避免对无法提取的文档做无效处理。
+
+> **命名说明**：本工具命名为 `pdf_extract.py`（而非 `pdf_inspector.py`），是为了避免与库模块 `pdf_inspector` 同名导致 `import pdf_inspector` 解析到工具自身（同名模块遮蔽问题）。
+
+### 使用方法
+
+#### 1. 分类检测
+
+```bash
+python tools/common/pdf_extract.py detect 601899_2025年报.pdf
+```
+
+**输出示例**:
+```json
+{
+  "success": true,
+  "data": {
+    "pdf_type": "text_based",
+    "page_count": 352,
+    "pages_needing_ocr": [],
+    "confidence": 1.0,
+    "scanned": {"scanned": false}
+  },
+  "meta": {"tool": "pdf_extract", "command": "detect", "pdf": "601899_2025年报.pdf"}
+}
+```
+
+#### 2. 提取纯文本
+
+```bash
+python tools/common/pdf_extract.py text 601899_2026半年报.pdf
+```
+
+**说明**：纯文本不写 txt 文件，仅放入 JSON 的 `data.content` 字段。
+
+**输出示例**:
+```json
+{
+  "success": true,
+  "data": {
+    "scanned": {"scanned": false},
+    "length": 2384,
+    "content": "紫金矿业集团股份有限公司 ..."
+  },
+  "meta": {"tool": "pdf_extract", "command": "text"}
+}
+```
+
+#### 3. 提取含表格的 Markdown
+
+```bash
+# 提取全部页
+python tools/common/pdf_extract.py markdown 601899_2026半年报.pdf
+
+# 仅提取指定页（0 索引，逗号分隔）
+python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --pages 0,1
+
+# 将 Markdown 写盘为 md 文件
+python tools/common/pdf_extract.py markdown 601899_2026半年报.pdf --save-md
+
+# 指定 md 输出目录（默认 reports/pdf）
+python tools/common/pdf_extract.py markdown 601899_2026半年报.pdf --save-md --out-dir reports/pdf
+```
+
+**输出示例**:
+```json
+{
+  "success": true,
+  "data": {
+    "scanned": {"scanned": false},
+    "title": "601899_2026半年报",
+    "pages_with_tables": [2],
+    "pages_with_columns": [],
+    "processing_time_ms": 950,
+    "length": 3210,
+    "content": "| 项目 | 本期 | 上期 |\n|---|---|---|\n| ... |",
+    "file": null
+  },
+  "meta": {"tool": "pdf_extract", "command": "markdown"}
+}
+```
+
+#### 4. 全流程
+
+```bash
+# 全流程（分类 + 纯文本 + Markdown），Markdown 写盘
+python tools/common/pdf_extract.py all 601899_2026半年报.pdf --save-md
+```
+
+**输出示例**（`data` 含 `classify`/`text`/`markdown` 三个子块）:
+```json
+{
+  "success": true,
+  "data": {
+    "classify": {"pdf_type": "text_based", "page_count": 3, "pages_needing_ocr": [], "confidence": 1.0},
+    "text": {"length": 2384, "content": "..."},
+    "markdown": {"title": "601899_2026半年报", "pages_with_tables": [2], "pages_with_columns": [], "processing_time_ms": 950, "length": 3210, "content": "..."}
+  },
+  "meta": {"tool": "pdf_extract", "command": "all"}
+}
+```
+
+### 参数说明
+
+| 参数 | 适用子命令 | 默认值 | 说明 |
+|------|-----------|--------|------|
+| `<pdf>` | 全部 | 必填 | PDF 文件路径 |
+| `--pages` | markdown / all | 全部页 | 仅提取指定页（0 索引，逗号分隔，如 `0,1,2`） |
+| `--save-md` | markdown / all | 关闭 | 是否将 Markdown 写盘为 md 文件 |
+| `--out-dir` | markdown / all | `reports/pdf` | md 文件输出目录 |
+
+### 扫描格式处理
+
+当 `detect` 判定 PDF 为扫描格式（`scanned`/`mixed`）或存在需 OCR 页面时，各子命令会返回 `data.scanned.scanned = true` 且 `content` 为空。此时应转交 OCR 流程处理，而非继续做文本/表格提取。
+
+**扫描件输出示例**:
+```json
+{
+  "success": true,
+  "data": {
+    "scanned": {
+      "scanned": true,
+      "note": "检测到扫描格式或含需 OCR 的页面，无法直接提取文本/表格，请使用 OCR 流程处理（需要 OCR 的页码: [0, 1]）。"
+    },
+    "length": 0,
+    "content": ""
+  },
+  "meta": {"tool": "pdf_extract", "command": "text"}
+}
+```
+
+### 与财报下载工具配合
+
+```bash
+# 1. 下载财报 PDF（见"五、stock_equity.py"）
+python tools/a_share/stock_equity.py --code 601899 --download-report
+
+# 2. 提取财报中的财务附表
+python tools/common/pdf_extract.py markdown cninfo_reports/601899_2025年报.pdf --save-md --out-dir reports/pdf
+```
+
+### 注意事项
+
+1. **依赖库**：`pip install pdf-inspector`，当前环境已安装
+2. **扫描件**：扫描格式 PDF 无法直接提取文字/表格，需 OCR 流程；工具会返回 `scanned` 标志提示
+3. **年报体积**：A股年报通常 300+ 页，`markdown`/`all` 全文提取较耗时，可用 `--pages` 限定关键页
+4. **测试软件**：单元测试 `tests/common/test_pdf_extract.py`，集成测试 `tests/common/test_pdf_extract_integration.py`
+
+---
+
+## 十四、A股代码格式说明
 
 A股代码统一使用**6位数字字符串**:
 
@@ -1159,7 +1327,7 @@ A股代码统一使用**6位数字字符串**:
 
 ---
 
-## 十四、数据源说明
+## 十五、数据源说明
 
 ### stock_info_a_code_name()
 
@@ -1257,7 +1425,7 @@ A股代码统一使用**6位数字字符串**:
 
 ---
 
-## 十五、注意事项
+## 十六、注意事项
 
 ### 1. 代码格式
 
@@ -1292,7 +1460,7 @@ A股代码必须为6位数字字符串，如 `300502`，不要添加 `.SH` 或 `
 
 ---
 
-## 十六、与港股/美股工具的区别
+## 十七、与港股/美股工具的区别
 
 | 特性 | A股工具 | 港股工具 | 美股工具 |
 |------|---------|---------|---------|
@@ -1307,7 +1475,7 @@ A股代码必须为6位数字字符串，如 `300502`，不要添加 `.SH` 或 `
 
 ---
 
-## 十七、Python路径
+## 十八、Python路径
 
 ```bash
 F:\Anaconda3\envs\Python_3_12_3\python.exe
@@ -1315,7 +1483,7 @@ F:\Anaconda3\envs\Python_3_12_3\python.exe
 
 ---
 
-## 十八、常见使用场景
+## 十九、常见使用场景
 
 ### 场景1: 快速查询公司信息
 
@@ -1399,9 +1567,25 @@ python tools/common/commodity_price.py --code cu --start 2025-01-01 --end 2025-0
 python tools/common/commodity_price.py --code cu --max-records 5
 ```
 
+### 场景8: 提取财报PDF文字与附表
+
+```bash
+# 下载财报 PDF（见"五、stock_equity.py"）
+python tools/a_share/stock_equity.py --code 601899 --download-report
+
+# 分类检测（判断是否扫描件、总页数）
+python tools/common/pdf_extract.py detect cninfo_reports/601899_2025年报.pdf
+
+# 提取含财务附表的 Markdown 并写盘
+python tools/common/pdf_extract.py markdown cninfo_reports/601899_2026半年报.pdf --save-md --out-dir reports/pdf
+
+# 全流程（分类 + 纯文本 + Markdown）
+python tools/common/pdf_extract.py all cninfo_reports/601899_2026半年报.pdf --save-md
+```
+
 ---
 
-## 十九、局限性说明
+## 二十、局限性说明
 
 1. **数据窗口**：部分公司上市时间较短，财务数据可能不足10年
 2. **周期性行业**：周期性行业需用完整周期平均值判断，避免单一年份误导
@@ -1410,8 +1594,9 @@ python tools/common/commodity_price.py --code cu --max-records 5
 
 ---
 
-**文档版本**: v2.1
-**更新日期**: 2026-08-01
+**文档版本**: v2.2
+**更新日期**: 2026-08-06
 **变更记录**:
+- v2.2 (2026-08-06): 新增 pdf_extract.py 工具说明章节（PDF 文字与表格提取），原十三~十九章节顺延为十四~二十
 - v2.1 (2026-08-01): 新增 doubao_search.py、web_search.py 工具说明章节与搜索工具选型对比
 - v2.0 (2026-07-29): 工具重构到 tools/a_share/ 和 tools/common/ 目录，更新所有路径引用
