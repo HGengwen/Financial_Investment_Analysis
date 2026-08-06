@@ -304,7 +304,7 @@ print(ind['ROE'])
 
 ### 批量查询脚本 stock_financial_batch.ps1
 
-批量调用 `stock_financial.py`，一次查询多只股票的指定财务指标，输出每只股票最近 N 期数据。已内置统一输出结构（`d['data']['indicators']`）的解析逻辑，并处理 Windows 管道 BOM 编码。
+批量调用 `stock_financial.py`，一次查询多只股票的指定财务指标，输出每只股票最近 N 期数据。已内置统一输出结构（`d['data']['indicators']`）的解析逻辑，并在 Python 内用 `subprocess` 直接捕获工具 stdout 解析，避免 PowerShell 管道重编码导致的 JSON 解码失败。
 
 **使用方法**（PowerShell 7 环境）:
 

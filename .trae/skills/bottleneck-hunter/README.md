@@ -163,6 +163,8 @@ reports/bottleneck-map/AI基础设施/
 
 **数据源**：东方财富、新浪财经、巨潮资讯（A股）；东方财富、新浪财经（港股）；yfinance（美股）
 
+> ⚠️ **禁止使用 PowerShell 管道解析 JSON 输出**：`stock_financial.py` 等工具输出含中文键（"毛利率""净利率"等），PowerShell 5.1 在原生程序间用管道传输时按系统 ANSI/GBK 重新编码，而 `python -c` 按 UTF-8 读取，导致 JSON 损坏、`json.loads` 报错（`JSONDecodeError`）。**正确做法是直接运行工具并解析其标准输出**，不要用 `| python -c`、`| tail`、`| head`、`| grep` 处理 JSON 输出。批量查询请用已修复的 `stock_financial_batch.ps1`（内部用 `subprocess` 捕获，绕开管道）。
+
 详细使用说明请参考：
 - **A股工具**：[docs/A股工具使用指南.md](../../docs/A股工具使用指南.md)
 - **港股工具**：[docs/港股工具使用指南.md](../../docs/港股工具使用指南.md)

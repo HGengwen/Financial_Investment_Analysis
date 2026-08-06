@@ -554,18 +554,19 @@ reports/bottleneck-map/
 
 **A股 `stock_financial.py`** 输出完整 JSON 格式数据：
 
-1. **禁止使用 `tail`、`head`、`grep` 等管道命令截断输出**，否则 JSON 解析会失败，应获取完整输出后解析
+1. **禁止使用 PowerShell 管道传输/截断 JSON 输出**：输出含中文键（"毛利率""净利率"等）。PowerShell 5.1 在原生程序间用管道传输时按系统 ANSI/GBK 重新编码，而 `python -c` 按 UTF-8 读取，导致 JSON 损坏、`json.loads` 报错（`JSONDecodeError`）。**正确做法是直接运行工具并解析其标准输出**，不要用 `| python -c`、`| tail`、`| head`、`| grep` 处理 JSON 输出
 2. **输出结构统一为 `d['data']['indicators']`**（`{指标名: {报告期: 值}}`），报告期键为 8 位（如 `20251231`），取年度数据须按前缀匹配（如 `startswith('2024')`）
-3. **Windows 管道有 UTF-8 BOM**，解析时必须使用 `utf-8-sig` 解码
 
-**正确解析示例**：
+**正确解析示例**（直接运行工具获取完整输出，再由 Python 解析 stdout 字符串，不经过 PowerShell 管道）：
 
 ```bash
-# 解析 A股财务指标输出
-python tools/a_share/stock_financial.py --code 300502 --indicator "ROE,毛利率,归母净利润" | \
-  python -c "
-import sys, json
-d = json.loads(sys.stdin.buffer.read().decode('utf-8-sig'))
+# 在 Python 内调用 subprocess 捕获工具 stdout 后解析（避免 PowerShell 管道重编码）
+python -c "
+import subprocess, json
+r = subprocess.run(['python', 'tools/a_share/stock_financial.py', '--code', '300502',
+                    '--indicator', 'ROE,毛利率,归母净利润'],
+                   capture_output=True, text=True)
+d = json.loads(r.stdout)
 ind = d['data']['indicators']
 # 取 ROE 最近5期
 print({y: v for y, v in sorted(ind['ROE'].items())[-5:]})
@@ -574,7 +575,7 @@ print({y: v for y, v in ind['归母净利润'].items() if y.startswith('2024')})
 "
 ```
 
-**批量查询**（多只候选标的对比时）：优先使用 `tools/a_share/stock_financial_batch.ps1`，已内置 BOM 处理和结构解析，无需手写解析逻辑：
+**批量查询**（多只候选标的对比时）：优先使用 `tools/a_share/stock_financial_batch.ps1`，已内置结构解析，无需手写解析逻辑：
 
 ```powershell
 & "F:/Financial_Investment_Analysis/tools/a_share/stock_financial_batch.ps1" -codes "300502,601899" -indicators "ROE,毛利率,归母净利润"

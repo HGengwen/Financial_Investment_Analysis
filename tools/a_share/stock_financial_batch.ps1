@@ -53,22 +53,39 @@ $code_list = $codes.Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $
 $indicator_list = $indicators.Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
 
 # 解析 JSON 的内联 Python 代码
+# 注意：禁止用 PowerShell 管道（|）把工具 stdout 喂给 python。
+# PowerShell 5.1 在原生程序间管道传输时按系统 ANSI/GBK 重编码，中文键（"毛利率"等）
+# 会被破坏，导致 json.loads 报 JSONDecodeError。故在 Python 内用 subprocess 直接捕获
+# 工具 stdout，保持 UTF-8 编码，避免 PowerShell 管道重编码。
 $keys_py = ($indicator_list | ForEach-Object { "'$_'" }) -join ","
-$parser = @"
-import sys, json
-# 兼容 Windows 管道输出的 UTF-8 BOM
-d = json.loads(sys.stdin.buffer.read().decode('utf-8-sig'))
-# 所有模式的输出结构统一为 d['data']['indicators']
+$runner_tpl = @'
+import subprocess, json, sys
+r = subprocess.run(['__PY__', '__TOOL__', '--code', '__CODE__',
+                    '--indicator', '__INDICATORS__'],
+                   capture_output=True, text=True)
+if r.returncode != 0:
+    print('ERROR', r.stderr, file=sys.stderr)
+    sys.exit(r.returncode)
+d = json.loads(r.stdout)
 ind = d['data']['indicators']
-keys = [$keys_py]
+keys = [__KEYS__]
 for k in keys:
-    items = sorted(ind.get(k, {}).items())[-${periods}:]
+    items = sorted(ind.get(k, {}).items())[-__PERIODS__:]
     print(k, {y: v for y, v in items})
-"@
+'@
 
 # 逐只股票查询
 foreach ($code in $code_list) {
     Write-Host "===== $code ====="
-    & $python $tool_path --code $code --indicator $indicators 2>$null |
-        & $python -c $parser 2>&1
+    # 嵌入 Python 源码前转义路径反斜杠，避免被当作字符串转义序列（如 \t、\a）
+    $python_esc = $python.Replace('\', '\\')
+    $tool_esc = $tool_path.Replace('\', '\\')
+    $runner = $runner_tpl `
+        -replace '__PY__', $python_esc `
+        -replace '__TOOL__', $tool_esc `
+        -replace '__CODE__', $code `
+        -replace '__INDICATORS__', $indicators `
+        -replace '__KEYS__', $keys_py `
+        -replace '__PERIODS__', $periods
+    & $python -c $runner 2>&1
 }

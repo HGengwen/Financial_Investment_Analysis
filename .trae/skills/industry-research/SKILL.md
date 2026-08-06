@@ -306,6 +306,7 @@ disable-model-invocation: true
 4. **对每家公司标注"信息充分度"**（A/B/C级），让读者知道 AI 分析的可靠程度
 5. **关键财务数据须从年报 PDF 一手数据源交叉验证**：使用 `stock_equity.py --download-report` 下载年报，**首选** `tools/common/pdf_extract.py` 提取文字与表格（能自动还原财务附表），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集，完整流程见 [pdf-extraction](../tools-scripts/pdf-extraction.md) 与下方"PDF 年报提取示例"
 6. **大宗商品相关行业须获取价格数据**：涉及有色金属、贵金属、能源化工、新能源金属等产业链的行业，须使用 `tools/common/commodity_price.py` 获取大宗商品价格，辅助判断产业链上游成本压力与下游需求景气度
+7. **禁止使用 PowerShell 管道解析 JSON 输出**：`stock_financial.py` 等工具输出含中文键（"毛利率""净利率"等）。PowerShell 5.1 在原生程序间用管道传输时按系统 ANSI/GBK 重新编码，而 `python -c` 按 UTF-8 读取，导致 JSON 损坏、`json.loads` 报错（如 `JSONDecodeError`）。**正确用法是直接运行工具并解析其标准输出**，不要经过 PowerShell 管道把输出喂给 `python -c` 或 `tail/head/grep` 截断
 
 ### 网络搜索多源验证示例
 
