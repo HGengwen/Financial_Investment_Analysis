@@ -550,6 +550,36 @@ reports/bottleneck-map/
 - **港股工具**：[docs/港股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/港股工具使用指南.md)
 - **美股工具**：[docs/美股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/美股工具使用指南.md)
 
+#### 数据解析注意事项（必须遵守）
+
+**A股 `stock_financial.py`** 输出完整 JSON 格式数据：
+
+1. **禁止使用 `tail`、`head`、`grep` 等管道命令截断输出**，否则 JSON 解析会失败，应获取完整输出后解析
+2. **输出结构统一为 `d['data']['indicators']`**（`{指标名: {报告期: 值}}`），报告期键为 8 位（如 `20251231`），取年度数据须按前缀匹配（如 `startswith('2024')`）
+3. **Windows 管道有 UTF-8 BOM**，解析时必须使用 `utf-8-sig` 解码
+
+**正确解析示例**：
+
+```bash
+# 解析 A股财务指标输出
+python tools/a_share/stock_financial.py --code 300502 --indicator "ROE,毛利率,归母净利润" | \
+  python -c "
+import sys, json
+d = json.loads(sys.stdin.buffer.read().decode('utf-8-sig'))
+ind = d['data']['indicators']
+# 取 ROE 最近5期
+print({y: v for y, v in sorted(ind['ROE'].items())[-5:]})
+# 取 2024 年归母净利润
+print({y: v for y, v in ind['归母净利润'].items() if y.startswith('2024')})
+"
+```
+
+**批量查询**（多只候选标的对比时）：优先使用 `tools/a_share/stock_financial_batch.ps1`，已内置 BOM 处理和结构解析，无需手写解析逻辑：
+
+```powershell
+& "F:/Financial_Investment_Analysis/tools/a_share/stock_financial_batch.ps1" -codes "300502,601899" -indicators "ROE,毛利率,归母净利润"
+```
+
 ### 精确计算工具
 
 | 工具                                | 功能                                          | 命令示例                                                                         |

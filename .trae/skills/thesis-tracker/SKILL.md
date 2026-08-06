@@ -3,12 +3,12 @@ name: thesis-tracker
 description: 投资论文追踪：买入后的纪律系统。建立投资论文、持续追踪检查、基于证据判断论文健康度，输出系统化的持有/调仓建议。
 disable-model-invocation: true
 ---
-
 # 投资论文追踪：买入后的纪律系统
 
 对 $ARGUMENTS 执行投资论文追踪检查。从建立论文到持续追踪，系统化管理买入后的持有纪律。
 
 **支持输入格式**：
+
 - `公司名` — 首次使用时建立投资论文，后续使用时追踪检查
 - `公司名 建立论文` — 强制重新建立投资论文
 - `公司名 季度检查` — 基于最新财报进行论文检查
@@ -65,6 +65,16 @@ python tools/us_stock/stock_quote.py --code {股票代码}
 
 **重要**：上述工具输出完整 JSON 格式数据，**禁止使用 `tail`、`head`、`grep` 等管道命令截断输出**，否则会导致 JSON 解析失败。应直接获取完整输出后解析。
 
+`stock_financial.py` 所有模式的输出结构统一为 `d['data']['indicators']`（`{指标名: {报告期: 值}}`），解析时直接访问该键：
+
+```python
+import sys, json
+d = json.loads(sys.stdin.buffer.read().decode('utf-8-sig'))
+ind = d['data']['indicators']
+# 例：取"归母净利润"最近5期
+print({y: v for y, v in sorted(ind['归母净利润'].items())[-5:]})
+```
+
 使用 `tools/common/financial_rigor.py verify-valuation` 校验估值数据。
 
 如果已有该公司的 `/investment-research` 或 `/investment-team` 报告，优先从中读取。
@@ -92,13 +102,13 @@ python tools/us_stock/stock_quote.py --code {股票代码}
 
 把投资论文拆解成可验证的具体假设：
 
-| # | 核心假设 | 验证方式 | 验证频率 | 当前状态 |
-|---|---------|---------|---------|---------|
-| 1 | 例：收入增速维持15%+ | 季报收入增速 | 每季度 | 🟢 成立 |
-| 2 | 例：毛利率稳定在60%+ | 季报毛利率 | 每季度 | 🟢 成立 |
-| 3 | 例：管理层持续回购 | 回购公告/现金流表 | 每季度 | 🟢 成立 |
-| 4 | 例：竞争对手未取得突破 | 行业数据/竞对财报 | 每半年 | 🟢 成立 |
-| 5 | ... | ... | ... | ... |
+| # | 核心假设               | 验证方式          | 验证频率 | 当前状态 |
+| - | ---------------------- | ----------------- | -------- | -------- |
+| 1 | 例：收入增速维持15%+   | 季报收入增速      | 每季度   | 🟢 成立  |
+| 2 | 例：毛利率稳定在60%+   | 季报毛利率        | 每季度   | 🟢 成立  |
+| 3 | 例：管理层持续回购     | 回购公告/现金流表 | 每季度   | 🟢 成立  |
+| 4 | 例：竞争对手未取得突破 | 行业数据/竞对财报 | 每半年   | 🟢 成立  |
+| 5 | ...                    | ...               | ...      | ...      |
 
 通常3-7个假设。太少说明思考不够深入，太多说明论文不够聚焦。
 
@@ -106,13 +116,13 @@ python tools/us_stock/stock_quote.py --code {股票代码}
 
 ### A3：红线清单（触发任何一条 = 必须重新评估）
 
-| # | 红线条件 | 严重程度 | 触发后动作 |
-|---|---------|---------|-----------|
-| 1 | 例：管理层诚信出问题（财务造假、关联交易） | 致命 | 立即清仓 |
-| 2 | 例：核心业务连续2季度收入下滑 | 严重 | 减仓50%，重新评估 |
-| 3 | 例：护城河被明确突破（竞对获得同等能力） | 严重 | 启动深度研究，考虑退出 |
-| 4 | 例：监管政策根本性改变商业模式 | 严重 | 重新评估内在价值 |
-| 5 | 例：管理层大规模减持（非计划性） | 警告 | 深入调查原因 |
+| # | 红线条件                                   | 严重程度 | 触发后动作             |
+| - | ------------------------------------------ | -------- | ---------------------- |
+| 1 | 例：管理层诚信出问题（财务造假、关联交易） | 致命     | 立即清仓               |
+| 2 | 例：核心业务连续2季度收入下滑              | 严重     | 减仓50%，重新评估      |
+| 3 | 例：护城河被明确突破（竞对获得同等能力）   | 严重     | 启动深度研究，考虑退出 |
+| 4 | 例：监管政策根本性改变商业模式             | 严重     | 重新评估内在价值       |
+| 5 | 例：管理层大规模减持（非计划性）           | 警告     | 深入调查原因           |
 
 **段永平**："卖出只有三个理由：1.发现买错了；2.公司基本面变了；3.找到了更好的。"
 
@@ -120,13 +130,13 @@ python tools/us_stock/stock_quote.py --code {股票代码}
 
 ### A4：估值锚点
 
-| 指标 | 买入时 | 乐观目标 | 中性目标 | 悲观情景 |
-|------|-------|---------|---------|---------|
-| 股价 | | | | |
-| PE | | | | |
-| 市值 | | | | |
-| 内在价值估算 | | | | |
-| 安全边际 | | | | |
+| 指标         | 买入时 | 乐观目标 | 中性目标 | 悲观情景 |
+| ------------ | ------ | -------- | -------- | -------- |
+| 股价         |        |          |          |          |
+| PE           |        |          |          |          |
+| 市值         |        |          |          |          |
+| 内在价值估算 |        |          |          |          |
+| 安全边际     |        |          |          |          |
 
 使用 `tools/common/financial_rigor.py three-scenario` 计算三情景估值。
 
@@ -179,17 +189,19 @@ python tools/us_stock/stock_quote.py --code {股票代码}
 
 #### 网络信息获取
 
-| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
-|---------|-----------|------------|------|
-| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
+| 上市地点  | 主搜索工具                        | 辅助搜索工具                                                       | 说明                 |
+| --------- | --------------------------------- | ------------------------------------------------------------------ | -------------------- |
+| A股       | `tools/common/doubao_search.py` | `tools/common/web_search.py`                                     | 豆包搜索为推荐首选   |
 | 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
 
 **搜索规范**：
+
 - 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
 - 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
 - 非境内上市公司须 Doubao + Tavily 双源验证
 
 **搜索示例**：
+
 ```bash
 # A股：获取最新财报和管理层变动
 python tools/common/doubao_search.py "{公司名} 最新财报 管理层变动 监管政策" --time-range month
@@ -200,6 +212,7 @@ python tools/common/tavily_search.py "{公司名} latest earnings management cha
 ```
 
 收集内容：
+
 1. 最新财报数据（如果有新的季报/年报）
 2. 近期重大事件（管理层变动、监管政策、竞争动态）
 3. 当前股价和估值指标
@@ -211,11 +224,11 @@ python tools/common/tavily_search.py "{公司名} latest earnings management cha
 
 对每个核心假设，用最新数据验证：
 
-| # | 核心假设 | 上次状态 | 最新证据 | 当前状态 | 变化 |
-|---|---------|---------|---------|---------|------|
-| 1 | 收入增速15%+ | 🟢 成立 | Q4收入增速12% | 🟡 边际弱化 | ⚠️ |
-| 2 | 毛利率60%+ | 🟢 成立 | 毛利率61.2% | 🟢 成立 | — |
-| 3 | ... | ... | ... | ... | ... |
+| # | 核心假设     | 上次状态 | 最新证据      | 当前状态    | 变化 |
+| - | ------------ | -------- | ------------- | ----------- | ---- |
+| 1 | 收入增速15%+ | 🟢 成立  | Q4收入增速12% | 🟡 边际弱化 | ⚠️ |
+| 2 | 毛利率60%+   | 🟢 成立  | 毛利率61.2%   | 🟢 成立     | —   |
+| 3 | ...          | ...      | ...           | ...         | ...  |
 
 状态定义：
 
@@ -230,10 +243,10 @@ python tools/common/tavily_search.py "{公司名} latest earnings management cha
 
 逐条检查红线清单：
 
-| # | 红线条件 | 是否触发 | 证据 |
-|---|---------|:-------:|------|
-| 1 | 管理层诚信问题 | ❌ 未触发 | — |
-| 2 | 核心业务连续2季下滑 | ❌ 未触发 | — |
+| # | 红线条件            | 是否触发 | 证据 |
+| - | ------------------- | :-------: | ---- |
+| 1 | 管理层诚信问题      | ❌ 未触发 | —   |
+| 2 | 核心业务连续2季下滑 | ❌ 未触发 | —   |
 
 **任何一条红线触发 → 在报告中用醒目标注，给出明确的行动建议。**
 
@@ -241,12 +254,12 @@ python tools/common/tavily_search.py "{公司名} latest earnings management cha
 
 ### B5：估值更新
 
-| 指标 | 买入时 | 上次检查 | 当前 | 变化 |
-|------|-------|---------|------|------|
-| 股价 | | | | |
-| PE(TTM) | | | | |
-| 内在价值估算 | | | | |
-| 安全边际 | | | | |
+| 指标         | 买入时 | 上次检查 | 当前 | 变化 |
+| ------------ | ------ | -------- | ---- | ---- |
+| 股价         |        |          |      |      |
+| PE(TTM)      |        |          |      |      |
+| 内在价值估算 |        |          |      |      |
+| 安全边际     |        |          |      |      |
 
 使用 `tools/common/financial_rigor.py verify-valuation` 校验当前估值。
 
@@ -285,18 +298,19 @@ X / 10分
 #### 论文健康度评分标准
 
 **计算公式**：
+
 ```
 健康度 = 10 - (⚫破裂假设数×3) - (🔴受损假设数×2) - (🟡弱化假设数×1) - (红线触发数×5)
 最低1分，最高10分
 ```
 
-| 评分 | 含义 | 建议动作 |
-|:----:|------|---------|
-| 9-10 | 所有假设成立，论文比买入时更强 | 考虑加仓 |
-| 7-8 | 核心假设成立，个别边际弱化 | 继续持有 |
-| 5-6 | 1-2个假设受损，但核心逻辑未变 | 持有但提高警惕 |
-| 3-4 | 多个假设受损，论文基础动摇 | 考虑减仓 |
-| 1-2 | 红线触发或核心假设破裂 | 强烈建议卖出 |
+| 评分 | 含义                           | 建议动作       |
+| :--: | ------------------------------ | -------------- |
+| 9-10 | 所有假设成立，论文比买入时更强 | 考虑加仓       |
+| 7-8 | 核心假设成立，个别边际弱化     | 继续持有       |
+| 5-6 | 1-2个假设受损，但核心逻辑未变  | 持有但提高警惕 |
+| 3-4 | 多个假设受损，论文基础动摇     | 考虑减仓       |
+| 1-2 | 红线触发或核心假设破裂         | 强烈建议卖出   |
 
 #### 结论必须明确回答
 
@@ -310,9 +324,9 @@ X / 10分
 
 将本次检查记录追加到 `reports/{公司名}-thesis.md` 的追踪记录表中：
 
-| 检查日期 | 健康度 | 核心变化 | 动作建议 |
-|---------|:------:|---------|---------|
-| 2026-04-09 | 7/10 | 收入增速放缓至12%，但利润率改善 | 持有 |
+| 检查日期   | 健康度 | 核心变化                        | 动作建议 |
+| ---------- | :----: | ------------------------------- | -------- |
+| 2026-04-09 |  7/10  | 收入增速放缓至12%，但利润率改善 | 持有     |
 
 ---
 
@@ -322,30 +336,31 @@ X / 10分
 
 根据上市地点选择相应的工具：
 
-| 市场 | 工具 | 功能 | 命令示例 |
-|------|------|------|---------|
-| A股 | `tools/a_share/stock_info.py` | 股票信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
-| A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
-| A股 | `tools/a_share/stock_quote.py` | 历史股价 | `python tools/a_share/stock_quote.py --code 601899` |
-| 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
-| 港股 | `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
-| 美股 | `tools/us_stock/stock_info.py` | 美股信息查询 | `python tools/us_stock/stock_info.py --search Apple` |
-| 美股 | `tools/us_stock/stock_financial.py` | 美股财务指标 | `python tools/us_stock/stock_financial.py --code AAPL` |
-| 美股 | `tools/us_stock/stock_quote.py` | 美股行情数据 | `python tools/us_stock/stock_quote.py --code AAPL` |
+| 市场 | 工具                                  | 功能                      | 命令示例                                                       |
+| ---- | ------------------------------------- | ------------------------- | -------------------------------------------------------------- |
+| A股  | `tools/a_share/stock_info.py`       | 股票信息查询              | `python tools/a_share/stock_info.py --search 紫金矿业`       |
+| A股  | `tools/a_share/stock_financial.py`  | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899`      |
+| A股  | `tools/a_share/stock_quote.py`      | 历史股价                  | `python tools/a_share/stock_quote.py --code 601899`          |
+| 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标        | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| 港股 | `tools/hk_stock/stock_quote.py`     | 港股历史K线               | `python tools/hk_stock/stock_quote.py --code 00700`          |
+| 美股 | `tools/us_stock/stock_info.py`      | 美股信息查询              | `python tools/us_stock/stock_info.py --search Apple`         |
+| 美股 | `tools/us_stock/stock_financial.py` | 美股财务指标              | `python tools/us_stock/stock_financial.py --code AAPL`       |
+| 美股 | `tools/us_stock/stock_quote.py`     | 美股行情数据              | `python tools/us_stock/stock_quote.py --code AAPL`           |
 
 **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
 **数据源**：东方财富、新浪财经、巨潮资讯（A股）；东方财富、新浪财经（港股）；yfinance（美股）
 
 详细使用说明请参考：
+
 - **A股工具**：[docs/A股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
 - **港股工具**：[docs/港股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/港股工具使用指南.md)
 - **美股工具**：[docs/美股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/美股工具使用指南.md)
 
 ### 精确计算工具
 
-| 工具 | 功能 | 命令示例 |
-|------|------|---------|
+| 工具                                | 功能                                          | 命令示例                                                                         |
+| ----------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
 | `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证、三情景估值） | `python tools/common/financial_rigor.py verify-valuation --pe 25.5 --eps 10.2` |
 
 **关键计算命令**：
@@ -367,20 +382,21 @@ python tools/common/financial_rigor.py three-scenario \
 
 **工具优先级**（基于上市地点）：
 
-| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
-|---------|-----------|------------|------|
-| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
+| 上市地点  | 主搜索工具                        | 辅助搜索工具                                                       | 说明                 |
+| --------- | --------------------------------- | ------------------------------------------------------------------ | -------------------- |
+| A股       | `tools/common/doubao_search.py` | `tools/common/web_search.py`                                     | 豆包搜索为推荐首选   |
 | 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
 
 **搜索工具能力**：
 
-| 工具 | 功能 | 命令示例 |
-|------|------|---------|
+| 工具                              | 功能                                              | 命令示例                                                                                             |
+| --------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `tools/common/doubao_search.py` | 豆包搜索（推荐首选，支持财务/内容/导出/站点过滤） | `python tools/common/doubao_search.py "腾讯 最新财报" --finance --need-content --time-range month` |
-| `tools/common/tavily_search.py` | Tavily 搜索（非境内上市辅助，支持高级搜索） | `python tools/common/tavily_search.py "Apple AAPL latest earnings" --max-results 5` |
-| `tools/common/web_search.py` | 阿里云百炼搜索 | `python tools/common/web_search.py "紫金矿业 最新消息"` |
+| `tools/common/tavily_search.py` | Tavily 搜索（非境内上市辅助，支持高级搜索）       | `python tools/common/tavily_search.py "Apple AAPL latest earnings" --max-results 5`                |
+| `tools/common/web_search.py`    | 阿里云百炼搜索                                    | `python tools/common/web_search.py "紫金矿业 最新消息"`                                            |
 
 **搜索规范**（必须遵守）：
+
 1. **时效性优先**：使用 `--time-range month/week` 限制时间范围，优先获取最新信息，避免使用过时数据
 2. **数据源日期**：搜索结果必须包含数据来源日期；过时数据须明确标注时效性说明
 3. **双源验证**：非境内上市公司须 Doubao + Tavily 双源验证
@@ -389,8 +405,8 @@ python tools/common/financial_rigor.py three-scenario \
 
 ### 报告审核工具
 
-| 工具 | 功能 | 命令示例 |
-|------|------|---------|
+| 工具                             | 功能               | 命令示例                                                                |
+| -------------------------------- | ------------------ | ----------------------------------------------------------------------- |
 | `tools/common/report_audit.py` | 报告数据抽检与审核 | `python tools/common/report_audit.py extract --report reports/xxx.md` |
 
 ---
@@ -423,16 +439,16 @@ python tools/common/financial_rigor.py three-scenario \
 
 ## 与其他Skill的关系
 
-| Skill | 定位 | 何时用 |
-|-------|------|--------|
+| Skill                                    | 定位                         | 何时用                           |
+| ---------------------------------------- | ---------------------------- | -------------------------------- |
 | **`/thesis-tracker`（本Skill）** | **建立和追踪投资论文** | **首次建立论文或季度检查** |
-| `/thesis-drift` | 论文漂移检测 | 有新财报或重大事件时，对比旧论文 |
-| `/investment-research` | 四大师综合投资研究 | 首次深度研究一家公司 |
-| `/investment-team` | 四Agent全面公司研究 | 首次研究一家公司 |
-| `/investment-checklist` | 巴菲特买入前Checklist | 买入前过六关检查 |
-| `/management-deep-dive` | 管理层纵深研究 | 管理层是核心投资逻辑时 |
-| `/earnings-team` | 六Agent团队精读 + 公众号发布 | 重要公司的关键财报 |
-| `/portfolio-review` | 组合层面审视与优化 | 季度组合审视 |
+| `/thesis-drift`                        | 论文漂移检测                 | 有新财报或重大事件时，对比旧论文 |
+| `/investment-research`                 | 四大师综合投资研究           | 首次深度研究一家公司             |
+| `/investment-team`                     | 四Agent全面公司研究          | 首次研究一家公司                 |
+| `/investment-checklist`                | 巴菲特买入前Checklist        | 买入前过六关检查                 |
+| `/management-deep-dive`                | 管理层纵深研究               | 管理层是核心投资逻辑时           |
+| `/earnings-team`                       | 六Agent团队精读 + 公众号发布 | 重要公司的关键财报               |
+| `/portfolio-review`                    | 组合层面审视与优化           | 季度组合审视                     |
 
 ---
 

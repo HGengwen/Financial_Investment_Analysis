@@ -49,6 +49,7 @@ disable-model-invocation: true
 
 **数据获取工具规范**（详见"工具使用指南"章节）：
 - A股数据：使用 `tools/a_share/stock_info.py`、`tools/a_share/stock_quote.py`、`tools/a_share/stock_financial.py`、`tools/a_share/stock_screen.py`
+- **A股批量财务指标**（多公司对比时）：使用 `tools/a_share/stock_financial_batch.ps1`，一次获取多只股票的 ROE、毛利率、净利率等指标（PowerShell 7 运行）
 - 港股数据：使用 `tools/hk_stock/stock_info.py`、`tools/hk_stock/stock_quote.py`、`tools/hk_stock/stock_screen.py`
 - 美股数据：使用 `tools/us_stock/stock_info.py`、`tools/us_stock/stock_financial.py`、`tools/us_stock/stock_quote.py`
 - 精确计算：使用 `tools/common/financial_rigor.py` 进行PE、ROE、市值等指标的精确计算
@@ -299,6 +300,7 @@ python tools/common/financial_rigor.py three-scenario \
 |------|------|------|---------|
 | A股 | `tools/a_share/stock_info.py` | 股票信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
 | A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
+| A股 | `tools/a_share/stock_financial_batch.ps1` | 批量财务指标（多公司对比用） | `powershell -File tools/a_share/stock_financial_batch.ps1 -codes "601899,000960"` |
 | A股 | `tools/a_share/stock_quote.py` | 历史股价 | `python tools/a_share/stock_quote.py --code 601899` |
 | A股 | `tools/a_share/stock_screen.py` | 质量筛选7条指标 | `python tools/a_share/stock_screen.py --code 601899` |
 | 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |

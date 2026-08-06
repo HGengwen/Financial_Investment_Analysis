@@ -153,6 +153,7 @@
 |------|------|------|---------|
 | A股 | `tools/a_share/stock_info.py` | 股票信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
 | A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
+| A股 | `tools/a_share/stock_financial_batch.ps1` | 批量财务指标（多公司对比用） | `powershell -File tools/a_share/stock_financial_batch.ps1 -codes "601899,000960"` |
 | A股 | `tools/a_share/stock_quote.py` | 历史股价 | `python tools/a_share/stock_quote.py --code 601899` |
 | A股 | `tools/a_share/stock_screen.py` | 质量筛选7条指标 | `python tools/a_share/stock_screen.py --code 601899` |
 | 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |

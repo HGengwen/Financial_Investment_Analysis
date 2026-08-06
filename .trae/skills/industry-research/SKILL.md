@@ -286,7 +286,7 @@ disable-model-invocation: true
 
 - A股/港股数据获取：[A股数据](../tools-scripts/a-share-data.md) / [港股数据](../tools-scripts/hk-share-data.md)
 - 美股数据获取：[美股工具使用指南](../../../docs/美股工具使用指南.md)（`tools/us_stock/` 目录下三个模块）
-- 大宗商品数据获取：[大宗商品价格工具](../../../docs/A股工具使用指南.md#十一commodity_pricepy---大宗商品价格数据)（`tools/common/commodity_price.py`，Akshare 优先 + yfinance 回退）
+- 大宗商品数据获取：[大宗商品价格工具](../../../docs/A股工具使用指南.md#十二commodity_pricepy---大宗商品价格数据)（`tools/common/commodity_price.py`，Akshare 优先 + yfinance 回退）
 - 财务计算与验证：[financial-calc](../tools-scripts/financial-calc.md)
 - 网络信息搜索：[web-search-tools](../tools-scripts/web-search-tools.md)
 - 报告审核与抽检：[report-audit](../tools-scripts/report-audit.md)

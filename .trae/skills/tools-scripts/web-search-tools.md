@@ -1,6 +1,6 @@
 ---
 name: web-search-tools
-description: "网络信息搜索工具：提供豆包搜索（火山引擎，推荐）、Tavily、阿里云百炼 WebSearch 三个本地搜索工具的选用规范，禁止使用Anthropic官方WebSearch/WebFetch。"
+description: "网络信息搜索工具：提供豆包搜索（火山引擎，推荐）、Tavily、阿里云百炼 WebSearch、Exa 四个本地搜索工具的选用规范，禁止使用Anthropic官方WebSearch/WebFetch。"
 disable-model-invocation: true
 ---
 
@@ -12,21 +12,22 @@ disable-model-invocation: true
 
 ## 工具选型决策
 
-三个本地搜索工具的完整使用说明、参数详解、模块导入接口、返回字段、依赖配置、选型决策表与流程图，详见 [docs/A股工具使用指南.md](../../../docs/A股工具使用指南.md) 第八章~第十章。本技能仅提供关键决策摘要与命令速查。
+四个本地搜索工具的完整使用说明、参数详解、模块导入接口、返回字段、依赖配置、选型决策表与流程图，详见 [docs/A股工具使用指南.md](../../../docs/A股工具使用指南.md) 第八章~第十一章。本技能仅提供关键决策摘要与命令速查。
 
 ### 选型决策摘要
 
-| 维度 | `doubao_search.py` | `tavily_search.py` | `web_search.py` |
-|------|--------------------|---------------------|------------------|
-| 鉴权 | 火山引擎 AK/SK | DASHSCOPE_API_KEY | DASHSCOPE_API_KEY |
-| 协议 | HTTP REST + SignatureV4 | MCP（SSE） | MCP（SSE） |
-| 正文能力 | ✅ `--need-content` | ✅ `raw_content` | ❌ |
-| 权威度筛选 | ✅ `--finance`（仅非常权威信源） | ❌ | ❌ |
-| 站点过滤 | ✅ `--sites` / `--block-hosts` | ❌ | ❌ |
-| 报告导出 | ✅ `--export` Markdown | ❌ | ❌ |
-| QPS 限流 | ✅ 客户端线程安全 | ❌ | ❌ |
-| 模型生态 | 中立无绑定 | 阿里云通义千问 | 阿里云通义千问 |
-| 免费额度 | 500 次/月 | 按百炼计费 | 按百炼计费 |
+| 维度 | `doubao_search.py` | `tavily_search.py` | `web_search.py` | `exa_search.py` |
+|------|--------------------|---------------------|------------------|------------------|
+| 鉴权 | 火山引擎 AK/SK | DASHSCOPE_API_KEY | DASHSCOPE_API_KEY | EXA_API_KEY |
+| 协议 | HTTP REST + SignatureV4 | MCP（SSE） | MCP（SSE） | HTTP REST |
+| 正文能力 | ✅ `--need-content` | ✅ `raw_content` | ❌ | ✅ `text`/`highlights` |
+| 权威度筛选 | ✅ `--finance`（仅非常权威信源） | ❌ | ❌ | ❌ |
+| 站点过滤 | ✅ `--sites` / `--block-hosts` | ❌ | ❌ | ❌ |
+| 报告导出 | ✅ `--export` Markdown | ❌ | ❌ | ❌ |
+| 深度档位 | ❌ | ❌ | ❌ | ✅ `--type deep`（4-40s） |
+| QPS 限流 | ✅ 客户端线程安全 | ❌ | ❌ | ❌ |
+| 模型生态 | 中立无绑定 | 阿里云通义千问 | 阿里云通义千问 | 中立无绑定 |
+| 免费额度 | 500 次/月 | 按百炼计费 | 按百炼计费 | 1000 次/月 |
 
 ### 推荐场景
 
@@ -41,8 +42,9 @@ disable-model-invocation: true
 | A股量化基本面 + 百炼金融专项 MCP | `web_search.py` |
 | 持牌金融机构私有化/等保合规 | `web_search.py` |
 | 内容深度搜索（MD&A、分析师点评） | `tavily_search.py` |
+| 研究型长文/学术/财报深度检索 | `exa_search.py --type deep` |
 
-完整选型决策流程图与实战推荐参见 [A股工具使用指南.md#十搜索工具选型对比](../../../docs/A股工具使用指南.md#十搜索工具选型对比)。
+完整选型决策流程图与实战推荐参见 [A股工具使用指南.md#十一搜索工具选型对比](../../../docs/A股工具使用指南.md#十一搜索工具选型对比)。
 
 ---
 
@@ -100,6 +102,27 @@ python tools/common/web_search.py "{搜索关键词}"
 **依赖**：`pip install mcp python-dotenv`
 **配置**：在 `.env` 文件中配置 `DASHSCOPE_API_KEY`
 
+### Exa 搜索（AI 原生语义检索）
+
+```bash
+# 基本搜索
+python tools/common/exa_search.py "{搜索关键词}"
+
+# 指定结果数量
+python tools/common/exa_search.py "{搜索关键词}" --max-results 8
+
+# 深度调研（deep 档，耗时 4-40 秒）
+python tools/common/exa_search.py "{搜索关键词}" --type deep
+
+# Token 节约模式（highlights 高亮摘要，只返回相关段落）
+python tools/common/exa_search.py "{搜索关键词}" --highlights --json
+
+# 返回 title、url、published_date、content 四个字段
+```
+
+**依赖**：`pip install requests python-dotenv`
+**配置**：在 `.env` 文件中配置 `EXA_API_KEY`（申请地址：https://dashboard.exa.ai/api-keys，免费层 1000 次/月）
+
 ---
 
 ## 重要内容多源验证（推荐）
@@ -118,6 +141,7 @@ python tools/common/web_search.py "核电行业 全球竞争格局 主要玩家"
 - `doubao_search.py`：权威信源 + 正文能力，适合投研报告自动化
 - `tavily_search.py`：内容深度高，适合管理层讨论、分析师点评
 - `web_search.py`：多源视角，适合交叉验证
+- `exa_search.py`：语义向量检索 + 深度档位，适合研究型长文与专业领域查询
 
 ---
 
@@ -129,6 +153,7 @@ python tools/common/web_search.py "核电行业 全球竞争格局 主要玩家"
 |------|---------|
 | 财报交叉验证、投研报告自动化 | `doubao_search.py --finance --need-content --export` |
 | 快速验证、关键词检索 | `web_search.py` 或 `tavily_search.py` 均可 |
+| A股行业深度研究/长文报告检索 | `exa_search.py --type deep` |
 
 ### 港股/美股/中概股
 
@@ -138,6 +163,7 @@ python tools/common/web_search.py "核电行业 全球竞争格局 主要玩家"
 | 跨市场对比（A+H+中概股） | `doubao_search.py` |
 | 管理层讨论（MD&A）深度搜索 | `tavily_search.py` |
 | 行业新闻与多源视角 | `web_search.py` |
+| 海外研究型长文/学术/财报深度检索 | `exa_search.py --type deep` |
 
 ---
 
@@ -180,6 +206,18 @@ async def main():
 asyncio.run(main())
 ```
 
+### Exa
+
+```python
+from tools.common.exa_search import exa_search
+
+results = exa_search("黄金价格走势", max_results=3, search_type="fast")
+for item in results:
+    print(f"标题: {item['title']}")
+    print(f"链接: {item['url']}")
+    print(f"发布时间: {item['published_date']}")
+```
+
 ---
 
 ## 相关技能
@@ -187,13 +225,13 @@ asyncio.run(main())
 - [A股数据获取](./a-share-data.md)
 - [港股数据获取](./hk-share-data.md)
 - [公共工具索引](./common-tools-guide.md)
-- [完整选型决策流程](../../../docs/A股工具使用指南.md#十搜索工具选型对比)
+- [完整选型决策流程](../../../docs/A股工具使用指南.md#十一搜索工具选型对比)
 
 ---
 
 ## 版本信息
 
-- **版本**：2.0.0（新增豆包搜索，重构选型决策）
+- **版本**：2.1.0（新增 exa_search.py，四工具选型）
 - **创建日期**：2026-07-31
-- **最后更新**：2026-08-01
+- **最后更新**：2026-08-05
 - **维护状态**：活跃维护

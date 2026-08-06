@@ -15,6 +15,7 @@
 | `stock_info.py` | A股信息查询 | `python tools/a_share/stock_info.py --search 新易盛` |
 | `stock_quote.py` | A股行情数据 | `python tools/a_share/stock_quote.py --code 300502` |
 | `stock_financial.py` | A股财务指标 | `python tools/a_share/stock_financial.py --code 300502` |
+| `stock_financial_batch.ps1` | 批量查询多只股票财务指标 | `powershell -File tools/a_share/stock_financial_batch.ps1` |
 | `stock_screen.py` | 质量筛选7条指标 | `python tools/a_share/stock_screen.py --code 300502` |
 | `stock_equity.py` | 股权结构与财报下载 | `python tools/a_share/stock_equity.py --code 601899` |
 
@@ -38,6 +39,7 @@
 | `doubao_search.py` | 豆包搜索（火山引擎 SearchInfinity，AK/SK 鉴权） | `python tools/common/doubao_search.py "紫金矿业 财报"` |
 | `web_search.py` | 阿里云百炼 WebSearch MCP（替代被地域封锁的 Anthropic WebSearch） | `python tools/common/web_search.py "腾讯控股 股价"` |
 | `tavily_search.py` | Tavily 搜索（阿里云百炼 MCP，返回 title/url/content） | `python tools/common/tavily_search.py "紫金矿业 2025年报"` |
+| `exa_search.py` | Exa 语义搜索（Exa.ai，AI 原生检索，支持深度档位） | `python tools/common/exa_search.py "煤化工行业报告"` |
 
 ---
 
@@ -259,29 +261,80 @@ python tools/a_share/stock_financial.py --code 300502 --indicator 毛利率,净�
 python tools/a_share/stock_financial.py --code 300502 --indicator all
 ```
 
-**输出示例**:
+**输出示例**（所有模式的输出结构统一为 `data.indicators`，键为报告期如 `20251231`）:
 ```json
 {
   "success": true,
   "data": {
-    "code": "300502",
-    "name": "新易盛",
-    "indicator": "ROE",
-    "data": {
-      "2025": 24.5,
-      "2024": 22.3,
-      "2023": 20.1,
-      ...
+    "indicators": {
+      "ROE": {
+        "20251231": 24.5,
+        "20250930": 18.2,
+        "20250630": 12.1,
+        ...
+      },
+      "毛利率": {
+        "20251231": 35.6,
+        ...
+      }
     }
   },
   "meta": {
     "tool": "stock_financial",
-    "command": "indicator",
     "code": "300502",
-    "market": "a"
+    "indicator": "ROE",
+    "timestamp": "2026-08-05T15:00:00"
   }
 }
 ```
+
+**解析方式**（使用 `d['data']['indicators']` 访问指标数据）:
+```python
+import sys, json
+d = json.loads(sys.stdin.buffer.read().decode('utf-8-sig'))
+ind = d['data']['indicators']
+print(ind['ROE'])
+```
+
+### 批量查询脚本 stock_financial_batch.ps1
+
+批量调用 `stock_financial.py`，一次查询多只股票的指定财务指标，输出每只股票最近 N 期数据。已内置统一输出结构（`d['data']['indicators']`）的解析逻辑，并处理 Windows 管道 BOM 编码。
+
+**使用方法**（PowerShell 7 环境）:
+
+```powershell
+# 默认参数（4只股票 × 6个核心指标 × 近5期）
+& "F:/Financial_Investment_Analysis/tools/a_share/stock_financial_batch.ps1"
+
+# 自定义股票代码和指标
+& "F:/Financial_Investment_Analysis/tools/a_share/stock_financial_batch.ps1" -codes "601899,000960" -indicators "ROE,毛利率"
+
+# 指定期数
+& "F:/Financial_Investment_Analysis/tools/a_share/stock_financial_batch.ps1" -codes "601899" -periods 3
+```
+
+**参数说明**:
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `-codes` | `000960,000962,000426,002155` | 股票代码（逗号分隔） |
+| `-indicators` | `营业总收入,归母净利润,基本每股收益,ROE,毛利率,资产负债率` | 财务指标（逗号分隔） |
+| `-periods` | `5` | 输出最近几期数据 |
+| `-python` | `F:/Anaconda3/envs/Python_3_12_3/python.exe` | Python 路径 |
+
+**输出示例**:
+```
+===== 000960 =====
+ROE {'20250930': 8.75, '20251231': 9.77, '20260331': 4.24}
+毛利率 {'20250930': 11.3893, '20251231': 11.3748, '20260331': 10.044}
+===== 000962 =====
+ROE {'20250930': 7.75, '20251231': 9.62, '20260331': 1.7}
+毛利率 {'20250930': 18.1065, '20251231': 18.4334, '20260331': 14.8854}
+```
+
+**注意**：
+- 需使用 **PowerShell 7**（`pwsh`/终端）运行；Windows PowerShell 5.1 会因 ANSI 编码导致中文指标乱码
+- 脚本通过 `$MyInvocation.MyCommand.Path` 自适应工作目录，可在任意位置调用
 
 ---
 
@@ -791,7 +844,102 @@ asyncio.run(main())
 
 ---
 
-## 十、搜索工具选型对比
+## 十、exa_search.py - Exa 语义搜索
+
+### 功能说明
+
+通过 Exa.ai（原 Metaphor Search）语义搜索引擎 API 实现网络信息搜索。Exa 是原生为大模型/AI 智能体打造的自研语义搜索引擎，无广告排序干扰，擅长长文本、研究型、专业领域查询（学术、财报、代码、法律、医疗）。
+
+**核心特性**:
+- 使用 HTTP API 调用（`x-api-key` 认证），无需 SDK
+- 语义向量检索：直接理解自然语言长问句，支持中英文
+- 检索速度档位：instant/fast/auto/deep-lite/deep（deep 档适合深度调研）
+- Autoprompt 自动优化查询词，提升冷门资料命中率
+- 两种内容模式：text 全文提取 / highlights 高亮摘要（Token 节约 90%）
+- 返回结构化数据：title、url、published_date、content
+
+### 依赖与配置
+
+**依赖库**:
+```bash
+pip install requests python-dotenv
+```
+
+**环境变量**（在项目根目录 `.env` 文件中配置）:
+```
+EXA_API_KEY=your_exa_api_key
+```
+API Key 申请地址：https://dashboard.exa.ai/api-keys（免费层每月 1000 次搜索）
+
+### 使用方法
+
+#### 1. 基本搜索
+
+```bash
+python tools/common/exa_search.py "煤化工行业报告"
+```
+
+#### 2. 指定结果数量
+
+```bash
+python tools/common/exa_search.py "紫金矿业 2025年报" --max-results 8
+```
+
+#### 3. 深度调研（deep 档，耗时 4-40 秒）
+
+```bash
+python tools/common/exa_search.py "A股 磷化工 产业链 深度报告" --type deep
+```
+
+#### 4. Token 节约模式（highlights 高亮摘要）
+
+```bash
+python tools/common/exa_search.py "黄金价格走势" --highlights --json
+```
+
+#### 5. 关闭 Autoprompt / 指定内容字符数
+
+```bash
+python tools/common/exa_search.py "紫金矿业" --no-autoprompt --max-characters 3000
+```
+
+### 参数说明
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `query` | 必填 | 搜索关键词 |
+| `--max-results` | 5 | 返回结果数量 |
+| `--type` | auto | 检索档位：instant/fast/auto/deep-lite/deep |
+| `--no-autoprompt` | 开启 | 关闭查询词自动优化 |
+| `--max-characters` | 2000 | 内容提取最大字符数 |
+| `--highlights` | 关闭 | 使用高亮摘要模式（Token 更省） |
+| `--json` | 关闭 | JSON 格式输出 |
+| `--api-key` | 环境变量 | 命令行覆盖 API Key |
+
+### 模块导入接口
+
+```python
+from tools.common.exa_search import exa_search
+
+results = exa_search("黄金价格走势", max_results=3, search_type="fast")
+for item in results:
+    print(f"标题: {item['title']}")
+    print(f"链接: {item['url']}")
+    print(f"发布时间: {item['published_date']}")
+    print(f"内容: {item['content'][:100]}...")
+```
+
+### 注意事项
+
+1. **API Key 申请**: 需在 https://dashboard.exa.ai/api-keys 申请（免费层每月 1000 次）
+2. **深度档位耗时**: `deep`/`deep-lite` 档位耗时较长（4-40 秒），工具已设置 60 秒超时
+3. **检索档位选择**: 常规问答用 `auto`，实时场景用 `instant`/`fast`，深度调研用 `deep`
+4. **Token 控制**: 追求上下文成本节约时使用 `--highlights`（只返回相关段落）
+5. **返回字段**: 每项含 title、url、published_date、content 四个字段
+
+---
+
+## 十一、搜索工具选型对比
 
 ### 选型决策表
 
@@ -868,16 +1016,19 @@ asyncio.run(main())
 
 ### 配套测试
 
-两个工具均配套测试软件:
+各工具均配套测试软件:
 
 - `doubao_search.py` 测试: `python tests/common/test_doubao_search.py [--skip-live]`
 - `web_search.py` 测试: `python tests/common/test_web_search.py`
+- `tavily_search.py` 测试: `python tests/common/test_tavily_search.py`
+- `exa_search.py` 测试: `python tests/common/test_exa_search.py [--test unit|all]`
 
 `--skip-live` 参数可跳过需要真实凭证的在线测试，适合在 CI/CD 等无凭证环境运行。
+`test_exa_search.py` 默认运行 `unit`（mock 无网络依赖），配置 `EXA_API_KEY` 后可运行 `--test all` 执行网络集成测试。
 
 ---
 
-## 十一、commodity_price.py - 大宗商品价格数据
+## 十二、commodity_price.py - 大宗商品价格数据
 
 ### 功能说明
 
@@ -987,7 +1138,7 @@ python tools/common/commodity_price.py --code cu --max-records 5
 
 ---
 
-## 十二、A股代码格式说明
+## 十三、A股代码格式说明
 
 A股代码统一使用**6位数字字符串**:
 
@@ -1008,7 +1159,7 @@ A股代码统一使用**6位数字字符串**:
 
 ---
 
-## 十三、数据源说明
+## 十四、数据源说明
 
 ### stock_info_a_code_name()
 
@@ -1106,7 +1257,7 @@ A股代码统一使用**6位数字字符串**:
 
 ---
 
-## 十四、注意事项
+## 十五、注意事项
 
 ### 1. 代码格式
 
@@ -1141,7 +1292,7 @@ A股代码必须为6位数字字符串，如 `300502`，不要添加 `.SH` 或 `
 
 ---
 
-## 十五、与港股/美股工具的区别
+## 十六、与港股/美股工具的区别
 
 | 特性 | A股工具 | 港股工具 | 美股工具 |
 |------|---------|---------|---------|
@@ -1156,7 +1307,7 @@ A股代码必须为6位数字字符串，如 `300502`，不要添加 `.SH` 或 `
 
 ---
 
-## 十六、Python路径
+## 十七、Python路径
 
 ```bash
 F:\Anaconda3\envs\Python_3_12_3\python.exe
@@ -1164,7 +1315,7 @@ F:\Anaconda3\envs\Python_3_12_3\python.exe
 
 ---
 
-## 十六、常见使用场景
+## 十八、常见使用场景
 
 ### 场景1: 快速查询公司信息
 
@@ -1250,7 +1401,7 @@ python tools/common/commodity_price.py --code cu --max-records 5
 
 ---
 
-## 十七、局限性说明
+## 十九、局限性说明
 
 1. **数据窗口**：部分公司上市时间较短，财务数据可能不足10年
 2. **周期性行业**：周期性行业需用完整周期平均值判断，避免单一年份误导

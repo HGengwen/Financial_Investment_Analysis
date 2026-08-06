@@ -6,6 +6,15 @@
 
 使用 akshare 库获取 A 股上市公司的财务指标数据。
 
+所有模式的输出结构统一为:
+    {
+        "success": true,
+        "data": {
+            "indicators": {指标名: {报告期: 值}},
+        },
+        "meta": {...}
+    }
+
 Usage:
     {py} tools/a_share/stock_financial.py --code 300502
     {py} tools/a_share/stock_financial.py --code 300502 --indicator all
@@ -192,10 +201,12 @@ def main():
         parsed = parse_financial_data(df)
 
         if args.indicator == "all":
-            # 输出全部原始数据
+            # 输出全部原始数据（统一 data.indicators 结构）
             output = {
                 "success": True,
-                "data": parsed,
+                "data": {
+                    "indicators": parsed,
+                },
                 "meta": {
                     "tool": "stock_financial",
                     "code": code,
@@ -230,7 +241,9 @@ def main():
 
             output = {
                 "success": True,
-                "data": result,
+                "data": {
+                    "indicators": result,
+                },
                 "meta": {
                     "tool": "stock_financial",
                     "code": code,

@@ -495,8 +495,9 @@ class TestMainLogic(unittest.TestCase):
         self.assertEqual(output["meta"]["indicator"], "all")
         self.assertEqual(output["meta"]["code"], "300502")
         self.assertEqual(output["meta"]["indicator_count"], 6)
-        self.assertIn("净资产收益率(ROE)", output["data"])
-        self.assertIn("毛利率", output["data"])
+        self.assertIn("indicators", output["data"])
+        self.assertIn("净资产收益率(ROE)", output["data"]["indicators"])
+        self.assertIn("毛利率", output["data"]["indicators"])
 
     @patch("tools.a_share.stock_financial.get_raw_data")
     def test_indicator_specific_roe(self, mock_get_raw):
@@ -506,9 +507,10 @@ class TestMainLogic(unittest.TestCase):
 
         self.assertTrue(output["success"])
         self.assertEqual(output["meta"]["indicator"], "ROE")
-        self.assertIn("ROE", output["data"])
+        self.assertIn("indicators", output["data"])
+        self.assertIn("ROE", output["data"]["indicators"])
         # ROE 通过模糊匹配到 "净资产收益率(ROE)"
-        self.assertIn("20231231", output["data"]["ROE"])
+        self.assertIn("20231231", output["data"]["indicators"]["ROE"])
 
     @patch("tools.a_share.stock_financial.get_raw_data")
     def test_indicator_specific_gross_margin(self, mock_get_raw):
@@ -519,8 +521,9 @@ class TestMainLogic(unittest.TestCase):
 
         self.assertTrue(output["success"])
         self.assertEqual(output["meta"]["indicator"], "毛利率")
-        self.assertIn("毛利率", output["data"])
-        self.assertEqual(output["data"]["毛利率"]["20231231"], 30.2)
+        self.assertIn("indicators", output["data"])
+        self.assertIn("毛利率", output["data"]["indicators"])
+        self.assertEqual(output["data"]["indicators"]["毛利率"]["20231231"], 30.2)
 
     @patch("tools.a_share.stock_financial.get_raw_data")
     def test_indicator_multiple(self, mock_get_raw):
@@ -536,8 +539,9 @@ class TestMainLogic(unittest.TestCase):
             ["--code", "300502", "--indicator", "毛利率,净利率"])
 
         self.assertTrue(output["success"])
-        self.assertIn("毛利率", output["data"])
-        self.assertIn("净利率", output["data"])
+        self.assertIn("indicators", output["data"])
+        self.assertIn("毛利率", output["data"]["indicators"])
+        self.assertIn("净利率", output["data"]["indicators"])
 
     @patch("tools.a_share.stock_financial.ak")
     @patch("tools.a_share.stock_financial.get_raw_data")
@@ -583,23 +587,20 @@ class TestMainLogic(unittest.TestCase):
 
     @patch("tools.a_share.stock_financial.get_raw_data")
     def test_indicator_not_found(self, mock_get_raw):
-        """测试 --indicator 指定不存在的指标时的错误处理。
+        """测试 --indicator 指定不存在的指标时的处理。
 
-        原工具中 matched_key 未初始化可能触发异常，
-        该异常被外层 try-except 捕获并输出错误 JSON。
+        未找到的指标不会被当作致命错误，而是返回 success=true，
+        并在该指标的 values 中给出 {"note": "未找到指标: ..."} 说明。
         """
         mock_get_raw.return_value = make_mock_df()
-        with patch.object(sys, "argv",
-                         ["stock_financial.py", "--code", "300502",
-                          "--indicator", "zzz不存在的指标zzz"]):
-            with patch("sys.stderr", new=StringIO()) as fake_err:
-                with self.assertRaises(SystemExit) as cm:
-                    sf_module.main()
-                self.assertEqual(cm.exception.code, 1)
-                output = parse_json_output(fake_err.getvalue())
+        output = self._run_main_with_args(
+            ["--code", "300502", "--indicator", "zzz不存在的指标zzz"])
 
-        self.assertFalse(output["success"])
-        self.assertIn("error", output)
+        self.assertTrue(output["success"])
+        self.assertIn("indicators", output["data"])
+        result = output["data"]["indicators"]
+        self.assertIn("zzz不存在的指标zzz", result)
+        self.assertIn("note", result["zzz不存在的指标zzz"])
 
 
 # ===========================================================================
@@ -665,7 +666,8 @@ class TestCommandLineInterface(unittest.TestCase):
             output = parse_json_output(out)
             if output and output.get("success"):
                 self.assertEqual(output["meta"]["indicator"], "ROE")
-                self.assertIn("ROE", output["data"])
+                self.assertIn("indicators", output["data"])
+                self.assertIn("ROE", output["data"]["indicators"])
             else:
                 self.skipTest("网络不可用或数据获取失败")
         except subprocess.TimeoutExpired:
