@@ -92,6 +92,7 @@ python tools/common/financial_rigor.py verify-valuation \
   --bvps {每股净资产} \
   --fcf-per-share {每股自由现金流}
 
+# 提示：跨币种（港股/美股）市值统一口径时，先用 `python tools/common/fx_rate.py --code USDCNY,HKDCNY` 获取实时汇率，勿用固定汇率
 # 市值验证
 python tools/common/financial_rigor.py verify-market-cap \
   --price {价格} --shares {股本} --reported {报告市值} --currency {币种}
@@ -314,6 +315,7 @@ python tools/hk_stock/stock_quote.py --code {股票代码}
 - **A股工具**：[docs/A股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
 - **港股工具**：[docs/港股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/港股工具使用指南.md)
 - **美股工具**：[docs/美股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/美股工具使用指南.md)
+- **国际货币汇率**（跨市场估值/市值统一口径折算）：`tools/common/fx_rate.py`，详见 [A股工具使用指南汇率章节](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
 
 ### 精确计算工具
 

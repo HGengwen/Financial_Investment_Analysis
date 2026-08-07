@@ -21,6 +21,7 @@ disable-model-invocation: true
 | [report-audit.md](./report-audit.md) | 报告审核与抽检 | `report_audit.py`（15%随机抽样、准出/打回判决） |
 | [global-constraints.md](./global-constraints.md) | 全局约束规范 | 误差处理规则、股价复权规范、七条核心约束 |
 | [pdf-extraction.md](./pdf-extraction.md) | PDF文档提取 | `pdf_extract.py`（首选，基于 pdf-inspector）；`pdftotext`、`pdfinfo`、`pdftoppm`（Poppler工具集，失败回退） |
+| 汇率获取（详见 [A股工具使用指南](../A股工具使用指南.md)） | 国际货币汇率获取 | `fx_rate.py`（Akshare 优先，yfinance 回退，19 个货币对，限流保护） |
 
 ---
 
@@ -44,6 +45,7 @@ disable-model-invocation: true
 - 网络信息搜索：[web-search-tools](../tools-scripts/web-search-tools.md)
 - 报告审核与抽检：[report-audit](../tools-scripts/report-audit.md)
 - 全局约束规范：[global-constraints](../tools-scripts/global-constraints.md)
+- 国际货币汇率获取：[fx_rate.py 说明](../A股工具使用指南.md#十三fx_ratepy---国际主要货币汇率)
 
 以下为本技能特有的工具使用注意事项（如有）：
 - ...
@@ -61,6 +63,7 @@ disable-model-invocation: true
 
 ## 版本信息
 
-- **版本**：2.0.0（从 v1.0 单文件拆分为多文件架构）
+- **版本**：2.1.0（v2.0 多文件架构基础上新增汇率获取工具 fx_rate.py 索引）
 - **创建日期**：2026-07-31
+- **更新日期**：2026-08-07
 - **维护状态**：活跃维护

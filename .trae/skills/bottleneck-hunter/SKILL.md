@@ -549,6 +549,7 @@ reports/bottleneck-map/
 - **A股工具**：[docs/A股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
 - **港股工具**：[docs/港股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/港股工具使用指南.md)
 - **美股工具**：[docs/美股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/美股工具使用指南.md)
+- **国际货币汇率**：[国际货币汇率工具](../../../docs/A股工具使用指南.md#十三fx_ratepy---国际主要货币汇率)（`tools/common/fx_rate.py`，Akshare 优先 + yfinance 回退，19 个货币对）
 
 #### 数据解析注意事项（必须遵守）
 
@@ -587,6 +588,7 @@ print({y: v for y, v in ind['归母净利润'].items() if y.startswith('2024')})
 | ----------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
 | `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证、三情景估值） | `python tools/common/financial_rigor.py verify-valuation --pe 25.5 --eps 10.2` |
 | `tools/common/report_audit.py`    | 报告数据抽检与审核                            | `python tools/common/report_audit.py extract --report reports/xxx.md`          |
+| `tools/common/fx_rate.py`       | 国际主要货币汇率（跨市场估值对比/市值统一口径折算） | `python tools/common/fx_rate.py --code USDCNY`  |
 
 **关键计算命令**：
 

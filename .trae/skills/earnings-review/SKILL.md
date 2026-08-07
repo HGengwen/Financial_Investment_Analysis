@@ -170,7 +170,7 @@ pdftoppm -png cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年
 python tools/common/financial_rigor.py cross-validate \
   --metric "revenue" --values 108.3e9 107.9e9 --sources "公司财报" "Yahoo Finance"
 
-# 市值校验
+# 市值校验（多币种财报折算前先用 python tools/common/fx_rate.py --code USDCNY 等获取实时汇率）
 python tools/common/financial_rigor.py verify-market-cap \
   --price 101 --shares 1.488e9 --reported 1.44e11 --currency USD
 
@@ -326,6 +326,7 @@ python tools/common/report_audit.py verdict \
 - **A股工具**：[docs/A股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
 - **港股工具**：[docs/港股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/港股工具使用指南.md)
 - **美股工具**：[docs/美股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/美股工具使用指南.md)
+- **国际货币汇率**（跨币种财报数据折算）：`tools/common/fx_rate.py`，详见 A股工具使用指南汇率章节
 
 ### 财报下载工具（A股专用）
 

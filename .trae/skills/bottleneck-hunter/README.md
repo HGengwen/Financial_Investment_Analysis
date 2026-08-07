@@ -176,6 +176,7 @@ reports/bottleneck-map/AI基础设施/
 |------|------|---------|
 | `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证、三情景估值） | `python tools/common/financial_rigor.py verify-valuation --pe 25.5 --eps 10.2` |
 | `tools/common/report_audit.py` | 报告数据抽检与审核 | `python tools/common/report_audit.py extract --report reports/xxx.md` |
+| `tools/common/fx_rate.py` | 国际主要货币汇率（跨市场估值对比/市值统一口径折算） | `python tools/common/fx_rate.py --code USDCNY` |
 
 ### 网络搜索工具
 

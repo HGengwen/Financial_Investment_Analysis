@@ -285,6 +285,31 @@ pdftoppm -png -r 300 601899_2025年报.pdf output/page          # 扫描版
 | ----------------------------------- | --------------------------------- | -------------------------------------------------------------------------------- |
 | `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证） | `python tools/common/financial_rigor.py verify-valuation --pe 25.5 --eps 10.2` |
 
+### 国际货币汇率获取
+
+跨市场（A股/港股/美股）估值对比、市值统一口径、财务数据折算时，使用 `tools/common/fx_rate.py` 获取实时汇率（**Akshare 优先，yfinance 回退**，支持 19 个货币对）。
+
+```bash
+# 列出所有支持货币对
+python tools/common/fx_rate.py --list
+
+# 获取美元/人民币汇率（默认最近 10 条）
+python tools/common/fx_rate.py --code USDCNY
+
+# 获取港币/人民币、美元/港币（港股折算到人民币/美元口径）
+python tools/common/fx_rate.py --code HKDCNY,USDHKD
+
+# 指定日期范围并限制记录数（超硬上限自动裁剪）
+python tools/common/fx_rate.py --code USDCNY --start 2026-07-20 --end 2026-08-01 --max-records 20
+```
+
+**汇率换算规范**：
+
+- 跨币种数据（收入/净利润/市值）折算必须用**同一时间点汇率**，避免换算误差
+- 港币/人民币/美元换算时，用 `fx_rate.py` 获取当日实时汇率，**不得**使用训练数据中的固定汇率
+- 港股 → 人民币用 `HKDCNY`；美元 → 人民币用 `USDCNY`；跨市场对比时统一折算到同一货币口径
+- 完整货币对说明见 [A股工具使用指南.md 汇率章节](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
+
 ### 网络搜索工具
 
 由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。

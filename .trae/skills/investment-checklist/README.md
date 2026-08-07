@@ -171,6 +171,7 @@
 - **A股工具**：[docs/A股工具使用指南.md](../../docs/A股工具使用指南.md)
 - **港股工具**：[docs/港股工具使用指南.md](../../docs/港股工具使用指南.md)
 - **美股工具**：[docs/美股工具使用指南.md](../../docs/美股工具使用指南.md)
+- **国际货币汇率**（跨市场估值/市值统一口径折算）：`tools/common/fx_rate.py`，详见 A股工具使用指南汇率章节
 
 ### 精确计算工具
 
@@ -190,6 +191,9 @@ python tools/common/financial_rigor.py verify-valuation \
 python tools/common/financial_rigor.py three-scenario \
   --price {股价} --eps {EPS} --shares {股本亿} \
   --growth {乐观} {中性} {悲观} --pe {乐观PE} {中性PE} {悲观PE} --currency {币种}
+
+# 获取实时汇率（跨币种折算前必用，勿用固定汇率）
+python tools/common/fx_rate.py --code USDCNY,HKDCNY
 ```
 
 ### 网络搜索工具

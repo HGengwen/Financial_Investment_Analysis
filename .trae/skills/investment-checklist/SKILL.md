@@ -190,6 +190,7 @@ python tools/common/financial_rigor.py verify-valuation \
 追加检验（**必须通过工具精确计算，禁止心算**）：
 
 ```bash
+# 跨币种（港股/美股）折算前，先用 python tools/common/fx_rate.py --code USDCNY,HKDCNY 获取实时汇率，勿用固定汇率
 python tools/common/financial_rigor.py three-scenario \
   --price {股价} --eps {EPS} --shares {股本亿} \
   --growth {乐观} {中性} {悲观} --pe {乐观PE} {中性PE} {悲观PE} --currency {币种}
@@ -318,6 +319,7 @@ python tools/common/financial_rigor.py three-scenario \
 - **A股工具**：[docs/A股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
 - **港股工具**：[docs/港股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/港股工具使用指南.md)
 - **美股工具**：[docs/美股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/美股工具使用指南.md)
+- **国际货币汇率**（跨市场估值/市值统一口径折算）：`tools/common/fx_rate.py`，详见 A股工具使用指南汇率章节
 
 ### 精确计算工具
 

@@ -408,6 +408,7 @@ A = 数据充分可信；B = 部分缺失但不影响主结论；C = 缺失较�
 - 全局约束规范：[global-constraints](../tools-scripts/global-constraints.md)
 - PDF文档提取：[pdf-extraction](../tools-scripts/pdf-extraction.md)（年报一手数据提取）
 - 完整索引：[公共工具索引](../tools-scripts/common-tools-guide.md)
+- 国际货币汇率获取：[国际货币汇率工具](../../../docs/A股工具使用指南.md#十三fx_ratepy---国际主要货币汇率)（`tools/common/fx_rate.py`，Akshare 优先 + yfinance 回退，19 个货币对）
 
 ### 漏斗筛选的特殊工具使用注意
 
@@ -420,6 +421,7 @@ A = 数据充分可信；B = 部分缺失但不影响主结论；C = 缺失较�
 3.1 **网络搜索必须优先获取最新数据**：搜索时须使用 `--time-range month` 或 `--time-range week` 限制时间范围，确保获取的信息和数据为最新。禁止采用过时数据（如使用2024年数据描述2026年行业现状），避免分析偏差。搜索结果须标注数据来源日期，过时数据须明确标注并说明时效性
 4. **关键财务数据须从年报 PDF 一手数据源交叉验证**：使用 `stock_equity.py --download-report` 下载年报，**首选** `tools/common/pdf_extract.py` 提取文字与表格（能自动还原财务附表），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集，完整流程见 [pdf-extraction](../tools-scripts/pdf-extraction.md) 与下方"PDF 年报提取示例"
 5. **大宗商品相关行业须获取价格数据**：涉及有色金属、贵金属、能源化工、新能源金属等产业链的行业，须使用 `tools/common/commodity_price.py` 获取大宗商品价格，辅助判断周期性公司的盈利趋势与行业景气度
+6. **跨市场估值对比须统一货币口径**：A股/港股/美股标的估值对比、市值统一口径、财务数据折算时，用 `tools/common/fx_rate.py` 获取当日实时汇率（如 `USDCNY`、`HKDCNY`、`USDHKD`），**不得**使用训练数据中的固定汇率，避免换算误差
 
 ### 网络搜索多源验证示例
 

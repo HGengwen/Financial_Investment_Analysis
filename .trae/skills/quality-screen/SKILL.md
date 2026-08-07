@@ -98,6 +98,7 @@ disable-model-invocation: true
 - 全局约束规范：[global-constraints](../tools-scripts/global-constraints.md)
 - PDF文档提取：[pdf-extraction](../tools-scripts/pdf-extraction.md)（年报一手数据提取）
 - 完整索引：[公共工具索引](../tools-scripts/common-tools-guide.md)
+- **国际货币汇率**（跨市场市值/估值统一口径折算）：`tools/common/fx_rate.py`，详见 [A股工具使用指南汇率章节](../../../docs/A股工具使用指南.md)
 
 **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
@@ -153,6 +154,8 @@ A股/港股/美股的行情、财务、信息查询工具的完整命令示例�
 | **最新市值/股价** | 本地工具（A股/港股/美股） | 豆包搜索 |
 | **年报一手数据** | `stock_equity.py --download-report` + [pdf-extraction](../tools-scripts/pdf-extraction.md) | 巨潮/HKEX披露易/SEC EDGAR |
 | **大宗商品价格**（周期性行业辅助） | `tools/common/commodity_price.py` | 豆包搜索 |
+
+> **跨市场市值统一口径**：恒生/沪深300/纳斯达克等跨市场筛选与市值对比时，用 `tools/common/fx_rate.py` 获取实时汇率（如 `--code HKDCNY`（1港币=x人民币）、`--code USDCNY`），将市值折算到统一货币口径（人民币），避免不同币种市值直接对比失真。
 
 **港股财务指标获取说明**：
 

@@ -183,6 +183,9 @@ python tools/common/financial_rigor.py verify-valuation \
 python tools/common/financial_rigor.py three-scenario \
   --price {股价} --eps {EPS} --shares {总股本亿} \
   --growth {乐观} {中性} {悲观} --pe {乐观PE} {中性PE} {悲观PE}
+
+# 获取实时汇率（跨币种折算前必用，勿用固定汇率）
+python tools/common/fx_rate.py --code USDCNY,HKDCNY
 ```
 
 ### 网络搜索
@@ -248,6 +251,7 @@ python tools/common/financial_rigor.py three-scenario \
 - [管理层纵深研究](../management-deep-dive/README.md) — 管理层评估深化
 - [A股工具使用指南](../../docs/A股工具使用指南.md) — A股工具详细说明
 - [港股工具使用指南](../../docs/港股工具使用指南.md) — 港股工具详细说明
+- **国际货币汇率**（跨市场估值/市值统一口径折算）：`tools/common/fx_rate.py`，详见 A股工具使用指南汇率章节
 
 ---
 

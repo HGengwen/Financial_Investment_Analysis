@@ -91,6 +91,7 @@ disable-model-invocation: true
 **强制验证步骤（使用Bash调用工具）**：
 
 Step 1 — 市值验算（精确十进制，非浮点）：
+> 跨币种（港股/美股）市值统一口径时，先用 `python tools/common/fx_rate.py --code HKDCNY`（或 `USDCNY`）获取实时汇率，勿用固定汇率
 ```bash
 python tools/common/financial_rigor.py verify-market-cap \
   --price {股价} --shares {总股本} --reported {报告市值} --currency {币种}
@@ -186,6 +187,7 @@ python tools/common/financial_rigor.py verify-valuation \
 - 当前市场定价（关键估值指标表格）—— **必须通过工具验算**
 - 反向DCF：当前股价隐含了什么增长预期？
 - 三情景估值 —— **必须通过工具精确计算，禁止心算**：
+> 跨币种折算前，先用 `python tools/common/fx_rate.py --code USDCNY`（或 `HKDCNY` 等）获取实时汇率，勿用训练数据中的固定汇率
 ```bash
 python tools/common/financial_rigor.py three-scenario \
   --price {股价} --eps {EPS} --shares {总股本亿} \
@@ -288,6 +290,7 @@ python tools/common/report_audit.py verdict \
 详细使用说明请参考：
 - **A股工具**：[docs/A股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
 - **港股工具**：[docs/港股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/港股工具使用指南.md)
+- **国际货币汇率**（跨市场估值/市值统一口径折算）：`tools/common/fx_rate.py`，详见 A股工具使用指南汇率章节
 
 ### 精确计算工具
 

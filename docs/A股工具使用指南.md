@@ -10,42 +10,48 @@
 
 ### 核心数据工具
 
-| 工具文件 | 功能 | 命令示例 |
-|---------|------|---------|
-| `stock_info.py` | A股信息查询 | `python tools/a_share/stock_info.py --search 新易盛` |
-| `stock_quote.py` | A股行情数据 | `python tools/a_share/stock_quote.py --code 300502` |
-| `stock_financial.py` | A股财务指标 | `python tools/a_share/stock_financial.py --code 300502` |
+| 工具文件                      | 功能                     | 命令示例                                                     |
+| ----------------------------- | ------------------------ | ------------------------------------------------------------ |
+| `stock_info.py`             | A股信息查询              | `python tools/a_share/stock_info.py --search 新易盛`       |
+| `stock_quote.py`            | A股行情数据              | `python tools/a_share/stock_quote.py --code 300502`        |
+| `stock_financial.py`        | A股财务指标              | `python tools/a_share/stock_financial.py --code 300502`    |
 | `stock_financial_batch.ps1` | 批量查询多只股票财务指标 | `powershell -File tools/a_share/stock_financial_batch.ps1` |
-| `stock_screen.py` | 质量筛选7条指标 | `python tools/a_share/stock_screen.py --code 300502` |
-| `stock_equity.py` | 股权结构与财报下载 | `python tools/a_share/stock_equity.py --code 601899` |
+| `stock_screen.py`           | 质量筛选7条指标          | `python tools/a_share/stock_screen.py --code 300502`       |
+| `stock_equity.py`           | 股权结构与财报下载       | `python tools/a_share/stock_equity.py --code 601899`       |
 
 ### 辅助计算工具
 
-| 工具文件 | 功能 | 命令示例 |
-|---------|------|---------|
+| 工具文件               | 功能                              | 命令示例                                                           |
+| ---------------------- | --------------------------------- | ------------------------------------------------------------------ |
 | `financial_rigor.py` | 精确金融计算（PE、ROE、市值校验） | `python tools/common/financial_rigor.py verify-valuation --help` |
-| `report_audit.py` | 研究报告审核 | `python tools/common/report_audit.py --help` |
+| `report_audit.py`    | 研究报告审核                      | `python tools/common/report_audit.py --help`                     |
 
 ### 大宗商品数据工具
 
-| 工具文件 | 功能 | 命令示例 |
-|---------|------|---------|
+| 工具文件               | 功能                                                | 命令示例                                                   |
+| ---------------------- | --------------------------------------------------- | ---------------------------------------------------------- |
 | `commodity_price.py` | 大宗商品价格数据获取（Akshare 优先，yfinance 回退） | `python tools/common/commodity_price.py --code cu,GC,CL` |
+
+### 汇率数据工具
+
+| 工具文件       | 功能                                                | 命令示例                                         |
+| -------------- | --------------------------------------------------- | ------------------------------------------------ |
+| `fx_rate.py` | 国际主要货币汇率获取（Akshare 优先，yfinance 回退） | `python tools/common/fx_rate.py --code USDCNY` |
 
 ### PDF 文档处理工具
 
-| 工具文件 | 功能 | 命令示例 |
-|---------|------|---------|
+| 工具文件           | 功能                                                        | 命令示例                                                            |
+| ------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------- |
 | `pdf_extract.py` | PDF 文字与表格提取（基于 pdf-inspector，面向财报/年报附表） | `python tools/common/pdf_extract.py markdown 601899_2025年报.pdf` |
 
 ### 网络搜索工具
 
-| 工具文件 | 功能 | 命令示例 |
-|---------|------|---------|
-| `doubao_search.py` | 豆包搜索（火山引擎 SearchInfinity，AK/SK 鉴权） | `python tools/common/doubao_search.py "紫金矿业 财报"` |
-| `web_search.py` | 阿里云百炼 WebSearch MCP（替代被地域封锁的 Anthropic WebSearch） | `python tools/common/web_search.py "腾讯控股 股价"` |
-| `tavily_search.py` | Tavily 搜索（阿里云百炼 MCP，返回 title/url/content） | `python tools/common/tavily_search.py "紫金矿业 2025年报"` |
-| `exa_search.py` | Exa 语义搜索（Exa.ai，AI 原生检索，支持深度档位） | `python tools/common/exa_search.py "煤化工行业报告"` |
+| 工具文件             | 功能                                                             | 命令示例                                                     |
+| -------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------ |
+| `doubao_search.py` | 豆包搜索（火山引擎 SearchInfinity，AK/SK 鉴权）                  | `python tools/common/doubao_search.py "紫金矿业 财报"`     |
+| `web_search.py`    | 阿里云百炼 WebSearch MCP（替代被地域封锁的 Anthropic WebSearch） | `python tools/common/web_search.py "腾讯控股 股价"`        |
+| `tavily_search.py` | Tavily 搜索（阿里云百炼 MCP，返回 title/url/content）            | `python tools/common/tavily_search.py "紫金矿业 2025年报"` |
+| `exa_search.py`    | Exa 语义搜索（Exa.ai，AI 原生检索，支持深度档位）                | `python tools/common/exa_search.py "煤化工行业报告"`       |
 
 ---
 
@@ -64,6 +70,7 @@ python tools/a_share/stock_info.py --list
 ```
 
 **输出示例**:
+
 ```json
 {
   "success": true,
@@ -89,6 +96,7 @@ python tools/a_share/stock_info.py --search 新易盛
 ```
 
 **输出示例**:
+
 ```json
 {
   "success": true,
@@ -119,6 +127,7 @@ python tools/a_share/stock_info.py --code 300502
 ```
 
 **输出字段说明**:
+
 - `code`: A股代码（6位数字）
 - `name`: 公司名称
 - `market`: 市场标识（"a"）
@@ -186,6 +195,7 @@ python tools/a_share/stock_quote.py --code 300502 --source sina
 ```
 
 **输出示例**:
+
 ```json
 {
   "success": true,
@@ -238,6 +248,7 @@ python tools/a_share/stock_financial.py --code 300502
 ```
 
 **返回的关键指标**:
+
 - ROE（净资产收益率）
 - 毛利率
 - 净利率
@@ -268,6 +279,7 @@ python tools/a_share/stock_financial.py --code 300502 --indicator all
 ```
 
 **输出示例**（所有模式的输出结构统一为 `data.indicators`，键为报告期如 `20251231`）:
+
 ```json
 {
   "success": true,
@@ -295,6 +307,7 @@ python tools/a_share/stock_financial.py --code 300502 --indicator all
 ```
 
 **解析方式**（使用 `d['data']['indicators']` 访问指标数据）:
+
 ```python
 import sys, json
 d = json.loads(sys.stdin.buffer.read().decode('utf-8-sig'))
@@ -321,14 +334,15 @@ print(ind['ROE'])
 
 **参数说明**:
 
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `-codes` | `000960,000962,000426,002155` | 股票代码（逗号分隔） |
+| 参数            | 默认值                                                       | 说明                 |
+| --------------- | ------------------------------------------------------------ | -------------------- |
+| `-codes`      | `000960,000962,000426,002155`                              | 股票代码（逗号分隔） |
 | `-indicators` | `营业总收入,归母净利润,基本每股收益,ROE,毛利率,资产负债率` | 财务指标（逗号分隔） |
-| `-periods` | `5` | 输出最近几期数据 |
-| `-python` | `F:/Anaconda3/envs/Python_3_12_3/python.exe` | Python 路径 |
+| `-periods`    | `5`                                                        | 输出最近几期数据     |
+| `-python`     | `F:/Anaconda3/envs/Python_3_12_3/python.exe`               | Python 路径          |
 
 **输出示例**:
+
 ```
 ===== 000960 =====
 ROE {'20250930': 8.75, '20251231': 9.77, '20260331': 4.24}
@@ -339,6 +353,7 @@ ROE {'20250930': 7.75, '20251231': 9.62, '20260331': 1.7}
 ```
 
 **注意**：
+
 - 需使用 **PowerShell 7**（`pwsh`/终端）运行；Windows PowerShell 5.1 会因 ANSI 编码导致中文指标乱码
 - 脚本通过 `$MyInvocation.MyCommand.Path` 自适应工作目录，可在任意位置调用
 
@@ -366,17 +381,18 @@ python tools/a_share/stock_screen.py --code 300502,600519,000858
 
 ### 7条去劣指标
 
-| # | 指标 | 排除条件 | 衡量的是什么 |
-|---|------|---------|-------------|
-| 1 | 10年平均ROE | < 8% | 资本效率 |
-| 2 | 5年累计自由现金流 | 为负 | 利润质量 |
-| 3 | 利息覆盖倍数 | < 2倍 | 偿债安全 |
-| 4 | 长期毛利率 | < 15% | 定价权 |
-| 5 | 经营现金流/净利润 | < 0.7 | 利润质量 |
-| 6 | 长期净利率 | < 5% | 抗风险能力 |
-| 7 | 5年总股本膨胀 | > 20% | 股东利益 |
+| # | 指标              | 排除条件 | 衡量的是什么 |
+| - | ----------------- | -------- | ------------ |
+| 1 | 10年平均ROE       | < 8%     | 资本效率     |
+| 2 | 5年累计自由现金流 | 为负     | 利润质量     |
+| 3 | 利息覆盖倍数      | < 2倍    | 偿债安全     |
+| 4 | 长期毛利率        | < 15%    | 定价权       |
+| 5 | 经营现金流/净利润 | < 0.7    | 利润质量     |
+| 6 | 长期净利率        | < 5%     | 抗风险能力   |
+| 7 | 5年总股本膨胀     | > 20%    | 股东利益     |
 
 **输出示例**:
+
 ```json
 {
   "success": true,
@@ -420,6 +436,7 @@ python tools/a_share/stock_equity.py --code 601899
 ```
 
 **返回的数据**:
+
 - 前十大股东（总股本口径）
 - 前十大流通股东（流通股本口径）
 - 股本结构历史变动
@@ -464,6 +481,7 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-di
 ### 输出示例
 
 **股权结构数据**:
+
 ```json
 {
   "success": true,
@@ -491,6 +509,7 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-di
 ```
 
 **财报下载结果**:
+
 ```
 ✅ 年报下载成功：./cninfo_reports\601899_2025年报.pdf
    文件大小：78123.45 KB
@@ -498,11 +517,11 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-di
 
 ### 文件命名规则
 
-| 报告类型 | 文件名格式 | 示例 |
-|---------|-----------|------|
-| 年报 | `{股票代码}_{年份}年报.pdf` | `601899_2025年报.pdf` |
-| 半年报 | `{股票代码}_{年份}半年报.pdf` | `601899_2026半年报.pdf` |
-| 季报 | `{股票代码}_{年份}{季度}季报.pdf` | `601899_2026Q1季报.pdf` |
+| 报告类型 | 文件名格式                          | 示例                      |
+| -------- | ----------------------------------- | ------------------------- |
+| 年报     | `{股票代码}_{年份}年报.pdf`       | `601899_2025年报.pdf`   |
+| 半年报   | `{股票代码}_{年份}半年报.pdf`     | `601899_2026半年报.pdf` |
+| 季报     | `{股票代码}_{年份}{季度}季报.pdf` | `601899_2026Q1季报.pdf` |
 
 ### 数据来源
 
@@ -618,6 +637,7 @@ python tools/common/report_audit.py --file reports/腾讯-20260722.md --sample 1
 通过火山引擎联网搜索 API（豆包搜索 SearchInfinity）实现网络信息搜索，返回结构化搜索结果。
 
 **核心特性**:
+
 - 使用火山引擎 TOP 网关 AK/SK 鉴权（SignatureV4 签名）
 - 支持 Web 搜索、时间范围过滤、站点过滤、行业类型搜索
 - 返回结构化数据：标题、链接、摘要、正文、权威度等
@@ -627,11 +647,13 @@ python tools/common/report_audit.py --file reports/腾讯-20260722.md --sample 1
 ### 依赖与配置
 
 **依赖库**:
+
 ```bash
 pip install volcengine python-dotenv requests
 ```
 
 **环境变量**（在项目根目录 `.env` 文件中配置）:
+
 ```
 VOLC_AK=你的AccessKeyID
 VOLC_SK=你的SecretAccessKey
@@ -747,18 +769,18 @@ for r in results:
 
 每条搜索结果包含以下字段:
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `title` | str | 标题 |
-| `url` | str | 链接 |
-| `site_name` | str | 来源站点名 |
-| `publish_time` | str | 发布时间（ISO 8601） |
-| `summary` | str | 摘要（500~1000 字，适合大模型场景） |
-| `snippet` | str | 简短片段 |
-| `content` | str | 正文内容（需 `need_content=True`） |
-| `auth_level` | int | 权威度等级（1=非常权威, 2=正常权威, 3=一般权威, 4=一般不权威） |
-| `auth_des` | str | 权威度中文描述 |
-| `rank_score` | float | 相关性评分 |
+| 字段             | 类型  | 说明                                                           |
+| ---------------- | ----- | -------------------------------------------------------------- |
+| `title`        | str   | 标题                                                           |
+| `url`          | str   | 链接                                                           |
+| `site_name`    | str   | 来源站点名                                                     |
+| `publish_time` | str   | 发布时间（ISO 8601）                                           |
+| `summary`      | str   | 摘要（500~1000 字，适合大模型场景）                            |
+| `snippet`      | str   | 简短片段                                                       |
+| `content`      | str   | 正文内容（需`need_content=True`）                            |
+| `auth_level`   | int   | 权威度等级（1=非常权威, 2=正常权威, 3=一般权威, 4=一般不权威） |
+| `auth_des`     | str   | 权威度中文描述                                                 |
+| `rank_score`   | float | 相关性评分                                                     |
 
 ### 注意事项
 
@@ -777,6 +799,7 @@ for r in results:
 通过阿里云百炼 WebSearch MCP 服务实现网络信息搜索，替代被地域封锁的 Anthropic WebSearch 服务。
 
 **核心特性**:
+
 - 使用 MCP 协议连接阿里云百炼 WebSearch 服务
 - 通过 SSE 协议流式获取结果
 - 返回标准化字段：title、link、snippet
@@ -785,11 +808,13 @@ for r in results:
 ### 依赖与配置
 
 **依赖库**:
+
 ```bash
 pip install mcp python-dotenv
 ```
 
 **环境变量**（在项目根目录 `.env` 文件中配置）:
+
 ```
 DASHSCOPE_API_KEY=your_api_key_here
 WebSearch_MCP_BASE_URL=https://dashscope.aliyuncs.com/api/v1/mcps/WebSearch/sse  # 可选
@@ -857,6 +882,7 @@ asyncio.run(main())
 通过 Exa.ai（原 Metaphor Search）语义搜索引擎 API 实现网络信息搜索。Exa 是原生为大模型/AI 智能体打造的自研语义搜索引擎，无广告排序干扰，擅长长文本、研究型、专业领域查询（学术、财报、代码、法律、医疗）。
 
 **核心特性**:
+
 - 使用 HTTP API 调用（`x-api-key` 认证），无需 SDK
 - 语义向量检索：直接理解自然语言长问句，支持中英文
 - 检索速度档位：instant/fast/auto/deep-lite/deep（deep 档适合深度调研）
@@ -867,14 +893,17 @@ asyncio.run(main())
 ### 依赖与配置
 
 **依赖库**:
+
 ```bash
 pip install requests python-dotenv
 ```
 
 **环境变量**（在项目根目录 `.env` 文件中配置）:
+
 ```
 EXA_API_KEY=your_exa_api_key
 ```
+
 API Key 申请地址：https://dashboard.exa.ai/api-keys（免费层每月 1000 次搜索）
 
 ### 使用方法
@@ -911,16 +940,16 @@ python tools/common/exa_search.py "紫金矿业" --no-autoprompt --max-character
 
 ### 参数说明
 
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `query` | 必填 | 搜索关键词 |
-| `--max-results` | 5 | 返回结果数量 |
-| `--type` | auto | 检索档位：instant/fast/auto/deep-lite/deep |
-| `--no-autoprompt` | 开启 | 关闭查询词自动优化 |
-| `--max-characters` | 2000 | 内容提取最大字符数 |
-| `--highlights` | 关闭 | 使用高亮摘要模式（Token 更省） |
-| `--json` | 关闭 | JSON 格式输出 |
-| `--api-key` | 环境变量 | 命令行覆盖 API Key |
+| 参数                 | 默认值   | 说明                                       |
+| -------------------- | -------- | ------------------------------------------ |
+| `query`            | 必填     | 搜索关键词                                 |
+| `--max-results`    | 5        | 返回结果数量                               |
+| `--type`           | auto     | 检索档位：instant/fast/auto/deep-lite/deep |
+| `--no-autoprompt`  | 开启     | 关闭查询词自动优化                         |
+| `--max-characters` | 2000     | 内容提取最大字符数                         |
+| `--highlights`     | 关闭     | 使用高亮摘要模式（Token 更省）             |
+| `--json`           | 关闭     | JSON 格式输出                              |
+| `--api-key`        | 环境变量 | 命令行覆盖 API Key                         |
 
 ### 模块导入接口
 
@@ -951,19 +980,19 @@ for item in results:
 
 下表综合"海内外财经检索选型结论"，明确 `doubao_search.py` 与 `web_search.py` 的优先选用场合:
 
-| 维度 | `doubao_search.py`（火山引擎豆包搜索） | `web_search.py`（阿里云百炼 WebSearch） |
-|------|--------------------------------|--------------------------------|
-| **鉴权方式** | AK/SK（SignatureV4 签名） | Bearer Token（DASHSCOPE_API_KEY） |
-| **接入协议** | HTTP REST + 签名 | MCP（SSE 流式） |
-| **返回字段丰富度** | 高（10+ 字段，含权威度、相关性、摘要、正文） | 中（4 字段：title/link/snippet/hostname） |
-| **正文能力** | 支持（`--need-content` + markdown/text 格式） | 不支持 |
-| **行业定向** | 支持（finance/game/gov） | 不支持 |
-| **权威度筛选** | 支持（仅非常权威信源） | 不支持 |
-| **站点过滤** | 支持（`--sites` / `--block-hosts`） | 不支持 |
-| **限流机制** | 客户端 QPS 限流（线程安全） | 无（依赖服务端） |
-| **Markdown 报告导出** | 内置（`--export`） | 不支持 |
-| **模型生态绑定** | 中立无绑定（适配通义千问/Claude/本地 LLM 等多模型架构） | 与阿里云通义千问生态深度绑定 |
-| **免费额度** | 每月 500 次免费（个人/小团队高频资讯监控） | 按阿里云百炼计费策略 |
+| 维度                        | `doubao_search.py`（火山引擎豆包搜索）                | `web_search.py`（阿里云百炼 WebSearch） |
+| --------------------------- | ------------------------------------------------------- | ----------------------------------------- |
+| **鉴权方式**          | AK/SK（SignatureV4 签名）                               | Bearer Token（DASHSCOPE_API_KEY）         |
+| **接入协议**          | HTTP REST + 签名                                        | MCP（SSE 流式）                           |
+| **返回字段丰富度**    | 高（10+ 字段，含权威度、相关性、摘要、正文）            | 中（4 字段：title/link/snippet/hostname） |
+| **正文能力**          | 支持（`--need-content` + markdown/text 格式）         | 不支持                                    |
+| **行业定向**          | 支持（finance/game/gov）                                | 不支持                                    |
+| **权威度筛选**        | 支持（仅非常权威信源）                                  | 不支持                                    |
+| **站点过滤**          | 支持（`--sites` / `--block-hosts`）                 | 不支持                                    |
+| **限流机制**          | 客户端 QPS 限流（线程安全）                             | 无（依赖服务端）                          |
+| **Markdown 报告导出** | 内置（`--export`）                                    | 不支持                                    |
+| **模型生态绑定**      | 中立无绑定（适配通义千问/Claude/本地 LLM 等多模型架构） | 与阿里云通义千问生态深度绑定              |
+| **免费额度**          | 每月 500 次免费（个人/小团队高频资讯监控）              | 按阿里云百炼计费策略                      |
 
 ### 优先选择 `doubao_search.py` 的场景
 
@@ -1009,16 +1038,16 @@ for item in results:
 
 ### 实战推荐
 
-| 使用场景 | 推荐工具 | 理由 |
-|---------|---------|------|
-| 海外投行研报检索 | `doubao_search.py` | 海外信源覆盖更广，正文能力强 |
-| A股财报数据交叉验证 | `doubao_search.py --finance` | 权威度筛选 + 行业定向 |
-| 美股 SEC 公告抓取 | `doubao_search.py --need-content` | 支持正文返回与 Markdown 导出 |
-| 跨市场金融资讯监控 | `doubao_search.py` | 中立无绑定，适配多模型架构 |
-| 通义千问 RAG 检索增强 | `web_search.py` | 与阿里云生态深度集成 |
-| 阿里云全栈企业部署 | `web_search.py` | 复用 DASHSCOPE_API_KEY，统一计费 |
-| 持牌金融机构合规交付 | `web_search.py` | 私有化部署 + 全链路审计 |
-| 快速验证某个关键词 | 任一均可 | 视已配置凭证而定 |
+| 使用场景              | 推荐工具                            | 理由                             |
+| --------------------- | ----------------------------------- | -------------------------------- |
+| 海外投行研报检索      | `doubao_search.py`                | 海外信源覆盖更广，正文能力强     |
+| A股财报数据交叉验证   | `doubao_search.py --finance`      | 权威度筛选 + 行业定向            |
+| 美股 SEC 公告抓取     | `doubao_search.py --need-content` | 支持正文返回与 Markdown 导出     |
+| 跨市场金融资讯监控    | `doubao_search.py`                | 中立无绑定，适配多模型架构       |
+| 通义千问 RAG 检索增强 | `web_search.py`                   | 与阿里云生态深度集成             |
+| 阿里云全栈企业部署    | `web_search.py`                   | 复用 DASHSCOPE_API_KEY，统一计费 |
+| 持牌金融机构合规交付  | `web_search.py`                   | 私有化部署 + 全链路审计          |
+| 快速验证某个关键词    | 任一均可                            | 视已配置凭证而定                 |
 
 ### 配套测试
 
@@ -1041,12 +1070,14 @@ for item in results:
 获取大宗商品价格数据，支持 18 个品种（有色金属、贵金属、能源化工、新能源小金属四大类别）。采用 Akshare 优先、yfinance 回退的双数据源策略。
 
 **支持品种**：
+
 - **有色金属（6个）**：沪铜(cu)、沪铝(al)、沪锌(zn)、沪铅(pb)、沪镍(ni)、沪锡(sn)
 - **贵金属（6个）**：沪金(au)、沪银(ag)、COMEX黄金(GC)、COMEX白银(SI)、铂金(PL)、钯金(PA)
 - **能源化工（4个）**：上海原油(sc)、WTI原油(CL)、布伦特原油(BZ)、天然气(NG)
 - **新能源小金属（2个）**：碳酸锂(lc)、工业硅(si)
 
 **限流保护**：
+
 - 单次获取最多返回 10 条记录
 - 批量获取最多 10 个品种
 - yfinance 请求间隔至少 2 秒
@@ -1061,6 +1092,7 @@ python tools/common/commodity_price.py --list
 ```
 
 **输出示例**：
+
 ```json
 {
   "success": true,
@@ -1085,6 +1117,7 @@ python tools/common/commodity_price.py --code cu
 ```
 
 **输出示例**：
+
 ```json
 {
   "success": true,
@@ -1128,11 +1161,11 @@ python tools/common/commodity_price.py --code cu --max-records 5
 
 ### 数据源策略
 
-| 品种类型 | 主数据源 | 回退数据源 |
-|---------|---------|-----------|
-| 国内品种（上期所/广期所） | Akshare | 无（仅 Akshare 支持） |
-| 外盘品种（COMEX/WTI/布伦特等） | Akshare | yfinance |
-| 铂金/钯金 | 无（Akshare 无稳定接口） | yfinance |
+| 品种类型                       | 主数据源                 | 回退数据源            |
+| ------------------------------ | ------------------------ | --------------------- |
+| 国内品种（上期所/广期所）      | Akshare                  | 无（仅 Akshare 支持） |
+| 外盘品种（COMEX/WTI/布伦特等） | Akshare                  | yfinance              |
+| 铂金/钯金                      | 无（Akshare 无稳定接口） | yfinance              |
 
 ### 注意事项
 
@@ -1144,13 +1177,149 @@ python tools/common/commodity_price.py --code cu --max-records 5
 
 ---
 
-## 十三、pdf_extract.py - PDF 文字与表格提取
+## 十三、fx_rate.py - 国际主要货币汇率
+
+### 功能说明
+
+获取国际主要货币汇率数据，支持 19 个货币对（美元兑主要货币、人民币兑主要货币、人民币与港币双向）。采用 **Akshare 优先、yfinance 回退** 的双数据源策略，获取的是**市场浮动汇率（收盘价）**（盘面K线），非央行中间价。
+
+> **关联用途**：结合 `commodity_price.py` 获取的大宗商品价格，可支撑有色金属等大宗商品的人民币成本核算；结合 `stock_quote.py` 可折算港股/美股行情的人民币口径。
+
+**支持货币对（19 个）**：
+
+- **美元兑主要货币（9个）**：USDCNY、USDCNH、EURUSD、GBPUSD、USDJPY、AUDUSD、USDCAD、USDCHF、USDHKD
+- **人民币兑主要货币（8个，1外币=x人民币）**：EURCNY、GBPCNY、JPYCNY、AUDCNY、CADCNY、CHFCNY、NZDCNY、SGDCNY
+- **人民币与港币（2个，双向）**：CNYHKD（1人民币=x港币）、HKDCNY（1港币=x人民币）
+
+**限流保护**（严格限制记录数，避免触发数据源限流）：
+
+- 单次获取默认最多返回 10 条记录，阈值上限 50 条（`--max-records`自动裁到阈值）
+- Akshare 主路径采用**直连东方财富极小请求**：仅取「日期+收盘价」2 字段、最近 10 个交易日，代替 akshare 原生 `lmt=50000` 的批量大请求
+- 任意两次 API 调用间隔至少 0.5 秒（模块级限流器）
+- 批量获取最多 5 个货币对，货币对间间隔至少 1 秒
+- 瞬时网络异常指数退避重试（3 次，1/2/4 秒）；**服务端封禁信号（如东方财富 RemoteDisconnected）自动识别并立即放弃重试**，快速回退 yfinance，避免封禁期间反复请求延长封禁
+
+### 使用方法
+
+#### 1. 列出所有支持货币对
+
+```bash
+python tools/common/fx_rate.py --list
+```
+
+**输出示例**：
+
+```json
+{
+  "success": true,
+  "data": [
+    {"symbol": "USDCNY", "akshare_code": "USDCNH", "yfinance_ticker": "CNY=X"},
+    {"symbol": "EURCNY", "akshare_code": "EURCNH", "yfinance_ticker": "EURCNY=X"},
+    ...
+  ],
+  "meta": {"tool": "fx_rate", "command": "list", "total_count": 19}
+}
+```
+
+#### 2. 获取单个货币对（默认最近 10 条）
+
+```bash
+python tools/common/fx_rate.py --code USDCNY
+```
+
+**输出示例**：
+
+```json
+{
+  "success": true,
+  "data": {
+    "symbol": "USDCNY",
+    "source": "yfinance",
+    "success": true,
+    "error": null,
+    "fetch_time": "2026-08-07 11:22:06",
+    "record_count": 10,
+    "records": [
+      {"date": "2026-07-24", "close": 6.7725},
+      {"date": "2026-07-27", "close": 6.7718},
+      ...
+    ]
+  },
+  "meta": {
+    "tool": "fx_rate",
+    "command": "fetch",
+    "symbol": "USDCNY",
+    "limit": {"max_records": 10, "hard_limit": 50}
+  }
+}
+```
+
+#### 3. 批量获取多个货币对（最多 5 个）
+
+```bash
+python tools/common/fx_rate.py --code USDCNY,EURUSD,GBPUSD
+```
+
+#### 4. 指定日期范围
+
+```bash
+python tools/common/fx_rate.py --code USDCNY --start 2026-07-20 --end 2026-08-01
+```
+
+#### 5. 限制返回记录数
+
+```bash
+# 调整记录数（默认 10，上限 50）
+python tools/common/fx_rate.py --code USDCNY --max-records 20
+
+# 超过硬上限 50 会被拒绝
+python tools/common/fx_rate.py --code USDCNY --max-records 100
+# {"success": false, "error": "max_records 超过硬上限 50，当前: 100；为避免触发数据源限流，请分批获取"}
+```
+
+### 货币对代码说明
+
+| 货币对 | 报价方向          | akshare 代码       | yfinance ticker |
+| ------ | ----------------- | ------------------ | --------------- |
+| USDCNY | 1美元=x人民币     | USDCNH（离岸代理） | CNY=X           |
+| USDCNH | 1美元=x离岸人民币 | USDCNH             | CNH=X           |
+| EURUSD | 1欧元=x美元       | EURUSD             | EURUSD=X        |
+| USDJPY | 1美元=x日元       | USDJPY             | JPY=X           |
+| EURCNY | 1欧元=x人民币     | EURCNH             | EURCNY=X        |
+| GBPCNY | 1英镑=x人民币     | GBPCNH             | GBPCNY=X        |
+| JPYCNY | 1日元=x人民币     | JPYCNH             | JPYCNY=X        |
+| CNYHKD | 1人民币=x港币     | CNHHKD             | CNYHKD=X        |
+| HKDCNY | 1港币=x人民币     | HKDCNH             | HKDCNY=X        |
+
+> 完整 19 个货币对代码可通过 `--list` 查看。
+
+### 数据源策略与回退机制
+
+| 环节         | 说明                                                             |
+| ------------ | ---------------------------------------------------------------- |
+| 主数据源     | Akshare（直连东方财富极小请求，仅 2 字段 × 10 条）              |
+| 回退数据源   | yfinance（Akshare 异常/空数据/区间无数据时自动切换）             |
+| 封禁信号识别 | 东方财富`RemoteDisconnected`、HTTP 403 → 立即放弃重试直接回退 |
+| 全失败处理   | 返回规范错误 JSON（`success: false`），绝不抛异常崩溃          |
+
+### 注意事项
+
+1. **汇率口径**：本工具获取的是市场浮动汇率（盘面K线），不适合直接做财报折算；会计准则认可的央行中间价请用 `ak.currency_safe()` 等接口单独获取
+2. **USDCNY 口径**：东方财富代码表无在岸 USDCNY，以离岸 USDCNH 作为市场汇率代理（yfinance 的 CNY=X 同为离岸口径），两者数值一致
+3. **东方财富 IP 封禁**：短时间内高频调用会被临时封禁（表现为 RemoteDisconnected），封禁期间切勿反复重试；本工具会自动识别并快速回退 yfinance，待冷却（数十分钟至数小时）后自动恢复
+4. **yfinance 网络**：在中国大陆使用 yfinance 可能超时或被限流，这正是设计双数据源的原因
+5. **测试文件**：单元测试 `tests/common/test_fx_rate.py`（61 个用例，mock 数据源），集成测试 `tests/common/test_fx_rate_integration.py`（默认跳过，`FX_RUN_INTEGRATION=1` 启用）
+
+---
+
+## 十四、pdf_extract.py - PDF 文字与表格提取
 
 ### 功能说明
 
 基于 Firecrawl 开源的 **pdf-inspector** 库（底层 Rust，Python 绑定，预编译二进制），从 PDF 格式文档中提取文字与表格，专门面向财报/年报等含复杂附表的文档场景。配合 `stock_equity.py --download-report` 下载的财报 PDF 使用，可完成"下载 → 提取 → 分析"的自动化流程。
 
 **核心能力**:
+
 - `detect` 分类检测：快速判断 PDF 类型（`text_based`/`scanned`/`mixed`），并返回需 OCR 的页码
 - `text` 纯文本提取：提取扁平化纯文本（不含表格排版信息）
 - `markdown` 含表格的 Markdown 提取：自动完成类型检测 + 文字提取 + 表格识别 + 多栏重排，输出含财务附表的 Markdown
@@ -1169,6 +1338,7 @@ python tools/common/pdf_extract.py detect 601899_2025年报.pdf
 ```
 
 **输出示例**:
+
 ```json
 {
   "success": true,
@@ -1192,6 +1362,7 @@ python tools/common/pdf_extract.py text 601899_2026半年报.pdf
 **说明**：纯文本不写 txt 文件，仅放入 JSON 的 `data.content` 字段。
 
 **输出示例**:
+
 ```json
 {
   "success": true,
@@ -1221,6 +1392,7 @@ python tools/common/pdf_extract.py markdown 601899_2026半年报.pdf --save-md -
 ```
 
 **输出示例**:
+
 ```json
 {
   "success": true,
@@ -1246,6 +1418,7 @@ python tools/common/pdf_extract.py all 601899_2026半年报.pdf --save-md
 ```
 
 **输出示例**（`data` 含 `classify`/`text`/`markdown` 三个子块）:
+
 ```json
 {
   "success": true,
@@ -1260,18 +1433,19 @@ python tools/common/pdf_extract.py all 601899_2026半年报.pdf --save-md
 
 ### 参数说明
 
-| 参数 | 适用子命令 | 默认值 | 说明 |
-|------|-----------|--------|------|
-| `<pdf>` | 全部 | 必填 | PDF 文件路径 |
-| `--pages` | markdown / all | 全部页 | 仅提取指定页（0 索引，逗号分隔，如 `0,1,2`） |
-| `--save-md` | markdown / all | 关闭 | 是否将 Markdown 写盘为 md 文件 |
-| `--out-dir` | markdown / all | `reports/pdf` | md 文件输出目录 |
+| 参数          | 适用子命令     | 默认值          | 说明                                          |
+| ------------- | -------------- | --------------- | --------------------------------------------- |
+| `<pdf>`     | 全部           | 必填            | PDF 文件路径                                  |
+| `--pages`   | markdown / all | 全部页          | 仅提取指定页（0 索引，逗号分隔，如`0,1,2`） |
+| `--save-md` | markdown / all | 关闭            | 是否将 Markdown 写盘为 md 文件                |
+| `--out-dir` | markdown / all | `reports/pdf` | md 文件输出目录                               |
 
 ### 扫描格式处理
 
 当 `detect` 判定 PDF 为扫描格式（`scanned`/`mixed`）或存在需 OCR 页面时，各子命令会返回 `data.scanned.scanned = true` 且 `content` 为空。此时应转交 OCR 流程处理，而非继续做文本/表格提取。
 
 **扫描件输出示例**:
+
 ```json
 {
   "success": true,
@@ -1306,28 +1480,29 @@ python tools/common/pdf_extract.py markdown cninfo_reports/601899_2025年报.pdf
 
 ---
 
-## 十四、A股代码格式说明
+## 十五、A股代码格式说明
 
 A股代码统一使用**6位数字字符串**:
 
-| 代码前缀 | 交易所 | 板块 |
-|---------|--------|------|
-| 60xxxx | 上海证券交易所 | 主板 |
-| 00xxxx | 深圳证券交易所 | 主板（含原中小板002xxx） |
-| 30xxxx | 深圳证券交易所 | 创业板 |
-| 688xxx | 上海证券交易所 | 科创板 |
+| 代码前缀 | 交易所         | 板块                     |
+| -------- | -------------- | ------------------------ |
+| 60xxxx   | 上海证券交易所 | 主板                     |
+| 00xxxx   | 深圳证券交易所 | 主板（含原中小板002xxx） |
+| 30xxxx   | 深圳证券交易所 | 创业板                   |
+| 688xxx   | 上海证券交易所 | 科创板                   |
 
 **示例**:
-| 公司 | 代码 | 板块 |
-|------|------|------|
-| 中国平安 | 601318 | 上交所主板 |
-| 万科A | 000002 | 深交所主板 |
-| 新易盛 | 300502 | 深交所创业板 |
+
+| 公司     | 代码   | 板块         |
+| -------- | ------ | ------------ |
+| 中国平安 | 601318 | 上交所主板   |
+| 万科A    | 000002 | 深交所主板   |
+| 新易盛   | 300502 | 深交所创业板 |
 | 中芯国际 | 688981 | 上交所科创板 |
 
 ---
 
-## 十五、数据源说明
+## 十六、数据源说明
 
 ### stock_info_a_code_name()
 
@@ -1417,15 +1592,15 @@ A股代码统一使用**6位数字字符串**:
 
 ### 数据源对比总结
 
-| 数据源 | 主要特点 | 适用场景 | 使用工具 |
-|--------|---------|---------|---------|
+| 数据源   | 主要特点                     | 适用场景                     | 使用工具                                                                            |
+| -------- | ---------------------------- | ---------------------------- | ----------------------------------------------------------------------------------- |
 | 东方财富 | 数据实时、字段丰富、覆盖全面 | 实时行情、财务数据、股权结构 | stock_info.py, stock_quote.py, stock_financial.py, stock_screen.py, stock_equity.py |
-| 新浪财经 | 网络稳定、历史数据长 | 历史行情、财务报表 | stock_quote.py, stock_screen.py |
-| 巨潮资讯 | 数据权威、官方来源 | 股本变动、公司信息、财报PDF | stock_equity.py |
+| 新浪财经 | 网络稳定、历史数据长         | 历史行情、财务报表           | stock_quote.py, stock_screen.py                                                     |
+| 巨潮资讯 | 数据权威、官方来源           | 股本变动、公司信息、财报PDF  | stock_equity.py                                                                     |
 
 ---
 
-## 十六、注意事项
+## 十七、注意事项
 
 ### 1. 代码格式
 
@@ -1446,36 +1621,39 @@ A股代码必须为6位数字字符串，如 `300502`，不要添加 `.SH` 或 `
 ### 5. 数据源选择
 
 **东方财富接口**:
+
 - 优点：数据实时、字段丰富、支持自定义日期范围
 - 缺点：高峰时段可能响应较慢
 
 **新浪接口**:
+
 - 优点：网络连接稳定、历史数据长
 - 缺点：字段较少、不支持自定义日期范围
 
 **建议**:
+
 - 实时数据：优先使用东方财富接口
 - 历史数据：可使用新浪接口（`--source sina`）
 - 高峰时段：建议使用新浪接口避免超时
 
 ---
 
-## 十七、与港股/美股工具的区别
+## 十八、与港股/美股工具的区别
 
-| 特性 | A股工具 | 港股工具 | 美股工具 |
-|------|---------|---------|---------|
-| 代码长度 | 6位 | 5位 | 标准格式（如AAPL） |
-| 市场标识 | "a" | "hk" | "us" |
-| 行业筛选 | 支持 | 暂不支持 | 暂不支持 |
-| 财务指标 | 支持 | 支持 | 支持（yfinance） |
-| 质量筛选 | 支持 | 支持 | 暂不支持 |
-| 股权结构 | 支持 | 暂不支持 | 暂不支持 |
-| 财报下载 | 支持 | 暂不支持 | 暂不支持 |
-| 数据源 | 东方财富、新浪、巨潮 | 东方财富、新浪 | Yahoo Finance |
+| 特性     | A股工具              | 港股工具       | 美股工具           |
+| -------- | -------------------- | -------------- | ------------------ |
+| 代码长度 | 6位                  | 5位            | 标准格式（如AAPL） |
+| 市场标识 | "a"                  | "hk"           | "us"               |
+| 行业筛选 | 支持                 | 暂不支持       | 暂不支持           |
+| 财务指标 | 支持                 | 支持           | 支持（yfinance）   |
+| 质量筛选 | 支持                 | 支持           | 暂不支持           |
+| 股权结构 | 支持                 | 暂不支持       | 暂不支持           |
+| 财报下载 | 支持                 | 暂不支持       | 暂不支持           |
+| 数据源   | 东方财富、新浪、巨潮 | 东方财富、新浪 | Yahoo Finance      |
 
 ---
 
-## 十八、Python路径
+## 十九、Python路径
 
 ```bash
 F:\Anaconda3\envs\Python_3_12_3\python.exe
@@ -1483,7 +1661,7 @@ F:\Anaconda3\envs\Python_3_12_3\python.exe
 
 ---
 
-## 十九、常见使用场景
+## 二十、常见使用场景
 
 ### 场景1: 快速查询公司信息
 
@@ -1583,9 +1761,28 @@ python tools/common/pdf_extract.py markdown cninfo_reports/601899_2026半年报.
 python tools/common/pdf_extract.py all cninfo_reports/601899_2026半年报.pdf --save-md
 ```
 
+### 场景9: 获取国际货币汇率
+
+```bash
+# 列出所有支持的货币对（19个）
+python tools/common/fx_rate.py --list
+
+# 获取美元/人民币汇率（默认最近10条）
+python tools/common/fx_rate.py --code USDCNY
+
+# 获取欧元/人民币汇率
+python tools/common/fx_rate.py --code EURCNY
+
+# 批量获取多个货币对（最多5个）
+python tools/common/fx_rate.py --code USDCNY,EURUSD,GBPUSD
+
+# 指定日期范围和记录数（上限50）
+python tools/common/fx_rate.py --code USDCNY --start 2026-07-20 --end 2026-08-01 --max-records 20
+```
+
 ---
 
-## 二十、局限性说明
+## 二十一、局限性说明
 
 1. **数据窗口**：部分公司上市时间较短，财务数据可能不足10年
 2. **周期性行业**：周期性行业需用完整周期平均值判断，避免单一年份误导
@@ -1594,9 +1791,11 @@ python tools/common/pdf_extract.py all cninfo_reports/601899_2026半年报.pdf -
 
 ---
 
-**文档版本**: v2.2
-**更新日期**: 2026-08-06
+**文档版本**: v2.3
+**更新日期**: 2026-08-07
 **变更记录**:
+
+- v2.3 (2026-08-07): 新增 fx_rate.py 汇率工具说明章节（国际主要货币汇率，Akshare优先/yfinance回退），新增常见使用场景9；原十四~二十章节顺延为十五~二十一
 - v2.2 (2026-08-06): 新增 pdf_extract.py 工具说明章节（PDF 文字与表格提取），原十三~十九章节顺延为十四~二十
 - v2.1 (2026-08-01): 新增 doubao_search.py、web_search.py 工具说明章节与搜索工具选型对比
 - v2.0 (2026-07-29): 工具重构到 tools/a_share/ 和 tools/common/ 目录，更新所有路径引用

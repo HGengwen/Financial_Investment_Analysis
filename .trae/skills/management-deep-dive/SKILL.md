@@ -307,8 +307,8 @@ python tools/common/doubao_search.py "{公司名} A股 H股 股权结构 占比"
 
 **注**：A股/H股溢价率计算公式：
 - A股价格（元）vs H股价格（港元）
-- 考虑汇率因素（1港币 ≈ 0.91人民币）
 - A/H溢价率 = (A股价格 - H股价格 × 汇率) / (H股价格 × 汇率) × 100%
+- **实时汇率**：计算前先用 `python tools/common/fx_rate.py --code HKDCNY`（1港币=x人民币）获取实时汇率，**不要用固定值**（如旧的"1港币≈0.91"）
 
 **返回数据包括**：
 - 前十大股东（总股本口径）
@@ -451,6 +451,7 @@ AI无法和管理层面对面交流，但可以通过公开渠道的侧面信息
 - **A股工具**：[docs/A股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
 - **港股工具**：[docs/港股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/港股工具使用指南.md)
 - **美股工具**：[docs/美股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/美股工具使用指南.md)
+- **国际货币汇率**（跨市场估值/市值统一口径折算）：`tools/common/fx_rate.py`，详见 [A股工具使用指南汇率章节](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
 
 ### 财报下载与股权结构工具
 
@@ -609,6 +610,8 @@ python tools/common/doubao_search.py "紫金矿业 H股占比 A股H股 差异" -
 | A股/H股溢价率 | 手动计算 | (A股价格 - H股价格 × 汇率) / (H股价格 × 汇率) × 100% |
 | 股本变动 | A股工具 | 5年股本膨胀情况 |
 | 分红差异 | 网络搜索+公司公告 | A股和H股的分红是否一致 |
+
+**注**：计算 A/H 溢价率前，先用 `python tools/common/fx_rate.py --code HKDCNY`（1港币=x人民币）获取实时汇率，不要用固定值。
 
 **报告输出要求**（A+H股公司）：
 - 关键人物速览表格中标注上市情况，如 `紫金矿业（A股:601899，H股:02899）`

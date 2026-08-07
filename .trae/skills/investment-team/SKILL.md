@@ -184,6 +184,7 @@ pdftoppm -png cninfo_reports/601899_2025年报.pdf cninfo_reports/601899_2025年
    - 安全边际评估：内在价值 vs 当前股价
 
    ```bash
+   # 跨币种折算前，先用 python tools/common/fx_rate.py --code USDCNY（或 HKDCNY 等）获取实时汇率，勿用训练数据中的固定汇率
    python tools/common/financial_rigor.py verify-market-cap \
      --price {价格} --shares {股本} --reported {报告市值} --currency {币种}
    python tools/common/financial_rigor.py verify-valuation \
@@ -400,6 +401,7 @@ pdftoppm -png cninfo_reports/601899_2025年报.pdf cninfo_reports/601899_2025年
 - 全局约束规范：[global-constraints](../tools-scripts/global-constraints.md)
 - PDF文档提取：[pdf-extraction](../tools-scripts/pdf-extraction.md)（年报一手数据提取）
 - 完整索引：[公共工具索引](../tools-scripts/common-tools-guide.md)
+- 国际货币汇率获取：[汇率工具](../../../docs/A股工具使用指南.md#汇率数据工具)（`tools/common/fx_rate.py`，Akshare 优先 + yfinance 回退，支持 19 个货币对；跨市场估值/市值统一口径折算）
 
 ### investment-team 的特殊工具使用注意
 

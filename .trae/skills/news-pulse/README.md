@@ -145,6 +145,7 @@
 | 美股 | `tools/us_stock/stock_info.py` | 美股信息查询 | `python tools/us_stock/stock_info.py --search Apple` |
 | 美股 | `tools/us_stock/stock_financial.py` | 美股财务指标 | `python tools/us_stock/stock_financial.py --code AAPL` |
 | 美股 | `tools/us_stock/stock_quote.py` | 美股行情数据 | `python tools/us_stock/stock_quote.py --code AAPL` |
+| 汇率 | `tools/common/fx_rate.py` | 国际主要货币汇率（判断外汇因素影响） | `python tools/common/fx_rate.py --code USDCNY` |
 
 **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
@@ -154,6 +155,7 @@
 - **A股工具**：[docs/A股工具使用指南.md](../../docs/A股工具使用指南.md)
 - **港股工具**：[docs/港股工具使用指南.md](../../docs/港股工具使用指南.md)
 - **美股工具**：[docs/美股工具使用指南.md](../../docs/美股工具使用指南.md)
+- **国际货币汇率**：[国际货币汇率工具](../../../docs/A股工具使用指南.md#十三fx_ratepy---国际主要货币汇率)（`tools/common/fx_rate.py`，Akshare 优先 + yfinance 回退，19 个货币对）
 
 ### 网络搜索工具
 

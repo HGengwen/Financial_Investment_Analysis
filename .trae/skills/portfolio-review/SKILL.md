@@ -43,6 +43,8 @@ disable-model-invocation: true
 
 同时检查是否存在已有的组合文件（`reports/portfolio-*.md`，按日期倒序查找最新文件），如有则读取并更新。
 
+> **货币口径统一**：持仓含港股（@港元）时，用 `python tools/common/fx_rate.py --code HKDCNY`（1港币=x人民币）获取实时汇率，将组合市值折算到统一货币口径（人民币），避免跨币种对比失真。
+
 ---
 
 ### 第二步：获取最新数据
@@ -299,6 +301,7 @@ python tools/hk_stock/stock_quote.py --code {股票代码}
 - **A股工具**：[docs/A股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
 - **港股工具**：[docs/港股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/港股工具使用指南.md)
 - **美股工具**：[docs/美股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/美股工具使用指南.md)
+- **国际货币汇率**（跨市场市值/估值统一口径折算）：`tools/common/fx_rate.py`，详见 [A股工具使用指南汇率章节](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
 
 ### 精确计算工具
 
