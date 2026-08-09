@@ -2,16 +2,22 @@
 .env
 .env.*
 
-# AI工具本地目录
+# AI工具本地目录及文件
 .claude/
 .qoder/
+
+qoder.md
 
 # 导出报表文件夹
 reports/
 cninfo_reports/
 
+#参考文档
+refs/
+
+
 # 本地的缓存文件
-*.slsx
+*.xlsx
 
 # 本地测试用文件
 *.pdf

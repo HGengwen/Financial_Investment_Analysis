@@ -514,6 +514,12 @@ python tools/common/report_audit.py verdict \
 
 **【准出】** 全部通过 → 可发布；**【打回】** 有不通过 → 修正后重审。
 
+**Windows 兼容说明**：本工作流在 Windows 环境下运行时，注意以下事项：
+- 不要使用 `/tmp/` 路径保存临时文件（Windows 无此目录），应使用 `%TEMP%` 环境变量或当前工作目录
+- 不要使用 `2>/dev/null` 重定向 stderr，应使用 `2>$null`（PowerShell）
+- 不要使用 `tr -d '\r'` 等 Unix 命令，直接在 Python 中处理换行符
+- 如需提取 JSON 输出，可直接使用 `--dry-run` 参数或 `--output-json` 参数，无需通过 shell 管道处理
+
 ---
 
 ## 工具使用指南

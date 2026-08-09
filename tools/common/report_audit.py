@@ -22,6 +22,7 @@ Requires Python >= 3.7.
 """
 
 import argparse
+import io
 import json
 import math
 import os
@@ -403,6 +404,10 @@ def render_verdict(results: list, report_name: str = "") -> dict:
 # ---------------------------------------------------------------------------
 
 def main():
+    # Windows GBK 控制台兼容：确保 emoji 和 Unicode 字符能正常输出
+    if sys.stdout.encoding and sys.stdout.encoding.upper() not in ('UTF-8', 'UTF8'):
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+
     parser = argparse.ArgumentParser(
         description='Report Audit Tool — 研究报告数据抽检工具',
         formatter_class=argparse.RawDescriptionHelpFormatter,

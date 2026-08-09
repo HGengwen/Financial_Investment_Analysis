@@ -446,6 +446,10 @@ class StockEquityData:
         根据报告类型从公告列表中筛选出目标财报（年报/半年报/季报），
         排除摘要、其他类型报告等干扰项.
 
+        **优先级策略**：
+        1. 首选：完整版报告（不含"摘要"、"简版"、"英文版"等字样）
+        2. 备选：仅当找不到完整版时，才考虑"摘要"或"简版"
+
         Args:
             ann_list: 公告列表
             report_type: 报告类型 ('annual'-年报, 'semiannual'-半年报, 'quarterly'-季报)
@@ -455,6 +459,59 @@ class StockEquityData:
             {"year": "2025", "quarter": "", "url": "...", "title": "...", "report_type": "..."}
             未找到返回 None
         """
+        # 第一遍：寻找完整版报告（排除摘要、简版、英文版）
+        full_report = self._find_report_by_priority(
+            ann_list, report_type, require_full=True
+        )
+        if full_report:
+            return full_report
+
+        # 第二遍：如果找不到完整版，退而求其次找摘要/简版
+        fallback_report = self._find_report_by_priority(
+            ann_list, report_type, require_full=False
+        )
+        if fallback_report:
+            return fallback_report
+
+        return None
+
+    def _is_full_report(self, title_clean: str) -> bool:
+        """判断标题是否为完整版报告（非摘要、非简版、非英文版）.
+
+        Args:
+            title_clean: 清理后的标题文本
+
+        Returns:
+            True 表示是完整版报告
+        """
+        # 排除项：摘要、简版、英文版、自愿性披露公告（通常不含完整财报）
+        exclude_keywords = [
+            '摘要', '简版', '英文版', 'English',
+            '自愿性披露', '自愿披露'
+        ]
+        for keyword in exclude_keywords:
+            if keyword in title_clean:
+                return False
+        return True
+
+    def _find_report_by_priority(
+        self,
+        ann_list: List[Dict],
+        report_type: str,
+        require_full: bool = True
+    ) -> Optional[Dict[str, str]]:
+        """按优先级查找报告.
+
+        Args:
+            ann_list: 公告列表
+            report_type: 报告类型
+            require_full: True=只找完整版，False=可接受摘要/简版
+
+        Returns:
+            匹配的报告信息字典或 None
+        """
+        candidates = []
+
         for ann in ann_list:
             title = ann.get("announcementTitle", "")
             sec_code = ann.get("secCode", "")
@@ -470,46 +527,59 @@ class StockEquityData:
             is_target_report = False
 
             if report_type == 'annual':
-                # 年报：包含"年度报告"，排除摘要、半年报、季报
-                is_target_report = ("年度报告" in title_clean and
-                                    "摘要" not in title_clean and
-                                    "半年度" not in title_clean and
-                                    "季度" not in title_clean)
+                # 年报：包含"年度报告"，排除半年报、季报
+                is_target_report = (
+                    "年度报告" in title_clean and
+                    "半年度" not in title_clean and
+                    "季度" not in title_clean
+                )
             elif report_type == 'semiannual':
-                # 半年报：包含"半年度"，排除摘要
-                # 注意：有些公司可能用"半年度报告"，有些可能用"半年度"
-                is_target_report = ("半年度" in title_clean and
-                                    "摘要" not in title_clean and
-                                    "季度" not in title_clean)
+                # 半年报：包含"半年度"，排除季报
+                is_target_report = (
+                    "半年度" in title_clean and
+                    "季度" not in title_clean
+                )
             elif report_type == 'quarterly':
-                # 季报：包含"季度"，排除摘要
-                is_target_report = ("季度" in title_clean and
-                                    "摘要" not in title_clean and
-                                    "半年度" not in title_clean)
+                # 季报：包含"季度"，排除半年度
+                is_target_report = (
+                    "季度" in title_clean and
+                    "半年度" not in title_clean
+                )
 
-            if is_target_report:
-                # 提取年份和季度信息
-                year_match = re.search(r'(\d{4})', title_clean)
-                year = year_match.group(1) if year_match else "未知"
+            if not is_target_report:
+                continue
 
-                # 提取季度信息（用于季报）
-                quarter = ""
-                if report_type == 'quarterly':
-                    quarter_match = re.search(r'第([一二三四])季度', title_clean)
-                    if quarter_match:
-                        quarter_map = {'一': 'Q1', '二': 'Q2', '三': 'Q3', '四': 'Q4'}
-                        quarter = quarter_map.get(quarter_match.group(1), '')
+            # 如果需要完整版，检查是否为完整版
+            if require_full and not self._is_full_report(title_clean):
+                continue
 
-                adjunct_url = ann.get("adjunctUrl", "")
-                pdf_link = f"https://static.cninfo.com.cn/{adjunct_url}"
+            # 提取年份和季度信息
+            year_match = re.search(r'(\d{4})', title_clean)
+            year = year_match.group(1) if year_match else "未知"
 
-                return {
-                    "year": year,
-                    "quarter": quarter,
-                    "url": pdf_link,
-                    "title": title_clean,
-                    "report_type": report_type
-                }
+            # 提取季度信息（用于季报）
+            quarter = ""
+            if report_type == 'quarterly':
+                quarter_match = re.search(r'第([一二三四])季度', title_clean)
+                if quarter_match:
+                    quarter_map = {'一': 'Q1', '二': 'Q2', '三': 'Q3', '四': 'Q4'}
+                    quarter = quarter_map.get(quarter_match.group(1), '')
+
+            adjunct_url = ann.get("adjunctUrl", "")
+            pdf_link = f"https://static.cninfo.com.cn/{adjunct_url}"
+
+            candidates.append({
+                "year": year,
+                "quarter": quarter,
+                "url": pdf_link,
+                "title": title_clean,
+                "report_type": report_type,
+                "is_full": self._is_full_report(title_clean)
+            })
+
+        # 返回第一个候选（通常是最新的）
+        if candidates:
+            return candidates[0]
 
         return None
 
@@ -517,11 +587,19 @@ class StockEquityData:
         """获取最新财报PDF链接和年份.
 
         从巨潮资讯网查询上市公司最新财报信息.
-        采用多关键词搜索策略：先按股票代码搜索，若未找到则尝试
-        "股票代码 + 报告类型关键词"组合搜索.
+        采用两阶段多关键词搜索策略:
 
-        背景：部分公司在巨潮资讯网上仅按股票代码搜索无法返回年报公告，
-        需组合"年度报告"等关键词才能检索到.
+        **搜索关键词优先级**（组合关键词优先，更精准）:
+        1. 股票代码 + 报告类型关键词（如 "300274 年度报告"）
+        2. 仅股票代码（如 "300274"）
+
+        **两阶段筛选**:
+        - 第一轮: 所有关键词均只找完整版报告
+        - 第二轮: 仅当第一轮全部失败，才接受摘要/简版作为备选
+
+        背景: 仅按股票代码搜索时，热门公司的公告量大（50+），
+        完整版年报可能被其他类型公告挤出前50条，导致只找到摘要版.
+        组合关键词搜索可精准定位财报公告，避免被无关公告淹没.
 
         Args:
             report_type: 报告类型 ('annual'-年报, 'semiannual'-半年报, 'quarterly'-季报)
@@ -537,31 +615,43 @@ class StockEquityData:
         }
         report_keyword = report_keywords.get(report_type, '报告')
 
-        # 搜索关键词列表（按优先级排序）：
-        # 1. 首选：仅按股票代码搜索（返回该股票所有公告）
-        # 2. 备选：股票代码 + 报告类型关键词组合搜索
-        #    部分公司的年报需组合"年度报告"关键词才能检索到
+        # 搜索关键词列表（按优先级排序，组合关键词优先）:
+        # 1. 首选: 股票代码 + 报告类型关键词（精准定位财报公告）
+        # 2. 备选: 仅按股票代码搜索（返回该股票所有公告）
         search_keys = [
-            self.code,
             f"{self.code} {report_keyword}",
+            self.code,
         ]
 
-        # 依次尝试搜索关键词，找到目标报告即返回
-        for search_key in search_keys:
-            ann_list = self._fetch_cninfo_announcements(search_key)
-            if ann_list:
-                result = self._filter_target_report(ann_list, report_type)
+        # 两阶段搜索: 第一轮只找完整版，第二轮才接受摘要/简版
+        for require_full in [True, False]:
+            for search_key in search_keys:
+                ann_list = self._fetch_cninfo_announcements(search_key)
+                if not ann_list:
+                    continue
+
+                if require_full:
+                    # 第一轮: 只找完整版
+                    result = self._find_report_by_priority(
+                        ann_list, report_type, require_full=True
+                    )
+                else:
+                    # 第二轮: 可接受摘要/简版
+                    result = self._filter_target_report(ann_list, report_type)
+
                 if result:
                     # 记录成功
+                    stage = "完整版" if require_full else "摘要/简版"
                     self.api_results.append({
                         'api_name': f"巨潮资讯财报查询(股票代码: {self.code}, "
-                                    f"报告类型: {report_type}, 命中关键词: {search_key})",
+                                    f"报告类型: {report_type}, 阶段: {stage}, "
+                                    f"命中关键词: {search_key})",
                         'status': '成功',
                         'rows': 1
                     })
                     return result
 
-        # 所有搜索关键词均未找到目标报告
+        # 所有搜索关键词和阶段均未找到目标报告
         error_msg = f'未找到{self._get_report_type_name(report_type)}（已尝试多关键词搜索）'
         self.api_results.append({
             'api_name': f"巨潮资讯财报查询(股票代码: {self.code}, 报告类型: {report_type})",
