@@ -5,6 +5,7 @@
 # AI工具本地目录及文件
 .claude/
 .qoder/
+memory/
 
 qoder.md
 
