@@ -61,11 +61,11 @@ disable-model-invocation: true
 
 #### 网络信息获取工具
 
-研究Agent收集素材时，使用本地网络搜索工具（WebSearch/WebFetch 在中国大陆不可用）。工具优先级和搜索规范详见下方"工具使用指南 → 网络搜索工具"章节：
+研究Agent收集素材时，统一使用本地五工具组合（详见 [web-search-tools](../tools-scripts/web-search-tools.md)）。工具选型按主题涉及的市场参照矩阵：
 
-- **A股主题**：优先使用 `tools/common/doubao_search.py`，`tools/common/web_search.py` 作为辅助
-- **港股/美股/国际主题**：`tools/common/doubao_search.py` 为主，`tools/common/tavily_search.py` + `tools/common/web_search.py` 为辅（须双源验证）
-- **技术/论文主题**：多源互补，建议同时调用豆包搜索和 Tavily
+- **A股主题**：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- **港股/美股/国际主题**：港股 `doubao --sites hkexnews.hk` + `tavily`（双源 doubao+tavily）；美股 `exa --type deep` + `doubao`（双源 exa+doubao）
+- **技术/论文主题**：英文文献优先 `exa --type deep`，中文资讯用 `doubao`，多源互补
 - 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
 
 ---
@@ -282,20 +282,17 @@ disable-model-invocation: true
 
 ### 网络搜索工具
 
-由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具收集素材。
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-**工具优先级**（基于主题涉及的市场）：
-
-| 主题类型 | 主搜索工具 | 辅助搜索工具 | 说明 |
-|---------|-----------|------------|------|
-| A股相关主题 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
-| 港股/美股/国际主题 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
-| 技术/论文主题 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 建议多源互补 |
+**公众号文章场景下的搜索选型**：
+- A股：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- 港股：`doubao --sites hkexnews.hk` 主 + `tavily` 辅；双源 doubao+tavily
+- 美股：`exa --type deep` 主 + `doubao` 辅；双源 exa+doubao
 
 **搜索规范**：
 - 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
 - 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
-- 港股/美股/国际主题须 Doubao + Tavily 双源验证
+- 港股/美股/国际主题须按市场双源验证（港股 doubao+tavily；美股 exa+doubao）
 - 关键信息缺失时标注"信息不足"，不得用推测填充
 - 重要内容建议同时调用多个工具，互为补充
 
@@ -428,7 +425,7 @@ grep -n "净利润\|营业收入\|毛利率\|ROE\|增长率" 601899_2025年报.t
 
 ## 局限性
 
-1. **网络信息获取限制**：WebSearch/WebFetch 在中国大陆不可用，依赖本地工具获取信息
+1. **网络信息获取限制**：网络搜索须使用本地五工具组合（详见 web-search-tools.md）
 2. **图片生成质量**：AI生成的图片可能不符合预期，需要多次调整提示词
 3. **论文PDF可得性**：部分论文可能需要付费或无法下载
 4. **技术术语准确性**：对于非常专业的领域，可能需要领域专家审核

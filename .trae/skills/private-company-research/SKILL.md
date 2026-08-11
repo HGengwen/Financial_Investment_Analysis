@@ -119,12 +119,13 @@ disable-model-invocation: true
 4. 对重要数据，至少用2个不同来源交叉验证
 
 ## 网络搜索工具使用规范
-由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用以下本地搜索工具：
-- 国内信息：`python tools/common/doubao_search.py "{公司名} {关键词}" --finance`
-- 国外信息（港股/美股对标）：`python tools/common/doubao_search.py "{Company Name} {keyword}" --finance` + `python tools/common/tavily_search.py "{Company Name} {keyword}"`
-- 深度研究报告：`python tools/common/exa_search.py "{Company Name} {keyword}" --type deep`
-- 抓取公告正文：`python tools/common/doubao_search.py "{关键词}" --need-content`
-- 定向检索 SEC/港交所披露：`python tools/common/doubao_search.py "{关键词}" --sites sec.gov` 或 `--sites hkexnews.hk`
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查见 [web-search-tools](../tools-scripts/web-search-tools.md)。
+
+**未上市公司研究场景下的搜索选型**：
+- 国内未上市公司信息：`doubao_search.py --finance`（权威信源 + `--need-content` 抓正文）
+- 港股/美股对标公司：`doubao --sites hkexnews.hk`（港股）+ `tavily`（管理层讨论）；美股 `exa --type deep`（SEC filings）+ `doubao`（新闻/舆情）；双源 doubao+tavily / exa+doubao
+- 深度研究报告：`exa_search.py --type deep`
+- 定向检索 SEC/港交所披露：`doubao_search.py --sites sec.gov` 或 `--sites hkexnews.hk`
 - 时间范围限制：`--time-range month/week`，优先获取最新信息
 - 估值与财务计算：`python tools/common/financial_rigor.py ...`，禁止 LLM 心算
 - 跨币种折算：`python tools/common/fx_rate.py --code USDCNY`（或 HKDCNY）
@@ -1116,10 +1117,12 @@ python tools/common/report_audit.py verdict \
 以下为本技能特有的工具使用注意事项：
 
 ### 网络搜索
-- 由于官方 WebSearch/WebFetch 在中国大陆不可用，**禁止使用这两个工具**
+- 禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合（详见 [web-search-tools](../tools-scripts/web-search-tools.md)）
 - 搜索未上市公司信息优先使用 `doubao_search.py`（火山引擎，支持 `--finance` 金融定向和 `--need-content` 正文抓取）
-- 港股/美股对标公司研究使用 `doubao_search.py` + `tavily_search.py` 双源验证
-- 深度研究报告使用 `exa_search.py --type deep`
+- **对标上市公司按市场分述**：
+  - **A股对标公司**：优先使用 `anysearch.py --tag finance`（财报/研报/公告深查）为主，`doubao_search.py --finance` 为辅，双源验证 `anysearch` + `doubao`
+  - **港股对标公司**：优先使用 `doubao_search.py --sites hkexnews.hk`（港交所披露易定向）为主，`tavily_search.py` 为辅，双源验证 `doubao` + `tavily`
+  - **美股对标公司**：优先使用 `exa_search.py --type deep`（深度档，SEC filings 直击原文）为主，`doubao_search.py --finance` 为辅，双源验证 `exa` + `doubao`
 - 定向检索招股书/监管文件：`doubao_search.py --sites sec.gov`（SEC）或 `--sites hkexnews.hk`（港交所披露易）
 - 每个搜索关键词至少用3-5种不同组合，中英文各搜索一次
 - 搜索时使用 `--time-range month/week` 限制时间范围，优先获取最新信息

@@ -113,15 +113,13 @@ pdftoppm -png cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年
 
 将资料可得性评级告知每个 Agent，影响其分析深度。
 
-**注意**：WebSearch/WebFetch 在中国大陆不可用，请使用以下替代方案：
+**注意**：网络搜索须使用本地五工具组合（详见 [web-search-tools](../tools-scripts/web-search-tools.md)），美股深度数据须 exa + doubao 双源验证。
 
 | 市场 | 工具 | 命令示例 |
 |------|------|---------|
 | A股数据 | `tools/a_share/stock_info.py`、`stock_financial.py`、`stock_quote.py`、`stock_equity.py` | `python tools/a_share/stock_financial.py --code 601899` |
 | 港股数据 | `tools/hk_stock/stock_financial.py`、`stock_quote.py` | `python tools/hk_stock/stock_financial.py --financial 00700` |
 | 美股数据 | `tools/us_stock/stock_info.py`、`stock_financial.py`、`stock_quote.py` | `python tools/us_stock/stock_financial.py --code AAPL` |
-| 网络搜索（A股） | `tools/common/doubao_search.py`（首选）、`tools/common/web_search.py` | `python tools/common/doubao_search.py "{公司名} 最新财报" --finance --need-content --time-range month` |
-| 网络搜索（港股/美股） | `tools/common/doubao_search.py`（首选）+ `tools/common/tavily_search.py`（双源验证） | `python tools/common/doubao_search.py "{公司名} 财报" --finance --need-content --time-range month` |
 
 ### 第二步：向用户展示团队框架
 
@@ -596,27 +594,17 @@ python tools/common/report_audit.py verdict \
 
 ### 网络搜索工具
 
-由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-**工具优先级**（基于上市地点）：
-
-| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
-|---------|-----------|------------|------|
-| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
-| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
-
-**搜索工具能力**：
-
-| 工具 | 功能 | 命令示例 |
-|------|------|---------|
-| `tools/common/doubao_search.py` | 豆包搜索（推荐首选，支持财务/内容/导出/站点过滤） | `python tools/common/doubao_search.py "腾讯 2025Q4 财报" --finance --need-content --time-range month` |
-| `tools/common/tavily_search.py` | Tavily 搜索（非境内上市辅助，支持高级搜索） | `python tools/common/tavily_search.py "Apple AAPL latest earnings" --max-results 5` |
-| `tools/common/web_search.py` | 阿里云百炼搜索 | `python tools/common/web_search.py "紫金矿业 最新财报"` |
+**财报团队精读场景下的搜索选型**：
+- A股：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- 港股：`doubao --sites hkexnews.hk` 主 + `tavily` 辅；双源 doubao+tavily
+- 美股：`exa --type deep` 主 + `doubao` 辅；双源 exa+doubao
 
 **搜索规范**（必须遵守）：
 1. **时效性优先**：使用 `--time-range month/week` 限制时间范围，优先获取最新信息，避免使用过时数据
 2. **数据源日期**：搜索结果必须包含数据来源日期；过时数据须明确标注时效性说明
-3. **双源验证**：非境内上市公司须 Doubao + Tavily 双源验证
+3. **双源验证**：非境内上市须按市场双源验证（港股 doubao+tavily；美股 exa+doubao）
 4. **多角度搜索**：从财报原文、管理层发言、业绩电话会纪要、分析师提问等多维度收集信息
 5. **信息缺口标注**：关键信息缺失时标注"信息不足"，不得用推测填充
 
@@ -643,7 +631,7 @@ python tools/common/tavily_search.py "腾讯 2025Q4 财报 管理层讨论" --ma
 7. **读者评审不是走过场**：真的站在读者角度挑毛病
 8. **数据准确性**：关键数据交叉验证，使用 financial_rigor.py 工具验算
 9. **网络搜索时效性**：使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-10. **非境内上市双源验证**：港股/美股公司须 Doubao + Tavily 双源验证
+10. **非境内上市双源验证**：港股/美股公司须按市场双源验证（港股 doubao+tavily；美股 exa+doubao）
 
 ---
 

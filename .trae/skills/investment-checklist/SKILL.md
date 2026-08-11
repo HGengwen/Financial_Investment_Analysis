@@ -57,31 +57,18 @@ disable-model-invocation: true
 
 #### 网络搜索工具选择
 
-| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
-|---------|-----------|------------|------|
-| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
-| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-**搜索规范**（必须遵守）：
-1. **时效性优先**：使用 `--time-range month/week` 限制时间范围，优先获取最新信息，避免使用过时数据
-2. **数据源日期**：搜索结果必须包含数据来源日期；过时数据须明确标注时效性说明
-3. **双源验证**：非境内上市公司须 Doubao + Tavily 双源验证
-4. **多角度搜索**：从竞争格局、护城河、管理层、最新动态等多维度收集信息
+**Checklist 场景下的搜索选型**（按公司上市地点，引用 web-search-tools.md 矩阵）：
+- A股：竞争格局/护城河/管理层 → `anysearch --tag finance` 主 + `doubao --finance` 辅；最新动态 → `doubao --finance --time-range week` 主
+- 港股：管理层讨论/分析师点评 → `tavily` 主 + `doubao` 辅；公告/回购 → `doubao --sites hkexnews.hk` 主 + `tavily` 辅；双源 doubao+tavily
+- 美股：新闻/舆情 → `doubao` 主 + `anysearch --zone intl` 辅；SEC filings/MD&A → `exa --type deep` 主 + `tavily` 辅；双源 exa+doubao
 
-**搜索示例**：
-
-| 数据收集维度 | A股搜索 | 港股/美股搜索 |
-|------------|---------|--------------|
-| 竞争格局 | `python tools/common/doubao_search.py "{公司名} 行业排名 市场份额" --time-range month` | `python tools/common/doubao_search.py "{公司名} market share competitors" --time-range month` |
-| 护城河证据 | `python tools/common/doubao_search.py "{公司名} 护城河 竞争优势" --time-range month` | `python tools/common/tavily_search.py "{公司名} competitive advantage moat" --max-results 5` |
-| 管理层记录 | `python tools/common/doubao_search.py "{公司名} CEO 履历 资本配置" --time-range month` | `python tools/common/tavily_search.py "{公司名} CEO management capital allocation" --max-results 5` |
-| 最新动态 | `python tools/common/doubao_search.py "{公司名} 最新消息" --time-range week` | `python tools/common/doubao_search.py "{公司名} latest news" --time-range week` |
-
-**重要约束**：
-- 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
-- 关键财务数据必须至少来自两个独立来源进行交叉验证
-- 所有估计值必须明确标注"估计"
-- 网络搜索结果需交叉验证，不要依赖单一来源
+**搜索规范**（Checklist 特有）：
+- **时效性优先**：使用 `--time-range month/week` 限制时间范围，避免使用过时数据（如用2024年数据描述2026年现状）
+- **多维度收集**：从竞争格局、护城河、管理层、最新动态四个维度分别检索，不可依赖单次搜索
+- **信息缺口标注**：关键信息缺失时标注"信息不足"，不得用推测填充——C级公司尤其重要
+- **双源验证**：非境内上市公司须按市场矩阵双源验证（港股 doubao+tavily；美股 exa+doubao）
 
 ### 第三步：逐公司执行六关 Checklist
 
@@ -342,27 +329,17 @@ python tools/common/financial_rigor.py three-scenario \
 
 ### 网络搜索工具
 
-由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-**工具优先级**（基于上市地点）：
-
-| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
-|---------|-----------|------------|------|
-| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
-| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
-
-**搜索工具能力**：
-
-| 工具 | 功能 | 命令示例 |
-|------|------|---------|
-| `tools/common/doubao_search.py` | 豆包搜索（推荐首选，支持财务/内容/导出/站点过滤） | `python tools/common/doubao_search.py "腾讯 护城河" --finance --need-content --time-range month` |
-| `tools/common/tavily_search.py` | Tavily 搜索（非境内上市辅助，支持高级搜索） | `python tools/common/tavily_search.py "Apple AAPL competitive advantage" --max-results 5` |
-| `tools/common/web_search.py` | 阿里云百炼搜索 | `python tools/common/web_search.py "紫金矿业 最新消息"` |
+**投资清单场景下的搜索选型**：
+- A股：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- 港股：`doubao --sites hkexnews.hk` 主 + `tavily` 辅；双源 doubao+tavily
+- 美股：`exa --type deep` 主 + `doubao` 辅；双源 exa+doubao
 
 **搜索规范**（必须遵守）：
 1. **时效性优先**：使用 `--time-range month/week` 限制时间范围，优先获取最新信息，避免使用过时数据
 2. **数据源日期**：搜索结果必须包含数据来源日期；过时数据须明确标注时效性说明
-3. **双源验证**：非境内上市公司须 Doubao + Tavily 双源验证
+3. **双源验证**：非境内上市须按市场双源验证（港股 doubao+tavily；美股 exa+doubao）
 4. **多角度搜索**：从竞争格局、护城河、管理层、最新动态等多维度收集信息
 5. **信息缺口标注**：关键信息缺失时标注"信息不足"，不得用推测填充
 
@@ -392,13 +369,13 @@ python tools/common/financial_rigor.py three-scenario \
 - 货币单位要明确（港币/人民币/美元），防止混淆
 - PE/ROE等指标用 `tools/common/financial_rigor.py` 精确计算，禁止LLM心算
 - 网络搜索须使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-- 非境内上市公司须 Doubao + Tavily 双源验证
+- 非境内上市须按市场双源验证（港股 doubao+tavily；美股 exa+doubao）
 
 ---
 
 ## 局限性
 
-1. **网络限制**：WebSearch/WebFetch 在中国大陆不可用，需使用本地搜索工具
+1. **网络限制**：网络搜索须使用本地五工具组合（详见 web-search-tools.md）
 2. **数据源覆盖**：本地工具覆盖A股、港股、美股，但美股数据源依赖 yfinance
 3. **实时性**：本地工具数据可能滞后1-2天，最新财报建议查原始来源
 4. **港股接口稳定性**：东方财富港股接口在中国大陆网络连接不稳定（已内置重试机制）

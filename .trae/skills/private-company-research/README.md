@@ -156,20 +156,20 @@ python tools/common/report_audit.py verdict --results '<verified JSON>' --report
 
 ### 网络搜索工具
 
-由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-| 工具 | 功能 | 命令示例 |
-|------|------|---------|
-| `tools/common/doubao_search.py` | 豆包搜索（火山引擎，推荐首选） | `python tools/common/doubao_search.py "蚂蚁集团 融资" --finance` |
-| `tools/common/tavily_search.py` | Tavily 深度内容搜索（双源验证） | `python tools/common/tavily_search.py "SpaceX valuation"` |
-| `tools/common/exa_search.py` | Exa 语义搜索（深度检索） | `python tools/common/exa_search.py "Stripe 财务" --type deep` |
-| `tools/common/web_search.py` | 阿里云百炼 WebSearch（多源视角） | `python tools/common/web_search.py "小红书 MAU"` |
+**未上市公司研究场景下的搜索选型**：
+- 国内未上市公司信息：`doubao --finance` 主（权威信源 + `--need-content` 抓正文）+ `anysearch` 辅（通用搜索）
+- A股对标公司：`anysearch --tag finance` 主（财报/研报/公告深查）+ `doubao --finance` 辅；双源 anysearch+doubao
+- 港股对标公司：`doubao --sites hkexnews.hk` 主 + `tavily` 辅（管理层讨论）；双源 doubao+tavily
+- 美股对标公司：`exa --type deep` 主（SEC filings 深度检索）+ `doubao` 辅（新闻/舆情）；双源 exa+doubao
+- 深度研究报告：`exa_search.py --type deep`
 
-**搜索规范**：
+**搜索规范**（未上市公司研究特有）：
 - 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
 - 使用 `--need-content` 抓取公告正文做精确解读
 - 使用 `--sites sec.gov` 或 `--sites hkexnews.hk` 定向检索 SEC/港交所披露
-- 港股/美股对标公司须 Doubao + Tavily 双源验证
+- A股/港股/美股对标公司须按市场矩阵双源验证（A股 anysearch+doubao；港股 doubao+tavily；美股 exa+doubao）
 - 每个搜索关键词至少用3-5种不同组合，中英文各搜索一次
 - 关键信息缺失时标注"信息不足"，不得用推测填充
 

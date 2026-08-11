@@ -176,26 +176,25 @@ python tools/common/report_audit.py verdict --results '<verified JSON>' --report
 
 ### 网络搜索工具
 
-由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-**工具优先级**（基于上市地点）：
+**收入投资分析场景下的搜索选型**：
+- A股分红公告/分红政策：anysearch 主 + doubao 辅，须从交易所官方披露确认
+- 港股/美股分红历史：港股 doubao + tavily 双源；美股 exa + doubao 双源
+- 分红政策/指引变更：doubao --need-content 主 + anysearch 辅，抓取公告正文做精确解读
+- 税务/预扣税/协定税率：doubao --finance 主 + anysearch 辅，须标注司法管辖区和生效日期
+- 收益陷阱/削减信号：exa --type deep 主 + doubao 辅，深度检索分析师质疑和削减先兆
 
-| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
-|---------|-----------|------------|------|
-| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
-| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
-
-**搜索规范**：
-- 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-- 分红公告须从交易所官方披露确认
-- 非境内上市公司须 Doubao + Tavily 双源验证
+**搜索规范**（收入投资分析特有）：
+- 时效性优先：使用 `--time-range month/week` 限制时间范围，分红公告须覆盖最近一个除息日
+- 双源验证：港股 doubao + tavily；美股 exa + doubao；A股 anysearch + doubao
+- 分红政策变更须从交易所官方披露确认，不得仅依赖第三方汇总
+- 税务信息须标注司法管辖区和生效日期，协定税率因个人情况而异
 - 关键信息缺失时标注"信息不足"，不得用推测填充
 
 **重要约束**：
-- 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
 - 估值数据须使用 `financial_rigor.py` 校验，禁止 LLM 心算
 - 关键财务数据须至少两个来源交叉验证
-- 港股/美股公司须 Doubao + Tavily 双源验证
 
 ---
 

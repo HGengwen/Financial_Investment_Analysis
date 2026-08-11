@@ -91,22 +91,21 @@ python tools/common/fx_rate.py --code USDCNY   # 1美元=x人民币
 
 **网络信息获取**（分红公告、税务政策等）：
 
-主搜索工具为 `doubao_search.py`（火山引擎，支持 `--finance` 金融定向 + `--need-content` 正文抓取），备选工具为 `tavily_search.py`（深度内容）和 `web_search.py`（多源视角）。`exa_search.py` 适用于语义检索深度研究报告。
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-| 场景 | 主工具 | 备选工具（主工具结果不足时启用） | 说明 |
-|------|--------|-------------------------------|------|
-| A股分红公告 | `doubao_search.py --finance` | `web_search.py` | 须从交易所官方披露确认 |
-| 港股/美股分红历史 | `doubao_search.py --finance` | `tavily_search.py` + `web_search.py` | 非境内上市须双源验证 |
-| 分红政策/指引变更 | `doubao_search.py --need-content` | `tavily_search.py` | 抓取公告正文做精确解读 |
-| 税务/预扣税/协定税率 | `doubao_search.py --finance` | `web_search.py` | 须标注司法管辖区和生效日期 |
-| 收益陷阱/削减信号 | `doubao_search.py` | `exa_search.py --type deep` | 深度检索分析师质疑和削减先兆 |
+**收入投资分析场景下的搜索选型**：
+- A股分红公告/分红政策：anysearch 主 + doubao 辅，须从交易所官方披露确认
+- 港股/美股分红历史：港股 doubao + tavily 双源；美股 exa + doubao 双源
+- 分红政策/指引变更：doubao --need-content 主 + anysearch 辅，抓取公告正文做精确解读
+- 税务/预扣税/协定税率：doubao --finance 主 + anysearch 辅，须标注司法管辖区和生效日期
+- 收益陷阱/削减信号：exa --type deep 主 + doubao 辅，深度检索分析师质疑和削减先兆
 
-**使用规范**：
-- 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-- 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
-- 非境内上市公司须 Doubao + Tavily 双源验证
+**搜索规范**（收入投资分析特有）：
+- 时效性优先：使用 `--time-range month/week` 限制时间范围，分红公告须覆盖最近一个除息日
+- 双源验证：港股 doubao + tavily；美股 exa + doubao；A股 anysearch + doubao
+- 分红政策变更须从交易所官方披露确认，不得仅依赖第三方汇总
+- 税务信息须标注司法管辖区和生效日期，协定税率因个人情况而异
 - 关键信息缺失时标注"信息不足"，不得用推测填充
-- 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
 
 ---
 

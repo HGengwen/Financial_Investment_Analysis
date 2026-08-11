@@ -43,6 +43,7 @@ Usage:
 """
 
 import argparse
+import io
 import json
 import os
 import re
@@ -815,6 +816,11 @@ class CnInfoReportDownloader:
 
 def main():
     """命令行入口函数."""
+    # Windows GBK 控制台兼容：确保 emoji 和 Unicode 字符能正常输出
+    if sys.stdout.encoding and sys.stdout.encoding.upper() not in ('UTF-8', 'UTF8'):
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    if sys.stderr.encoding and sys.stderr.encoding.upper() not in ('UTF-8', 'UTF8'):
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
     parser = argparse.ArgumentParser(
         description='获取A股股票股权结构数据',
         formatter_class=argparse.RawDescriptionHelpFormatter,

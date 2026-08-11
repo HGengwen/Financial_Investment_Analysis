@@ -13,6 +13,7 @@
 ```
 
 例如：
+
 - `/wechat-article 大模型OPD技术解读`
 - `/wechat-article Qwen3技术报告解读`
 - `/wechat-article 为什么巴菲特不买科技股`
@@ -25,10 +26,10 @@
 
 ### 三Agent协作架构
 
-| Agent | 职责 | 关注维度 |
-|-------|------|---------|
-| **作者Agent** | 写深度初稿 | 深度——对得起花时间读完的人 |
-| **编辑Agent** | 精修结构和表达 | 可读性——结构清晰、节奏好、不劝退 |
+| Agent               | 职责               | 关注维度                             |
+| ------------------- | ------------------ | ------------------------------------ |
+| **作者Agent** | 写深度初稿         | 深度——对得起花时间读完的人         |
+| **编辑Agent** | 精修结构和表达     | 可读性——结构清晰、节奏好、不劝退   |
 | **读者Agent** | 从目标受众视角审读 | 真的能看懂——目标读者不会在中途放弃 |
 
 ### 四阶段执行流程
@@ -40,34 +41,40 @@
 
 ### 文章定位五维度
 
-| 维度 | 默认值 |
-|------|--------|
-| 目标读者 | 有点技术背景但非该领域专家 |
-| 文章深度 | 中深度（有公式但要解释清楚） |
-| 文章长度 | 3000-4000字 |
-| 是否下载原始论文/资料 | 是 |
-| 写作风格 | 对话式（像写给聪明的朋友） |
+| 维度                  | 默认值                       |
+| --------------------- | ---------------------------- |
+| 目标读者              | 有点技术背景但非该领域专家   |
+| 文章深度              | 中深度（有公式但要解释清楚） |
+| 文章长度              | 3000-4000字                  |
+| 是否下载原始论文/资料 | 是                           |
+| 写作风格              | 对话式（像写给聪明的朋友）   |
 
 ---
 
 ## 使用示例
 
 ### 示例1：论文解读类文章
+
 ```
 /wechat-article 大模型OPD技术解读
 ```
+
 深度研究OPD技术，从论文PDF提取高清原图，产出3000-4000字的解读文章。
 
 ### 示例2：技术主题文章
+
 ```
 /wechat-article Qwen3技术报告解读
 ```
+
 并行启动研究Agent收集素材，作者写初稿，编辑读者并行审阅，定稿含LaTeX公式与配图。
 
 ### 示例3：投资主题文章
+
 ```
 /wechat-article 为什么巴菲特不买科技股
 ```
+
 研究巴菲特投资哲学与科技股特征，产出有数据支撑、有传播力的深度文章。
 
 ---
@@ -76,12 +83,12 @@
 
 报告将保存在以下位置：
 
-| 报告类型 | 文件路径 |
-|---------|---------|
+| 报告类型 | 文件路径                                                 |
+| -------- | -------------------------------------------------------- |
 | 技术主题 | `reports/AI产业研究/公众号-{主题关键词}-{YYYYMMDD}.md` |
-| 投资主题 | `reports/{公司名}/{公司名}-公众号-{YYYYMMDD}.md` |
-| 通用主题 | `reports/公众号-{主题关键词}-{YYYYMMDD}.md` |
-| 配图资源 | `assets/{主题简称}/fig{序号}-{描述}.png` |
+| 投资主题 | `reports/{公司名}/{公司名}-公众号-{YYYYMMDD}.md`       |
+| 通用主题 | `reports/公众号-{主题关键词}-{YYYYMMDD}.md`            |
+| 配图资源 | `assets/{主题简称}/fig{序号}-{描述}.png`               |
 
 ### 文章结构要求
 
@@ -146,59 +153,60 @@
 
 根据上市地点选择相应的工具：
 
-| 市场 | 工具 | 功能 | 命令示例 |
-|------|------|------|---------|
-| A股 | `tools/a_share/stock_info.py` | 股票信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
-| A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
-| A股 | `tools/a_share/stock_quote.py` | 历史股价与实时行情 | `python tools/a_share/stock_quote.py --code 601899` |
-| A股 | `tools/a_share/stock_equity.py` | 股权结构与财报下载 | `python tools/a_share/stock_equity.py --code 601899` |
-| 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
-| 港股 | `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
-| 港股 | `tools/hk_stock/stock_screen.py` | 港股质量筛选 | `python tools/hk_stock/stock_screen.py --code 00700` |
-| 美股 | `tools/us_stock/stock_info.py` | 美股信息查询 | `python tools/us_stock/stock_info.py --search Apple` |
-| 美股 | `tools/us_stock/stock_financial.py` | 美股财务指标 | `python tools/us_stock/stock_financial.py --code AAPL` |
-| 美股 | `tools/us_stock/stock_quote.py` | 美股行情数据 | `python tools/us_stock/stock_quote.py --code AAPL` |
+| 市场 | 工具                                  | 功能                      | 命令示例                                                       |
+| ---- | ------------------------------------- | ------------------------- | -------------------------------------------------------------- |
+| A股  | `tools/a_share/stock_info.py`       | 股票信息查询              | `python tools/a_share/stock_info.py --search 紫金矿业`       |
+| A股  | `tools/a_share/stock_financial.py`  | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899`      |
+| A股  | `tools/a_share/stock_quote.py`      | 历史股价与实时行情        | `python tools/a_share/stock_quote.py --code 601899`          |
+| A股  | `tools/a_share/stock_equity.py`     | 股权结构与财报下载        | `python tools/a_share/stock_equity.py --code 601899`         |
+| 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标        | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| 港股 | `tools/hk_stock/stock_quote.py`     | 港股历史K线               | `python tools/hk_stock/stock_quote.py --code 00700`          |
+| 港股 | `tools/hk_stock/stock_screen.py`    | 港股质量筛选              | `python tools/hk_stock/stock_screen.py --code 00700`         |
+| 美股 | `tools/us_stock/stock_info.py`      | 美股信息查询              | `python tools/us_stock/stock_info.py --search Apple`         |
+| 美股 | `tools/us_stock/stock_financial.py` | 美股财务指标              | `python tools/us_stock/stock_financial.py --code AAPL`       |
+| 美股 | `tools/us_stock/stock_quote.py`     | 美股行情数据              | `python tools/us_stock/stock_quote.py --code AAPL`           |
 
 **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
 **数据源**：东方财富、新浪财经、巨潮资讯（A股）；东方财富、新浪财经（港股）；yfinance（美股）
 
 详细使用说明请参考：
+
 - **A股工具**：[docs/A股工具使用指南.md](../../docs/A股工具使用指南.md)
 - **港股工具**：[docs/港股工具使用指南.md](../../docs/港股工具使用指南.md)
 - **美股工具**：[docs/美股工具使用指南.md](../../docs/美股工具使用指南.md)
 
 ### 网络搜索工具
 
-由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具收集素材。
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-**工具优先级**（基于主题涉及的市场）：
+**公众号文章场景下的搜索选型**：
 
-| 主题类型 | 主搜索工具 | 辅助搜索工具 | 说明 |
-|---------|-----------|------------|------|
-| A股相关主题 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
-| 港股/美股/国际主题 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
-| 技术/论文主题 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 建议多源互补 |
+- A股：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- 港股：`doubao --sites hkexnews.hk` 主 + `tavily` 辅；双源 doubao+tavily
+- 美股：`exa --type deep` 主 + `doubao` 辅；双源 exa+doubao
 
-**搜索规范**：
-- 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-- 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
-- 港股/美股/国际主题须 Doubao + Tavily 双源验证
-- 关键信息缺失时标注"信息不足"，不得用推测填充
-- 重要内容建议同时调用多个工具，互为补充
+**搜索规范**（公众号文章特有）：
+
+- 时效性优先：热点主题使用 `--time-range week/day` 限定最新进展
+- 双源验证按市场矩阵执行：A股 anysearch+doubao；港股 doubao+tavily；美股 exa+doubao
+- 引用数据须标注来源日期与发布主体，文章末尾"参考资料"须附原文链接
+- 技术/论文主题优先 `exa --type deep` 命中原文，避免二手转述失真
+- 信息缺口标注"信息不足 / 待确认"，不得用搜索片段补造数据或结论
 
 ### PDF文档内容提取（首选 pdf_extract.py）
 
 **文字与表格提取首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集；**高清图像渲染提取配图仍需使用 Poppler `pdftoppm`**（`pdf_extract.py` 不提供图像渲染能力）。
 
-| 工具 | 功能 | 命令示例 |
-|------|------|---------|
-| `pdf_extract.py` | 文字与表格提取（首选） | `python tools/common/pdf_extract.py markdown 论文.pdf --save-md --out-dir reports/pdf` |
-| `pdftotext` | 将PDF转换为纯文本（回退） | `pdftotext -layout 论文.pdf 论文.txt` |
-| `pdfinfo` | 获取PDF文档信息（回退） | `pdfinfo 论文.pdf` |
-| `pdftoppm` | 将PDF页面渲染为图像（配图/扫描件） | `pdftoppm -png -r 900 论文.pdf output/page` |
+| 工具               | 功能                               | 命令示例                                                                                 |
+| ------------------ | ---------------------------------- | ---------------------------------------------------------------------------------------- |
+| `pdf_extract.py` | 文字与表格提取（首选）             | `python tools/common/pdf_extract.py markdown 论文.pdf --save-md --out-dir reports/pdf` |
+| `pdftotext`      | 将PDF转换为纯文本（回退）          | `pdftotext -layout 论文.pdf 论文.txt`                                                  |
+| `pdfinfo`        | 获取PDF文档信息（回退）            | `pdfinfo 论文.pdf`                                                                     |
+| `pdftoppm`       | 将PDF页面渲染为图像（配图/扫描件） | `pdftoppm -png -r 900 论文.pdf output/page`                                            |
 
 **关键提示**：
+
 - 首选 `pdf_extract.py` 提取文字与表格；返回失败时才回退 Poppler（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
 - 论文解读类文章须用 `pdftoppm` 提取高清原图（≥500KB，900 DPI 起步）
 - 扫描版PDF无法用 `pdftotext` 提取文本，须用 `pdftoppm` 渲染为图像后人工核对
@@ -207,14 +215,15 @@
 
 ### 其他工具
 
-| 工具 | 功能 |
-|------|------|
+| 工具            | 功能                 |
+| --------------- | -------------------- |
 | Trae图片生成API | 非论文类文章配图生成 |
 
 **重要约束**：
+
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
 - 使用本地工具进行网络搜索和数据获取
-- 港股/美股/国际主题须 Doubao + Tavily 双源验证
+- 港股/美股/国际主题须按市场双源验证（港股 doubao+tavily；美股 exa+doubao）
 - 网络搜索须使用 `--time-range month/week` 限制时间范围，优先获取最新信息
 
 ---
@@ -244,7 +253,7 @@
 - 表格括号注释要精确，不用模糊的动宾短语
 - 先检查PDF类型（文本版 vs 扫描版），扫描版需要特殊处理
 - 从PDF提取的数据必须与其他来源交叉验证
-- 港股/美股/国际主题须 Doubao + Tavily 双源验证
+- 港股/美股/国际主题须按市场双源验证（港股 doubao+tavily；美股 exa+doubao）
 - 网络搜索须使用 `--time-range month/week` 限制时间范围，优先获取最新信息
 - 投资类文章的关键财务数据须使用 `financial_rigor.py` 验算，禁止 LLM 心算
 
@@ -252,7 +261,7 @@
 
 ## 局限性说明
 
-- **网络信息获取限制**：WebSearch/WebFetch 在中国大陆不可用，依赖本地工具获取信息
+- **网络信息获取限制**：网络搜索须使用本地五工具组合（详见 web-search-tools.md）
 - **图片生成质量**：AI生成的图片可能不符合预期，需要多次调整提示词
 - **论文PDF可得性**：部分论文可能需要付费或无法下载
 - **技术术语准确性**：对于非常专业的领域，可能需要领域专家审核

@@ -182,27 +182,25 @@
 
 ### 网络搜索工具
 
-由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-**工具优先级**（基于上市地点）：
+**投资论文漂移场景下的搜索选型**：
+- A股：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- 港股：`doubao --sites hkexnews.hk` 主 + `tavily` 辅；双源 doubao+tavily
+- 美股：`exa --type deep` 主 + `doubao` 辅；双源 exa+doubao
 
-| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
-|---------|-----------|------------|------|
-| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
-| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
-
-**搜索规范**：
-- 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-- 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
-- 非境内上市公司须 Doubao + Tavily 双源验证
-- 关键信息缺失时标注"信息不足"，不得用推测填充
+**搜索规范**（论文漂移检测特有）：
+- 时效性优先：使用 `--time-range` 限定新旧报告日期之间的区间，避免混入旧证据
+- 双源验证按市场矩阵执行：港股 doubao+tavily；美股 exa+doubao；A股 anysearch+doubao
+- 触发漂移的证据须标注来源日期与发布主体，措辞改写不算证据
+- 数值差异先用 `financial_rigor.py` 验算，再判定漂移方向
+- 信息缺口标注"信息不足 / 无法判断"，不得用搜索片段补造旧论文基线
 
 **重要约束**：
-- 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
-- 使用本地工具进行网络搜索和数据获取
+- 网络搜索须使用本地五工具组合（详见 [web-search-tools](../tools-scripts/web-search-tools.md)）
 - 所有数值变化必须使用 `financial_rigor.py` 精确计算，禁止 LLM 心算
 - 关键财务数据须至少两处独立来源交叉验证
-- 港股/美股公司须 Doubao + Tavily 双源验证
+- 港股 doubao+tavily、美股 exa+doubao 双源验证
 
 ---
 
@@ -229,7 +227,7 @@
 - 两份报告不是同一家公司时，停止并要求用户确认，不做跨公司漂移判断
 - 不预设立场：先摆数据 → 推逻辑 → 出结论
 - 网络搜索须使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-- 港股/美股公司须 Doubao + Tavily 双源验证，确保信息准确性
+- 港股/美股公司须按市场双源验证（港股 doubao+tavily；美股 exa+doubao），确保信息准确性
 
 ---
 

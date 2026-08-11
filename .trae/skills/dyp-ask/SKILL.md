@@ -222,22 +222,20 @@ disable-model-invocation: true
 
 ### 网络搜索工具
 
-由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-**工具优先级**（基于上市地点）：
+**段永平问答场景下的搜索选型**：
+- 本技能为问答型，通常不需要搜索；如需补充公司背景，按市场×场景矩阵选型
+- A股公司背景：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- 港股公司背景：`doubao --sites hkexnews.hk` 主 + `tavily` 辅（doubao+tavily 双源）
+- 美股公司背景：`exa --type deep` 主 + `doubao --finance` 辅（exa+doubao 双源）
 
-| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
-|---------|-----------|------------|------|
-| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
-| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
-
-**搜索规范**：
-- 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-- 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
-- 非境内上市公司须 Doubao + Tavily 双源验证
+**搜索规范**（段永平问答特有）：
+- 段永平强调"毛估估"，不需要精确数据；搜索结果仅辅助理解生意模式与企业文化，不作精确测算
+- 港股公司须 doubao + tavily 双源验证；美股公司须 exa + doubao 双源验证
+- 回答中引述段永平原话时，优先从其公开问答录、博客、雪球专栏获取，标注来源日期
+- 能力圈外的问题（高科技细节、医疗、政治）坦诚说"看不懂"，不依赖搜索强行作答
 - 关键信息缺失时标注"信息不足"，不得用推测填充
-
-**注意**：段永平强调"毛估估"，不需要精确数据。工具获取的数据仅供参考，重点在于理解生意模式和企业文化。
 
 ---
 

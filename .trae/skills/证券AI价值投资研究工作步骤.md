@@ -472,12 +472,32 @@
 | ----------------------------------- | --------------------------------------------- |
 | `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值校验、三情景估值） |
 | `tools/common/report_audit.py`    | 报告审核与数据抽检（准出流程）                |
-| `tools/common/web_search.py`      | 网络信息搜索（阿里云百炼，A 股/通用）         |
-| `tools/common/tavily_search.py`   | 网络信息搜索（港股/美股，质量更高）           |
+| `tools/common/fx_rate.py`        | 国际主要货币汇率（Akshare 优先 + yfinance 回退，19 货币对） |
+| `tools/common/commodity_price.py` | 大宗商品价格（Akshare 优先 + yfinance 回退，18 品种） |
+
+**网络搜索工具**（v3.0 五工具组合，详见 [web-search-tools](./tools-scripts/web-search-tools.md)）：
+
+| 工具                                | 角色定位                  | 适用场景                                |
+| ----------------------------------- | ------------------------- | --------------------------------------- |
+| `tools/common/anysearch.py`       | **A 股投研首选**           | A 股财报/研报/公告/判例/专利深查，每日 1000 次免费 |
+| `tools/common/doubao_search.py`   | **实时资讯/舆情首选**      | `--finance` 权威信源 / `--sites hkexnews.hk` 定向 / `--need-content` 正文 / 跨市场综合 |
+| `tools/common/exa_search.py`      | **美股深度研究首选**       | SEC filings、27K+ 美股全栈、`--type deep` 深度档 |
+| `tools/common/tavily_search.py`   | **港美股深度内容辅源**     | 管理层讨论、分析师点评（中文弱、国内网络不稳，不作主源） |
+| `tools/common/web_search.py`      | **仅阿里云生态/轻量验证兜底** | 移出默认组合，仅百炼生态轻量验证        |
+
+**市场×场景选型矩阵摘要**：
+
+| 市场 | 财报/研报/公告深查 | 实时新闻/舆情 | 双源验证 |
+|------|-------------------|--------------|---------|
+| A 股 | `anysearch --tag finance` 主 + `doubao --finance` 辅 | `doubao --finance` 主 + `anysearch` 辅 | `anysearch` + `doubao` 双主 |
+| 港股 | `doubao --sites hkexnews.hk --need-content` 主 + `tavily` 辅 | `doubao` 主 + `anysearch` 辅 | `doubao` + `tavily` |
+| 美股 | `exa --type deep` 主 + `tavily` 辅 | `doubao` 主 + `anysearch --zone intl` 辅 | `exa` + `doubao` |
+
+> 精确数值核验使用 `financial_rigor.py`（专用工具，不属搜索）。完整选型决策流程、命令速查、多源验证示例见 [web-search-tools](./tools-scripts/web-search-tools.md)。
 
 ### 全局约束
 
-1. **禁止使用 WebSearch 和 WebFetch**（中国大陆地区不可用）
+1. **禁止使用 Anthropic 官方 WebSearch 和 WebFetch**（中国大陆地区不可用），统一使用本地五工具组合（详见 [web-search-tools](./tools-scripts/web-search-tools.md)）
 2. **关键财务数据必须至少两个独立来源交叉验证**，误差 >1% 须标记
 3. **所有涉及计算的数据必须通过 `financial_rigor.py` 工具验算**，禁止 LLM 心算
 4. **报告发布前必须通过 `report_audit.py` 数据抽检**（准出流程）

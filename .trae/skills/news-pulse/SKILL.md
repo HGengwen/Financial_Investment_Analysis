@@ -263,38 +263,32 @@ disable-model-invocation: true
 
 ### 网络搜索工具
 
-由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-**工具优先级**（基于上市地点）：
+**新闻脉搏异动归因场景下的搜索选型**：
+- A股异动：实时新闻/舆情 → `doubao --finance` 主 + `anysearch` 辅；精确数值用 `financial_rigor.py`
+- 港股异动：披露易/公告 → `doubao --sites hkexnews.hk` 主 + `tavily` 辅；管理层/分析师 → `tavily` 主 + `doubao` 辅；双源 doubao+tavily
+- 美股异动：新闻/舆情 → `doubao` 主 + `anysearch --zone intl` 辅；双源 exa+doubao
 
-| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
-|---------|-----------|------------|------|
-| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
-| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
-
-**搜索工具能力**：
-
-| 工具 | 功能 | 命令示例 |
-|------|------|---------|
-| `tools/common/doubao_search.py` | 豆包搜索（推荐首选，支持财务/内容/导出/站点过滤） | `python tools/common/doubao_search.py "腾讯 监管 2026年7月" --finance --need-content --time-range week` |
-| `tools/common/tavily_search.py` | Tavily 搜索（非境内上市辅助，支持高级搜索） | `python tools/common/tavily_search.py "Apple AAPL latest news" --max-results 5` |
-| `tools/common/web_search.py` | 阿里云百炼搜索 | `python tools/common/web_search.py "紫金矿业 最新消息"` |
-
-**搜索规范**（必须遵守）：
-1. **时效性优先**：使用 `--time-range month/week` 限制时间范围，优先获取最新信息，避免使用过时数据
-2. **数据源日期**：搜索结果必须包含数据来源日期；过时数据须明确标注时效性说明
-3. **双源验证**：非境内上市公司须 Doubao + Tavily 双源验证
-4. **多角度搜索**：从公司事件、监管政策、行业动态、市场情绪等多维度收集信息
-5. **信息缺口标注**：关键信息缺失时标注"信息不足"，不得用推测填充
+**搜索规范**（新闻脉搏特有）：
+- 时效性优先：必用 `--time-range week/day` 限定侦察窗口，财报季可缩到 `day`，避免使用过时数据
+- 多维度并行：4 个 Agent 各自负责的维度（公司事件/监管/行业/情绪）须独立搜索，不可共享结果
+- 结果标注来源日期：每条事件须附日期+来源链接，过时数据须明确标注时效性说明
+- 双源验证：非境内上市关键异动因子须按市场矩阵双源验证（港股 doubao+tavily；美股 exa+doubao）
+- 信息缺口标注：C 级信息稀缺公司搜不到新闻时，须如实写"真因不明/数据不足"，不得用推测填充
 
 **重要内容（同时调用）**：
 
-对于港股/美股的重要侦察，建议**同时调用多个工具**，互为补充：
+对于港股/美股的重要异动侦察，建议按市场矩阵**同时调用双源工具**，互为补充：
 
 ```bash
-# 港股/美股：双源验证（并行执行）
-python tools/common/doubao_search.py "腾讯 监管 2026年7月" --finance --need-content --time-range week
-python tools/common/tavily_search.py "腾讯 监管 2026年7月" --max-results 5
+# 港股：doubao + tavily 双源验证（并行执行）
+python tools/common/doubao_search.py "腾讯 监管 2026年7月" --finance --sites hkexnews.hk --need-content --time-range week
+python tools/common/tavily_search.py "腾讯 管理层讨论 2026年7月" --max-results 5
+
+# 美股：exa + doubao 双源验证（并行执行）
+python tools/common/exa_search.py "AAPL earnings 2026 Q3" --type deep --max-results 8
+python tools/common/doubao_search.py "AAPL Q3 2026 analyst reactions" --finance --need-content --time-range week
 ```
 
 ---
@@ -310,7 +304,7 @@ python tools/common/tavily_search.py "腾讯 监管 2026年7月" --max-results 5
 7. **遵循客观性原则**——所有判断附数据来源，区分事实与观点
 8. **不替用户做决策**——给出归因和行动建议清单，但买卖决策由用户做
 9. **网络搜索时效性**：使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-10. **非境内上市双源验证**：港股/美股公司须 Doubao + Tavily 双源验证
+10. **非境内上市双源验证**：港股/美股公司须按市场双源验证（港股 doubao+tavily；美股 exa+doubao）
 
 ---
 

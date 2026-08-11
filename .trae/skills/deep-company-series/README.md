@@ -242,20 +242,20 @@ grep -r "<本机用户名>\|/Users/\|<个人身份信息>" reports/ | head
 
 ### 网络搜索工具
 
-由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-**工具优先级**（基于上市地点）：
+**深度公司系列场景下的搜索选型**：
+- A股公司（年报/研报/公告深查）：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- 港股公司（披露易/公告/研报深度）：`doubao --sites hkexnews.hk --need-content` 主 + `tavily` 辅（doubao+tavily 双源）
+- 美股公司（SEC filings/财报/MD&A）：`exa --type deep` 主 + `doubao --finance` 辅（exa+doubao 双源）
+- 管理层讨论/分析师点评：港股 `tavily` 主 + `doubao` 辅；美股 `doubao --finance` 主 + `anysearch --zone intl` 辅
 
-| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
-|---------|-----------|------------|------|
-| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
-| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
-
-**搜索规范**：
-- 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-- 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
-- 非境内上市公司须 Doubao + Tavily 双源验证
-- 关键信息缺失时标注"信息不足"，不得用推测填充
+**搜索规范**（深度公司系列特有）：
+- 跨篇数字一致性：同一财报期数据须用同一工具组合验证，避免口径漂移
+- 港股公司须 doubao + tavily 双源验证；美股公司须 exa + doubao 双源验证
+- 历史持股比例、SBC、Non-IFRS 口径等关键数据须从财报原文（PDF 提取）核实，搜索结果仅作辅助
+- 第三方测算（QuestMobile/七麦等）口径差异大，搜索结果必须标注来源日期与口径
+- 未公开数据（如字节持股）给区间标"不可知"，禁止用搜索结果推测填充
 
 ---
 
@@ -276,7 +276,7 @@ grep -r "<本机用户名>\|/Users/\|<个人身份信息>" reports/ | head
 
 ## 注意事项
 
-- 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
+- 网络搜索须使用本地五工具组合（详见 [web-search-tools](../tools-scripts/web-search-tools.md)），美股深度数据须 exa + doubao 双源验证
 - 所有数据必须标注来源
 - 关键财务数据必须至少两个独立来源交叉验证
 - 市值必须手算校验：股价 × 总股本，与报告市值对比
@@ -284,7 +284,7 @@ grep -r "<本机用户名>\|/Users/\|<个人身份信息>" reports/ | head
 - PE/ROE 等指标用 `tools/common/financial_rigor.py` 精确计算
 - 不预设立场：先摆数据 → 推逻辑 → 出结论
 - 网络搜索须使用 `--time-range month/week` 限制时间范围
-- 港股/美股公司须 Doubao + Tavily 双源验证
+- 港股公司须 doubao + tavily 双源验证；美股公司须 exa + doubao 双源验证
 - 估值数据须使用 `financial_rigor.py` 校验，禁止 LLM 心算
 - 推送前必须用 grep 扫描本机用户名、`/Users/`、真实姓名等隐私字段
 - 报告写完后主动询问是否推送到 GitHub
@@ -351,9 +351,9 @@ git push
 
 ## 版本信息
 
-- **版本**：1.1.0
+- **版本**：1.2.0
 - **创建日期**：2026-07-22
-- **最后更新**：2026-08-07（同步 SKILL.md 内容：篇数适配、执行流程、修订意见流程、GitHub 操作、合规与隐私）
+- **最后更新**：2026-08-10（搜索工具章节按 v3.0 五工具矩阵重构，引用 web-search-tools.md）
 - **维护状态**：活跃维护
 
 ---

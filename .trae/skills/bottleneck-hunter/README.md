@@ -180,26 +180,20 @@ reports/bottleneck-map/AI基础设施/
 
 ### 网络搜索工具
 
-由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-**工具优先级**（基于上市地点）：
+**供应链瓶颈猎手场景下的搜索选型**：
+- A股供应链公司（财报/研报/公告深查）：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- 港股瓶颈公司（披露易/公告）：`doubao --sites hkexnews.hk` 主 + `tavily` 辅（双源 doubao+tavily）
+- 美股瓶颈公司（SEC filings/财报/MD&A）：`exa --type deep` 主 + `doubao` 辅（双源 exa+doubao）
+- 实时瓶颈信号/缺货/产能新闻：`doubao --finance` 主 + `anysearch` 辅
 
-| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
-|---------|-----------|------------|------|
-| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
-| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
-
-**搜索规范**：
-- 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-- 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
-- 非境内上市公司须 Doubao + Tavily 双源验证
-- 关键信息缺失时标注"信息不足"，不得用推测填充
-
-**重要约束**：
-- 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
-- 港股/美股重要研究建议同时调用 Doubao 和 Tavily 互为补充
-- 关键财务数据必须至少两个独立来源交叉验证
-- 估值数据须使用 `financial_rigor.py` 校验，禁止 LLM 心算
+**搜索规范**（供应链瓶颈猎手特有）：
+- 使用 `--time-range month/week` 严格限制时间范围，瓶颈信号时效性极强，过时产能数据须明确标注时效性说明
+- 港股公司须 doubao + tavily 双源验证；美股公司须 exa + doubao 双源验证，避免依赖单一信源
+- 必须搜索日韩台市场供应商（避免英文偏好遗漏 InP/SOI/特种玻纤等环节的日台厂商）
+- 关键瓶颈信号须从客户财报、行业研究、供应商公告多维度交叉验证，至少 2 个独立信源
+- 关键产能/市场份额/扩产时间表数据缺失时标注"信息不足"，不得用推测填充
 
 ---
 
@@ -215,7 +209,7 @@ reports/bottleneck-map/AI基础设施/
 8. **瓶颈真实≠投资机会** — 估值是硬门槛，PS>30x或仍在亏损就不是买点
 9. **遵循客观性原则** — 不预设看多，先数据后结论
 10. **网络搜索时效性** — 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-11. **非境内上市双源验证** — 港股/美股公司须 Doubao + Tavily 双源验证
+11. **非境内上市双源验证** — 港股/美股公司须按市场双源验证（港股 doubao+tavily；美股 exa+doubao）
 
 ---
 
@@ -230,7 +224,7 @@ reports/bottleneck-map/AI基础设施/
 - 必须执行强制反向验证（芒格式否定）
 - 估值检查不可跳过：市值、年收入、PS、PE 为必填项，不可用"待核实"跳过
 - 网络搜索须使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-- 港股/美股公司须 Doubao + Tavily 双源验证，确保信息准确性
+- 港股/美股公司须按市场双源验证（港股 doubao+tavily；美股 exa+doubao），确保信息准确性
 - 估值数据须使用 `financial_rigor.py` 校验，禁止 LLM 心算
 
 ---

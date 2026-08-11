@@ -195,25 +195,22 @@
 
 ### 网络搜索工具
 
-由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-**工具优先级**（基于上市地点）：
+**财报精读场景下的搜索选型**：
+- A股：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- 港股：`doubao --sites hkexnews.hk` 主 + `tavily` 辅；双源 doubao+tavily
+- 美股：`exa --type deep` 主 + `doubao` 辅；双源 exa+doubao
 
-| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
-|---------|-----------|------------|------|
-| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
-| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
-
-**搜索规范**：
-- 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-- 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
-- 非境内上市公司须 Doubao + Tavily 双源验证
-- 关键信息缺失时标注"信息不足"，不得用推测填充
+**搜索规范**（财报精读特有）：
+- 使用 `--time-range month/week` 限制时间范围，财报数据须标注报告期与发布日期
+- 港股公司须 doubao + tavily 双源验证；美股公司须 exa + doubao 双源验证
+- 优先读取一手财报原文（A股 `stock_equity.py` 下载 PDF，美股 SEC EDGAR，港股披露易），搜索结果仅作补充
+- 关键财务数据两源误差>1% 须明确标记，并标注"非原始财报，来自第三方汇总"
+- 管理层语气/承诺追踪须从电话会纪要原文提取，搜索摘要不得替代一手材料
 
 **重要约束**：
-- 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
 - A股财报必须优先使用 `stock_equity.py` 下载原始PDF
-- 港股/美股重要分析建议同时调用 Doubao 和 Tavily 互为补充
 - 估值数据须使用 `financial_rigor.py` 校验，禁止 LLM 心算
 - 关键财务数据须至少两个来源交叉验证
 

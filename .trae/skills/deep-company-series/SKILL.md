@@ -154,12 +154,12 @@ disable-model-invocation: true
 ### 阶段 1：调研（写 01-02 篇前完成）
 
 1. **阅读公司近 5 年年报、最新季报**
-   - A股公司：使用 `tools/a_share/stock_screen.py` 获取财务数据；使用 `tools/common/doubao_search.py`（首选）或 `tools/common/web_search.py` 搜索年报信息
-   - 港股公司：使用 `tools/hk_stock/stock_screen.py` 获取财务数据；使用 `tools/common/doubao_search.py`（首选）或 `tools/common/tavily_search.py`（双源验证）搜索年报信息
-   - 美股公司：使用 `tools/us_stock/stock_financial.py` 获取财务数据；使用 `tools/common/doubao_search.py`（首选）或 `tools/common/tavily_search.py`（双源验证）搜索年报信息
+   - A股公司：使用 `tools/a_share/stock_screen.py` 获取财务数据；使用 `tools/common/anysearch.py`（A股首选）+ `tools/common/doubao_search.py`（辅）搜索年报信息
+   - 港股公司：使用 `tools/hk_stock/stock_screen.py` 获取财务数据；使用 `tools/common/doubao_search.py` 主 + `tools/common/tavily_search.py` 辅（doubao+tavily 双源）搜索年报信息
+   - 美股公司：使用 `tools/us_stock/stock_financial.py` 获取财务数据；使用 `tools/common/exa_search.py` 主 + `tools/common/doubao_search.py` 辅（exa+doubao 双源）搜索年报信息
 
 2. **阅读至少 3 份独立卖方研报**（找共识 + 反共识）
-   - 使用 `tools/common/doubao_search.py`（首选）或 `tools/common/web_search.py` 搜索券商研报
+   - 使用 `tools/common/doubao_search.py --finance` 搜索券商研报，或 `tools/common/anysearch.py --tag finance` 检索垂直库
    - 或用户提供研报材料
 
 3. **使用 `/quality-screen` 先生成内部筛选底稿**
@@ -276,19 +276,17 @@ grep -r "<本机用户名>\|/Users/\|<个人身份信息>" reports/ | head
 
 ### 网络搜索工具
 
-由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-**工具优先级**（基于上市地点）：
-
-| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
-|---------|-----------|------------|------|
-| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
-| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
+**深度公司研究场景下的搜索选型**：
+- A股：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- 港股：`doubao --sites hkexnews.hk` 主 + `tavily` 辅；双源 doubao+tavily
+- 美股：`exa --type deep` 主 + `doubao` 辅；双源 exa+doubao
 
 **搜索规范**：
 - 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
 - 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
-- 非境内上市公司须 Doubao + Tavily 双源验证
+- 非境内上市须按市场双源验证（港股 doubao+tavily；美股 exa+doubao）
 - 关键信息缺失时标注"信息不足"，不得用推测填充
 
 ---
@@ -370,7 +368,7 @@ git push
 - A股/港股/美股财务数据优先使用本地工具
 - 网络信息需交叉验证，不要依赖单一来源
 - 网络搜索须使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-- 港股/美股公司须 Doubao + Tavily 双源验证，确保信息准确性
+- 港股/美股公司须按市场双源验证（港股 doubao+tavily；美股 exa+doubao），确保信息准确性
 - 估值数据须使用 `financial_rigor.py` 校验，禁止 LLM 心算
 - 报告写完后主动询问是否推送到GitHub
 

@@ -71,6 +71,7 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-ty
 下载的财报PDF文档提取文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
 
 **首选工具**：
+
 ```bash
 # 分类检测 PDF 类型
 python tools/common/pdf_extract.py detect cninfo_reports/002465_2025年报.pdf
@@ -115,15 +116,16 @@ pdftoppm -png cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年
 
 如果无法获取完整原文，按数据获取规范使用标准数据源拼凑，但必须标注"非原始财报，来自第三方汇总"，且关键数据两源误差>1%须标记。
 
-**注意**：WebSearch/WebFetch 在中国大陆不可用，请使用以下替代方案：
+**注意**：禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合（详见 [web-search-tools](../tools-scripts/web-search-tools.md)）。
 
-| 市场 | 工具 | 命令示例 |
-|------|------|---------|
-| A股数据 | `tools/a_share/stock_info.py`、`stock_financial.py`、`stock_quote.py`、`stock_equity.py` | `python tools/a_share/stock_financial.py --code 601899` |
-| 港股数据 | `tools/hk_stock/stock_financial.py`、`stock_quote.py` | `python tools/hk_stock/stock_financial.py --financial 00700` |
-| 美股数据 | `tools/us_stock/stock_info.py`、`stock_financial.py`、`stock_quote.py` | `python tools/us_stock/stock_financial.py --code AAPL` |
-| 网络搜索（A股） | `tools/common/doubao_search.py`（首选）、`tools/common/web_search.py` | `python tools/common/doubao_search.py "{公司名} 最新财报" --finance --need-content --time-range month` |
-| 网络搜索（港股/美股） | `tools/common/doubao_search.py`（首选）+ `tools/common/tavily_search.py`（双源验证） | `python tools/common/doubao_search.py "{公司名} 财报" --finance --need-content --time-range month` |
+| 市场             | 工具                                                                                             | 命令示例                                                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| A股数据          | `tools/a_share/stock_info.py`、`stock_financial.py`、`stock_quote.py`、`stock_equity.py` | `python tools/a_share/stock_financial.py --code 601899`                                                                |
+| 港股数据         | `tools/hk_stock/stock_financial.py`、`stock_quote.py`                                        | `python tools/hk_stock/stock_financial.py --financial 00700`                                                           |
+| 美股数据         | `tools/us_stock/stock_info.py`、`stock_financial.py`、`stock_quote.py`                     | `python tools/us_stock/stock_financial.py --code AAPL`                                                                 |
+| 网络搜索（A股）  | `anysearch --tag finance` 主 + `doubao --finance` 辅                                         | `python tools/common/doubao_search.py "{公司名} 最新财报" --finance --need-content --time-range month`                 |
+| 网络搜索（港股） | `doubao --sites hkexnews.hk` 主 + `tavily` 辅（doubao+tavily 双源）                          | `python tools/common/doubao_search.py "{公司名} 财报" --finance --sites hkexnews.hk --need-content --time-range month` |
+| 网络搜索（美股） | `exa --type deep` 主 + `doubao --finance` 辅（exa+doubao 双源）                              | `python tools/common/exa_search.py "{TICKER} 10-K earnings" --type deep`                                               |
 
 ### 第二步：核心财务数据提取与验证
 
@@ -299,6 +301,7 @@ python tools/common/report_audit.py verdict \
 **【准出】** 全部通过 → 发布；**【打回】** 有不通过 → 修正后重审。
 
 **Windows 兼容说明**：本工作流在 Windows 环境下运行时，注意以下事项：
+
 - 不要使用 `/tmp/` 路径保存临时文件（Windows 无此目录），应使用 `%TEMP%` 环境变量或当前工作目录
 - 不要使用 `2>/dev/null` 重定向 stderr，应使用 `2>$null`（PowerShell）
 - 不要使用 `tr -d '\r'` 等 Unix 命令，直接在 Python 中处理换行符
@@ -312,23 +315,24 @@ python tools/common/report_audit.py verdict \
 
 根据上市地点选择相应的工具：
 
-| 市场 | 工具 | 功能 | 命令示例 |
-|------|------|------|---------|
-| A股 | `tools/a_share/stock_info.py` | 股票信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
-| A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
-| A股 | `tools/a_share/stock_quote.py` | 历史股价与实时行情 | `python tools/a_share/stock_quote.py --code 601899` |
-| A股 | `tools/a_share/stock_equity.py` | 股权结构与财报下载 | `python tools/a_share/stock_equity.py --code 601899` |
-| 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
-| 港股 | `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
-| 美股 | `tools/us_stock/stock_info.py` | 美股信息查询 | `python tools/us_stock/stock_info.py --search Apple` |
-| 美股 | `tools/us_stock/stock_financial.py` | 美股财务指标 | `python tools/us_stock/stock_financial.py --code AAPL` |
-| 美股 | `tools/us_stock/stock_quote.py` | 美股行情数据 | `python tools/us_stock/stock_quote.py --code AAPL` |
+| 市场 | 工具                                  | 功能                      | 命令示例                                                       |
+| ---- | ------------------------------------- | ------------------------- | -------------------------------------------------------------- |
+| A股  | `tools/a_share/stock_info.py`       | 股票信息查询              | `python tools/a_share/stock_info.py --search 紫金矿业`       |
+| A股  | `tools/a_share/stock_financial.py`  | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899`      |
+| A股  | `tools/a_share/stock_quote.py`      | 历史股价与实时行情        | `python tools/a_share/stock_quote.py --code 601899`          |
+| A股  | `tools/a_share/stock_equity.py`     | 股权结构与财报下载        | `python tools/a_share/stock_equity.py --code 601899`         |
+| 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标        | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| 港股 | `tools/hk_stock/stock_quote.py`     | 港股历史K线               | `python tools/hk_stock/stock_quote.py --code 00700`          |
+| 美股 | `tools/us_stock/stock_info.py`      | 美股信息查询              | `python tools/us_stock/stock_info.py --search Apple`         |
+| 美股 | `tools/us_stock/stock_financial.py` | 美股财务指标              | `python tools/us_stock/stock_financial.py --code AAPL`       |
+| 美股 | `tools/us_stock/stock_quote.py`     | 美股行情数据              | `python tools/us_stock/stock_quote.py --code AAPL`           |
 
 **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
 **数据源**：东方财富、新浪财经、巨潮资讯（A股）；东方财富、新浪财经（港股）；yfinance（美股）
 
 详细使用说明请参考：
+
 - **A股工具**：[docs/A股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/A股工具使用指南.md)
 - **港股工具**：[docs/港股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/港股工具使用指南.md)
 - **美股工具**：[docs/美股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/美股工具使用指南.md)
@@ -338,14 +342,15 @@ python tools/common/report_audit.py verdict \
 
 财报精读的核心数据来源是一手财报PDF。A股使用 `tools/a_share/stock_equity.py` 下载：
 
-| 功能 | 命令示例 |
-|------|---------|
-| 下载年报 | `python tools/a_share/stock_equity.py --code 601899 --download-report --report-type annual` |
-| 下载半年报 | `python tools/a_share/stock_equity.py --code 601899 --download-report --report-type semiannual` |
-| 下载季报 | `python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly` |
-| 股权结构数据 | `python tools/a_share/stock_equity.py --code 601899` |
+| 功能         | 命令示例                                                                                          |
+| ------------ | ------------------------------------------------------------------------------------------------- |
+| 下载年报     | `python tools/a_share/stock_equity.py --code 601899 --download-report --report-type annual`     |
+| 下载半年报   | `python tools/a_share/stock_equity.py --code 601899 --download-report --report-type semiannual` |
+| 下载季报     | `python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly`  |
+| 股权结构数据 | `python tools/a_share/stock_equity.py --code 601899`                                            |
 
 **文件保存位置**：默认目录 `./cninfo_reports/`，命名格式：
+
 - 年报：`{股票代码}_{年份}年报.pdf`
 - 半年报：`{股票代码}_{年份}半年报.pdf`
 - 季报：`{股票代码}_{年份}{季度}季报.pdf`
@@ -356,56 +361,49 @@ python tools/common/report_audit.py verdict \
 
 提取文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，能自动还原财务附表），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
 
-| 工具 | 功能 | 命令示例 |
-|------|------|---------|
-| `pdf_extract.py` | PDF文字与表格提取（首选） | `python tools/common/pdf_extract.py markdown cninfo_reports/002465_2025年报.pdf --save-md` |
-| `pdftotext` | 将PDF转换为文本格式（回退） | `pdftotext cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年报.txt` |
-| `pdfinfo` | 查看PDF文件信息（回退） | `pdfinfo cninfo_reports/002465_2025年报.pdf` |
-| `pdftoppm` | 将PDF转换为图像（回退，用于扫描版PDF） | `pdftoppm -png cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年报` |
+| 工具               | 功能                                   | 命令示例                                                                                     |
+| ------------------ | -------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `pdf_extract.py` | PDF文字与表格提取（首选）              | `python tools/common/pdf_extract.py markdown cninfo_reports/002465_2025年报.pdf --save-md` |
+| `pdftotext`      | 将PDF转换为文本格式（回退）            | `pdftotext cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年报.txt`          |
+| `pdfinfo`        | 查看PDF文件信息（回退）                | `pdfinfo cninfo_reports/002465_2025年报.pdf`                                               |
+| `pdftoppm`       | 将PDF转换为图像（回退，用于扫描版PDF） | `pdftoppm -png cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年报`          |
 
 **注意**：首选 `pdf_extract.py`，返回失败时才回退 Poppler（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）；如果PDF无法提取内容，应在报告中标注"资料评级：B级"，说明扫描版PDF限制。
 
 ### 精确计算工具
 
-| 工具 | 功能 | 命令示例 |
-|------|------|---------|
+| 工具                                | 功能                                          | 命令示例                                                                         |
+| ----------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
 | `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证、交叉验证等） | `python tools/common/financial_rigor.py verify-valuation --pe 25.5 --eps 10.2` |
-| `tools/common/report_audit.py` | 报告数据抽检与审核（准出流程） | `python tools/common/report_audit.py extract --report reports/xxx.md` |
+| `tools/common/report_audit.py`    | 报告数据抽检与审核（准出流程）                | `python tools/common/report_audit.py extract --report reports/xxx.md`          |
 
 **财报精读中的应用**：
+
 - 收入和净利润交叉验证（至少2个来源）
 - 市值校验（股价 × 总股本）
 - 估值指标验算（PE、ROE等）
 
 ### 网络搜索工具
 
-由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-**工具优先级**（基于上市地点）：
+**财报精读场景下的搜索选型**：
 
-| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
-|---------|-----------|------------|------|
-| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
-| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
-
-**搜索工具能力**：
-
-| 工具 | 功能 | 命令示例 |
-|------|------|---------|
-| `tools/common/doubao_search.py` | 豆包搜索（推荐首选，支持财务/内容/导出/站点过滤） | `python tools/common/doubao_search.py "腾讯 2025Q4 财报" --finance --need-content --time-range month` |
-| `tools/common/tavily_search.py` | Tavily 搜索（非境内上市辅助，支持高级搜索） | `python tools/common/tavily_search.py "Apple AAPL latest earnings" --max-results 5` |
-| `tools/common/web_search.py` | 阿里云百炼搜索 | `python tools/common/web_search.py "紫金矿业 最新财报"` |
+- A股：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- 港股：`doubao --sites hkexnews.hk` 主 + `tavily` 辅；双源 doubao+tavily
+- 美股：`exa --type deep` 主 + `doubao` 辅；双源 exa+doubao
 
 **搜索规范**（必须遵守）：
+
 1. **时效性优先**：使用 `--time-range month/week` 限制时间范围，优先获取最新信息，避免使用过时数据
 2. **数据源日期**：搜索结果必须包含数据来源日期；过时数据须明确标注时效性说明
-3. **双源验证**：非境内上市公司须 Doubao + Tavily 双源验证
+3. **双源验证**：非境内上市须按市场双源验证（港股 doubao+tavily；美股 exa+doubao）
 4. **多角度搜索**：从财报原文、管理层发言、业绩电话会纪要、分析师提问等多维度收集信息
 5. **信息缺口标注**：关键信息缺失时标注"信息不足"，不得用推测填充
 
 **重要内容（同时调用）**：
 
-对于港股/美股的重要财报分析，建议**同时调用多个工具**，互为补充：
+对于港股/美股的重要财报分析，建议**同时调用多个搜索工具**，互为补充：
 
 ```bash
 # 港股/美股：双源验证（并行执行）
@@ -426,7 +424,7 @@ python tools/common/tavily_search.py "腾讯 2025Q4 财报 管理层讨论" --ma
 7. **客观分析**：严格区分"事实"与"观点"，不预设立场
 8. **呈现两面**：每个核心判断都必须附带反面论据
 9. **网络搜索时效性**：使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-10. **非境内上市双源验证**：港股/美股公司须 Doubao + Tavily 双源验证
+10. **非境内上市双源验证**：港股/美股公司须按市场双源验证（港股 doubao+tavily；美股 exa+doubao）
 
 ---
 
@@ -442,15 +440,15 @@ python tools/common/tavily_search.py "腾讯 2025Q4 财报 管理层讨论" --ma
 
 ## 与其他Skill的关系
 
-| Skill | 定位 | 何时用 |
-|-------|------|--------|
-| **`/earnings-review`（本Skill）** | **一手财报资料精读** | **季度财报发布后的深度解读** |
-| `/earnings-team` | 六Agent团队精读 + 公众号发布 | 重要公司的关键财报需多Agent协作时 |
-| `/investment-research` | 四大师综合投资研究 | 首次深度研究一家公司 |
-| `/investment-team` | 四Agent全面公司研究 | 首次研究一家公司 |
-| `/thesis-tracker` | 投资论文追踪 | 买入后的持续跟踪与论文检查 |
-| `/management-deep-dive` | 管理层纵深研究 | 管理层是核心投资逻辑时 |
-| `/portfolio-review` | 组合层面审视与优化 | 季度组合审视 |
+| Skill                                     | 定位                         | 何时用                             |
+| ----------------------------------------- | ---------------------------- | ---------------------------------- |
+| **`/earnings-review`（本Skill）** | **一手财报资料精读**   | **季度财报发布后的深度解读** |
+| `/earnings-team`                        | 六Agent团队精读 + 公众号发布 | 重要公司的关键财报需多Agent协作时  |
+| `/investment-research`                  | 四大师综合投资研究           | 首次深度研究一家公司               |
+| `/investment-team`                      | 四Agent全面公司研究          | 首次研究一家公司                   |
+| `/thesis-tracker`                       | 投资论文追踪                 | 买入后的持续跟踪与论文检查         |
+| `/management-deep-dive`                 | 管理层纵深研究               | 管理层是核心投资逻辑时             |
+| `/portfolio-review`                     | 组合层面审视与优化           | 季度组合审视                       |
 
 ---
 

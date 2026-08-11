@@ -126,10 +126,11 @@
 | `tools/common/commodity_price.py` | 大宗商品价格（Akshare 优先，yfinance 回退）     | `python tools/common/commodity_price.py --code cu,GC,CL`         |
 | `tools/common/pdf_extract.py`     | PDF文字与表格提取（基于 pdf-inspector）         | `python tools/common/pdf_extract.py markdown report.pdf`         |
 | `tools/common/report_audit.py`    | 报告审核工具                                    | `python tools/common/report_audit.py --help`                     |
-| `tools/common/doubao_search.py`   | 豆包搜索（火山引擎，推荐）                      | `python tools/common/doubao_search.py "腾讯 财报" --finance`     |
-| `tools/common/tavily_search.py`   | 网络信息搜索（Tavily MCP）                      | `python tools/common/tavily_search.py "腾讯 财报"`               |
-| `tools/common/web_search.py`      | 网络信息搜索（阿里云百炼）                      | `python tools/common/web_search.py "搜索关键词"`                 |
-| `tools/common/exa_search.py`      | Exa 语义搜索（AI 原生检索）                     | `python tools/common/exa_search.py "港股 深度研究"`              |
+| `tools/common/anysearch.py`      | AnySearch（**A 股投研首选**，23 类垂直库）       | `python tools/common/anysearch.py "紫金矿业 财报" --tag finance` |
+| `tools/common/doubao_search.py`   | 豆包搜索（**实时资讯/舆情首选**，火山引擎）     | `python tools/common/doubao_search.py "腾讯 财报" --finance`     |
+| `tools/common/exa_search.py`      | Exa（**美股深度研究首选**，SEC filings 直击原文）| `python tools/common/exa_search.py "AAPL 10-K" --type deep`      |
+| `tools/common/tavily_search.py`   | Tavily（港美股深度内容辅源）                     | `python tools/common/tavily_search.py "腾讯 财报"`               |
+| `tools/common/web_search.py`      | WebSearch（仅阿里云生态/轻量验证兜底）          | `python tools/common/web_search.py "搜索关键词"`                 |
 
 #### 5. 浏览器手动获取（补充）
 

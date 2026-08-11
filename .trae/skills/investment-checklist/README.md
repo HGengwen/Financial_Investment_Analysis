@@ -198,25 +198,18 @@ python tools/common/fx_rate.py --code USDCNY,HKDCNY
 
 ### 网络搜索工具
 
-由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-**工具优先级**（基于上市地点）：
+**投资清单场景下的搜索选型**：
+- A股：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- 港股：`doubao --sites hkexnews.hk` 主 + `tavily` 辅；双源 doubao+tavily
+- 美股：`exa --type deep` 主 + `doubao` 辅；双源 exa+doubao
 
-| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
-|---------|-----------|------------|------|
-| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
-| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
-
-**搜索规范**：
-- 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-- 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
-- 非境内上市公司须 Doubao + Tavily 双源验证
-- 关键信息缺失时标注"信息不足"，不得用推测填充
-
-**重要约束**：
-- 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
-- 港股/美股重要研究建议同时调用 Doubao 和 Tavily 互为补充
-- 关键财务数据必须至少两个独立来源交叉验证
+**搜索规范**（Checklist 特有）：
+- 使用 `--time-range month/week` 限制时间范围，避免使用过时数据
+- 从竞争格局、护城河、管理层、最新动态四个维度分别检索，不可依赖单次搜索
+- 关键信息缺失时标注"信息不足"，不得用推测填充——C级公司尤其重要
+- 非境内上市公司须按市场矩阵双源验证（港股 doubao+tavily；美股 exa+doubao）
 
 ---
 

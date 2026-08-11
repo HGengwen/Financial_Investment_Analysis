@@ -143,9 +143,9 @@ Layer 4：
 
 **重要约束**：
 
-- 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
-- 使用本地工具 `tools/common/doubao_search.py`（推荐首选）、`tools/common/tavily_search.py`（港股/美股辅助）或 `tools/common/web_search.py`（阿里云百炼API）
-- 港股/美股公司须 Doubao + Tavily 双源验证
+- 禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合（详见 [web-search-tools](../tools-scripts/web-search-tools.md)）
+- A股公司须 `anysearch --tag finance` 主 + `doubao --finance` 辅 双源验证（财报/研报/公告深查）
+- 港股公司须 doubao + tavily 双源验证；美股公司须 exa + doubao 双源验证
 - 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
 - 所有数据必须标注来源
 
@@ -201,12 +201,11 @@ B级瓶颈（有压力）：
 
 #### 4.1 对每个S级和A级瓶颈，找出所有相关上市公司
 
-搜索方式（优先使用 doubao_search.py，港股/美股须双源验证）：
+搜索方式（按市场×场景矩阵选型，详见 [web-search-tools](../tools-scripts/web-search-tools.md)）：
 
-- `python tools/common/doubao_search.py "{瓶颈环节} supplier listed company" --need-content --time-range month`
-- `python tools/common/doubao_search.py "{瓶颈环节} manufacturer stock" --need-content --time-range month`
-- `python tools/common/doubao_search.py "{瓶颈产品} market share company" --need-content --time-range month`
-- 港股/美股补充：`python tools/common/tavily_search.py "{瓶颈环节} supplier listed company" --max-results 5`
+- A股供应商：`python tools/common/anysearch.py "{瓶颈环节} supplier listed company" --tag finance` 主，`python tools/common/doubao_search.py "{瓶颈环节} manufacturer stock" --finance --need-content --time-range month` 辅
+- 港股供应商：`python tools/common/doubao_search.py "{瓶颈环节} supplier" --finance --sites hkexnews.hk --need-content --time-range month` 主，`python tools/common/tavily_search.py "{瓶颈环节} supplier" --max-results 5` 辅（doubao+tavily 双源）
+- 美股供应商：`python tools/common/exa_search.py "{瓶颈环节} supplier 10-K" --type deep` 主，`python tools/common/doubao_search.py "{瓶颈环节} market share company" --finance --need-content --time-range month` 辅（exa+doubao 双源）
 
 #### 4.2 初筛标准（快速过滤）
 
@@ -606,40 +605,20 @@ python tools/common/financial_rigor.py three-scenario \
 
 ### 网络搜索工具
 
-由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-**工具优先级**（基于上市地点）：
+**供应链瓶颈猎手场景下的搜索选型**：
+- A股供应链公司（财报/研报/公告深查）：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- 港股瓶颈公司（披露易/公告）：`doubao --sites hkexnews.hk` 主 + `tavily` 辅（双源 doubao+tavily）
+- 美股瓶颈公司（SEC filings/财报/MD&A）：`exa --type deep` 主 + `doubao` 辅（双源 exa+doubao）
+- 实时瓶颈信号/缺货/产能新闻：`doubao --finance` 主 + `anysearch` 辅
 
-| 上市地点  | 主搜索工具                        | 辅助搜索工具                                                       | 说明                 |
-| --------- | --------------------------------- | ------------------------------------------------------------------ | -------------------- |
-| A股       | `tools/common/doubao_search.py` | `tools/common/web_search.py`                                     | 豆包搜索为推荐首选   |
-| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
-
-**搜索工具能力**：
-
-| 工具                              | 功能                                              | 命令示例                                                                                                                  |
-| --------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `tools/common/doubao_search.py` | 豆包搜索（推荐首选，支持财务/内容/导出/站点过滤） | `python tools/common/doubao_search.py "AI基础设施 supply chain bottleneck" --finance --need-content --time-range month` |
-| `tools/common/tavily_search.py` | Tavily 搜索（非境内上市辅助，支持高级搜索）       | `python tools/common/tavily_search.py "optical module bottleneck 2026" --max-results 5`                                 |
-| `tools/common/web_search.py`    | 阿里云百炼搜索                                    | `python tools/common/web_search.py "光模块 短缺 产能"`                                                                  |
-
-**搜索规范**（必须遵守）：
-
-1. **时效性优先**：使用 `--time-range month/week` 限制时间范围，优先获取最新信息，避免使用过时数据
-2. **数据源日期**：搜索结果必须包含数据来源日期；过时数据须明确标注时效性说明
-3. **双源验证**：非境内上市公司（港股/美股）须 Doubao + Tavily 双源验证
-4. **多角度搜索**：从供应链新闻、公司公告、行业研究、客户财报等多维度收集信息
-5. **信息缺口标注**：关键信息缺失时标注"信息不足"，不得用推测填充
-
-**重要内容（同时调用）**：
-
-对于港股/美股的重要瓶颈分析，建议**同时调用多个工具**，互为补充：
-
-```bash
-# 港股/美股：双源验证（并行执行）
-python tools/common/doubao_search.py "ASML EUV bottleneck supply chain" --finance --need-content --time-range month
-python tools/common/tavily_search.py "ASML EUV bottleneck supply chain" --max-results 5
-```
+**搜索规范**（供应链瓶颈猎手特有）：
+- 使用 `--time-range month/week` 严格限制时间范围，瓶颈信号时效性极强，过时产能数据须明确标注时效性说明
+- 港股公司须 doubao + tavily 双源验证；美股公司须 exa + doubao 双源验证，避免依赖单一信源
+- 必须搜索日韩台市场供应商（避免英文偏好遗漏 InP/SOI/特种玻纤等环节的日台厂商）
+- 关键瓶颈信号须从客户财报、行业研究、供应商公告多维度交叉验证，至少 2 个独立信源
+- 关键产能/市场份额/扩产时间表数据缺失时标注"信息不足"，不得用推测填充
 
 ---
 
@@ -682,20 +661,20 @@ python tools/common/tavily_search.py "ASML EUV bottleneck supply chain" --max-re
 8. **瓶颈真实≠投资机会** — 一家公司可以坐在最紧的瓶颈上，但如果PS>30x或仍在亏损，当前价格就不是买点。**估值是硬门槛**
 9. **遵循客观性原则** — 不预设看多，先数据后结论
 10. **网络搜索时效性** — 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-11. **非境内上市双源验证** — 港股/美股公司须 Doubao + Tavily 双源验证
+11. **非境内上市双源验证** — 港股公司须 doubao + tavily 双源验证；美股公司须 exa + doubao 双源验证
 
 ---
 
 ## 注意事项
 
-- 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
+- 网络搜索须使用本地五工具组合（详见 [web-search-tools](../tools-scripts/web-search-tools.md)），美股深度数据须 exa + doubao 双源验证
 - 所有数据必须标注来源
 - 估计值必须明确标注"估计"
 - 关键财务数据必须至少来自两个独立来源进行交叉验证
 - 不预设立场：先摆数据 → 推逻辑 → 出结论
 - 呈现正反两面：每个核心判断附反面论据
 - 网络搜索须使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-- 港股/美股公司须 Doubao + Tavily 双源验证，确保信息准确性
+- 港股公司须 doubao + tavily 双源验证；美股公司须 exa + doubao 双源验证
 - 估值数据须使用 `financial_rigor.py` 校验，禁止 LLM 心算
 
 ---

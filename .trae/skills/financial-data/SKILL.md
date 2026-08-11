@@ -82,7 +82,7 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-ty
 - 从PDF提取的财务数据必须与其他来源交叉验证
 - 详细使用指南见下方"工具使用指南 → PDF文档内容提取"章节
 
-**其他说明**：由于网络限制，WebSearch/WebFetch 在中国大陆不可用，需使用本地工具替代。美股本地工具基于 yfinance 库，A股本地工具基于 akshare 库，港股本地工具基于东方财富/新浪财经接口。
+**其他说明**：网络搜索禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合（anysearch/doubao/exa/tavily/web_search），详见 [web-search-tools](../tools-scripts/web-search-tools.md)。美股本地工具基于 yfinance 库，A股本地工具基于 akshare 库，港股本地工具基于东方财富/新浪财经接口。
 
 ---
 
@@ -312,27 +312,25 @@ python tools/common/fx_rate.py --code USDCNY --start 2026-07-20 --end 2026-08-01
 
 ### 网络搜索工具
 
-由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-**工具优先级**（基于上市地点）：
-
-| 上市地点  | 主搜索工具                        | 辅助搜索工具                                                       | 说明                 |
-| --------- | --------------------------------- | ------------------------------------------------------------------ | -------------------- |
-| A股       | `tools/common/doubao_search.py` | `tools/common/web_search.py`                                     | 豆包搜索为推荐首选   |
-| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
+**财务数据验证场景下的搜索选型**：
+- A股：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- 港股：`doubao --sites hkexnews.hk` 主 + `tavily` 辅；双源 doubao+tavily
+- 美股：`exa --type deep` 主 + `doubao` 辅；双源 exa+doubao
 
 **搜索规范**：
 
 - 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
 - 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
-- 非境内上市公司须 Doubao + Tavily 双源验证
+- 非境内上市须按市场双源验证（港股 doubao+tavily；美股 exa+doubao）
 - 关键信息缺失时标注"信息不足"，不得用推测填充
 
 ---
 
 ## 局限性
 
-1. **网络限制**：WebSearch/WebFetch 在中国大陆不可用，美股数据需通过浏览器手动获取
+1. **网络限制**：网络搜索须使用本地五工具组合（详见 web-search-tools.md），美股数据需通过浏览器手动获取
 2. **数据源覆盖**：本地工具主要覆盖A股和港股，美股数据源较少
 3. **实时性**：本地工具数据可能滞后1-2天，最新财报建议查原始来源
 4. **港股接口稳定性**：东方财富港股接口在中国大陆网络连接不稳定（非地理封锁），工具已内置重试机制

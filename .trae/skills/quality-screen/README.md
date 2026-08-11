@@ -146,7 +146,7 @@ A股/港股/美股的行情、财务、信息查询工具的完整命令示例�
 
 - **财务计算验算**：使用 `tools/common/financial_rigor.py`，**禁止 LLM 心算** PE/ROE/市值等
 - **年报一手数据**：使用 `stock_equity.py --download-report` 下载年报，再按 [pdf-extraction](../tools-scripts/pdf-extraction.md) 流程提取（关键财务数据须从一手数据源交叉验证）
-- **网络信息搜索**：优先使用豆包搜索（`doubao_search.py --finance`），多源验证规范详见 [web-search-tools](../tools-scripts/web-search-tools.md)
+- **网络信息搜索**：禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合，完整选型矩阵见 [web-search-tools](../tools-scripts/web-search-tools.md)。去劣筛选场景选型：A股财报/研报 → `anysearch --tag finance` 主 + `doubao --finance` 辅；港股披露易/公告 → `doubao --sites hkexnews.hk` 主 + `tavily` 辅；美股 SEC filings → `exa --type deep` 主 + `doubao` 辅。美股深度数据须 exa + doubao 双源验证
 - **网络搜索必须优先获取最新数据**：搜索时须使用 `--time-range month` 或 `--time-range week` 限制时间范围，确保获取的信息和数据为最新。禁止采用过时数据（如使用2024年数据描述2026年行业现状），避免分析偏差。搜索结果须标注数据来源日期，过时数据须明确标注并说明时效性
 
 ### 公共工具规范
@@ -156,8 +156,11 @@ A股/港股/美股的行情、财务、信息查询工具的完整命令示例�
 
 **重要约束**：
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
-- 使用本地工具进行网络搜索和数据获取
-- **优先使用豆包搜索**（`doubao_search.py`），支持 `--finance`（财经定向）、`--need-content`（抓正文）、`--export`（导出报告）、`--sites`（定向 SEC/港交所披露易）
+- 使用本地工具进行网络搜索和数据获取，按市场选用主工具（详见 [web-search-tools](../tools-scripts/web-search-tools.md)）：
+  - **A股**：`anysearch.py --tag finance` 主 + `doubao_search.py --finance` 辅，双源 anysearch+doubao
+  - **港股**：`doubao_search.py --sites hkexnews.hk` 主 + `tavily_search.py` 辅，双源 doubao+tavily
+  - **美股**：`exa_search.py --type deep` 主 + `doubao_search.py --finance` 辅，双源 exa+doubao
+- `doubao_search.py` 支持 `--finance`（财经定向）、`--need-content`（抓正文）、`--export`（导出报告）、`--sites`（定向 SEC/港交所披露易）
 - **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
 ### 数据来源优先级

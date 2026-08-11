@@ -163,9 +163,8 @@ A股/港股/美股的行情、财务、信息查询工具的完整命令示例�
 详细的工具使用规范详见 `tools-scripts/` 目录下的公共技能文件，完整索引见 [公共工具索引](../tools-scripts/common-tools-guide.md)。
 
 **重要约束**：
-- 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
-- 使用本地工具进行网络搜索和数据获取
-- **优先使用豆包搜索**（`doubao_search.py`），支持 `--finance`（财经定向）、`--need-content`（抓正文）、`--export`（导出报告）、`--sites`（定向 SEC/港交所披露易）
+- 网络搜索须使用本地五工具组合（详见 [web-search-tools](../tools-scripts/web-search-tools.md)），美股深度数据须 exa + doubao 双源验证
+- 使用本地工具进行网络搜索和数据获取，按市场×场景矩阵选型（港股 doubao+tavily；美股 exa+doubao；A股 anysearch+doubao）
 - **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 - A股公司必须首先使用 `stock_equity.py` 下载原始财报PDF，**下载完成后方可启动4个研究Agent**
 - 4个 Agent 的核心财务数据必须使用 `financial_rigor.py` 验算，**禁止 LLM 心算** PE/ROE/市值等

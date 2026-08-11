@@ -302,8 +302,12 @@ disable-model-invocation: true
    - 港股：`tools/hk_stock/`（东方财富/新浪）
    - 美股：`tools/us_stock/`（yfinance，免费无需 token）
 2. **每个产业链环节至少分析 2-3 家头部公司**
-3. **重要分析优先使用豆包搜索（`doubao_search.py`）**：支持 `--finance`（财经定向+权威信源）、`--need-content`（抓正文）、`--export`（导出 Markdown）、`--sites`（定向 SEC/港交所披露易），详见 [web-search-tools](../tools-scripts/web-search-tools.md)
-3.1 **网络搜索必须优先获取最新数据**：搜索时须使用 `--time-range month` 或 `--time-range week` 限制时间范围，确保获取的信息和数据为最新。禁止采用过时数据（如使用2024年数据描述2026年行业现状），避免分析偏差。搜索结果须标注数据来源日期，过时数据须明确标注并说明时效性
+3. **重要分析须按市场选用搜索主工具（详见 [web-search-tools](../tools-scripts/web-search-tools.md)）**：
+   - **A股**：优先使用 `anysearch.py`（`--tag finance` 财报/研报/公告深查）为主，`doubao_search.py`（`--finance` 财经定向+权威信源）为辅
+   - **港股**：优先使用 `doubao_search.py` 为主（`--sites hkexnews.hk` 定向披露易、`--need-content` 抓正文、`--export` 导出 Markdown），`tavily_search.py` 为辅
+   - **美股**：优先使用 `exa_search.py` 为主（`--type deep` 深度档、SEC filings 直击原文），`doubao_search.py`（`--finance`）为辅
+   - **双源验证按市场矩阵执行**：A股 `anysearch`+`doubao`；港股 `doubao`+`tavily`；美股 `exa`+`doubao`
+     **网络搜索必须优先获取最新数据**：搜索时须使用 `--time-range month` 或 `--time-range week` 限制时间范围，确保获取的信息和数据为最新。禁止采用过时数据（如使用2024年数据描述2026年行业现状），避免分析偏差。搜索结果须标注数据来源日期，过时数据须明确标注并说明时效性
 4. **对每家公司标注"信息充分度"**（A/B/C级），让读者知道 AI 分析的可靠程度
 5. **关键财务数据须从年报 PDF 一手数据源交叉验证**：使用 `stock_equity.py --download-report` 下载年报，**首选** `tools/common/pdf_extract.py` 提取文字与表格（能自动还原财务附表），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集，完整流程见 [pdf-extraction](../tools-scripts/pdf-extraction.md) 与下方"PDF 年报提取示例"
 6. **大宗商品相关行业须获取价格数据**：涉及有色金属、贵金属、能源化工、新能源金属等产业链的行业，须使用 `tools/common/commodity_price.py` 获取大宗商品价格，辅助判断产业链上游成本压力与下游需求景气度
@@ -312,17 +316,20 @@ disable-model-invocation: true
 
 ### 网络搜索多源验证示例
 
-对于港股/美股的重要行业分析，建议以豆包搜索为主，Tavily 和 WebSearch 互为补充（详见 [web-search-tools](../tools-scripts/web-search-tools.md#重要内容多源验证推荐)）：
+按市场×场景矩阵执行双源验证（完整示例见 [web-search-tools](../tools-scripts/web-search-tools.md#重要内容多源验证推荐)）：
 
 ```bash
-# 主：豆包搜索（正文 + 权威度 + 报告导出）
-python tools/common/doubao_search.py "核电行业 全球竞争格局" --need-content --export
-
-# 补充1：Tavily（深度内容，适合管理层讨论、分析师点评）
+# 港股双源验证：doubao（披露易定向 + 正文）+ tavily（管理层讨论深度内容）
+python tools/common/doubao_search.py "核电行业 全球竞争格局" --need-content --sites hkexnews.hk --export
 python tools/common/tavily_search.py "核电行业 全球竞争格局 主要玩家"
 
-# 补充2：WebSearch（多源视角，交叉验证）
-python tools/common/web_search.py "核电行业 全球竞争格局 主要玩家"
+# 美股双源验证：exa（SEC filings 深度检索）+ doubao（新闻/舆情/分析师点评）
+python tools/common/exa_search.py "nuclear power industry 10-K" --type deep --max-results 10
+python tools/common/doubao_search.py "核电行业 全球竞争格局 主要玩家" --finance --need-content
+
+# A股双主验证：anysearch（垂直检索）+ doubao（财经定向 + 正文）
+python tools/common/anysearch.py "核电行业 财报" --tag finance
+python tools/common/doubao_search.py "核电行业 全球竞争格局 主要玩家" --finance --need-content
 ```
 
 ### 美股公司数据获取示例
@@ -555,6 +562,7 @@ python tools/common/report_audit.py verdict \
 **【准出】** 全部通过 -> 报告可发布；**【打回】** 有不通过 -> 修正后重审。
 
 **Windows 兼容说明**：本工作流在 Windows 环境下运行时，注意以下事项：
+
 - 不要使用 `/tmp/` 路径保存临时文件（Windows 无此目录），应使用 `%TEMP%` 环境变量或当前工作目录
 - 不要使用 `2>/dev/null` 重定向 stderr，应使用 `2>$null`（PowerShell）
 - 不要使用 `tr -d '\r'` 等 Unix 命令，直接在 Python 中处理换行符

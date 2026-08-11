@@ -177,18 +177,17 @@
 
 ### 网络搜索工具
 
-由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具：
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-| 工具 | 功能 | 适用场景 |
-|------|------|---------|
-| `tools/common/doubao_search.py` | 豆包搜索（推荐首选，支持 `--finance`/`--need-content`/`--export`/`--sites`/`--time-range`） | A股/港股/美股 |
-| `tools/common/tavily_search.py` | Tavily 搜索（非境内上市辅助） | 港股/美股 |
-| `tools/common/web_search.py` | 阿里云百炼搜索 | A股/港股/美股 |
+**管理层研究场景下的搜索选型**（按公司上市地点，引用 web-search-tools.md 矩阵）：
+- A股：管理层背景/公开发言/治理结构 → `anysearch --tag finance` 主 + `doubao --finance --need-content` 辅；员工评价/客户反馈 → `doubao` 主
+- 港股：管理层讨论/分析师点评 → `tavily` 主 + `doubao` 辅；公告/回购/薪酬 → `doubao --sites hkexnews.hk` 主 + `tavily` 辅；双源 doubao+tavily
+- 美股：SEC filings/CEO发言/治理结构 → `exa --type deep` 主 + `tavily` 辅；新闻/舆情/分析师点评 → `doubao` 主 + `anysearch --zone intl` 辅；双源 exa+doubao
 
-**搜索规范**：
+**搜索规范**（管理层研究特有）：
 - 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
 - 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
-- 管理层信息须覆盖最近12个月，非境内上市公司须 Doubao + Tavily 双源验证
+- 管理层信息须覆盖最近12个月，非境内上市公司须按市场矩阵双源验证（港股 doubao+tavily；美股 exa+doubao）
 
 ### PDF文档内容提取（首选 pdf_extract.py）
 
@@ -237,7 +236,7 @@
 - 市值必须手算校验：股价 × 总股本，与报告市值对比
 - 货币单位要明确（港币/人民币/美元），防止混淆
 - 网络搜索须使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-- 管理层信息须覆盖最近12个月，非境内上市公司须 Doubao + Tavily 双源验证
+- 管理层信息须覆盖最近12个月，非境内上市须按市场双源验证（港股 doubao+tavily；美股 exa+doubao）
 - A+H股公司需同时获取A股和港股数据，分析H股占比和A股/H股溢价
 - 港股+美股ADR公司需港股工具+美股工具/搜索综合分析
 - 三地上市公司（A股+港股+美股）信息披露更复杂，需仔细比对各市场披露差异

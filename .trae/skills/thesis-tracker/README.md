@@ -14,13 +14,14 @@
 
 支持三种输入格式：
 
-| 输入方式 | 示例 | 说明 |
-|---------|------|------|
-| 首次建立 | `/thesis-tracker 腾讯` | 不存在论文文件时，进入建立论文模式 |
-| 强制重建 | `/thesis-tracker 腾讯 建立论文` | 强制重新建立投资论文 |
-| 季度检查 | `/thesis-tracker 腾讯 季度检查` | 基于最新财报进行论文检查 |
+| 输入方式 | 示例                              | 说明                               |
+| -------- | --------------------------------- | ---------------------------------- |
+| 首次建立 | `/thesis-tracker 腾讯`          | 不存在论文文件时，进入建立论文模式 |
+| 强制重建 | `/thesis-tracker 腾讯 建立论文` | 强制重新建立投资论文               |
+| 季度检查 | `/thesis-tracker 腾讯 季度检查` | 基于最新财报进行论文检查           |
 
 例如：
+
 - `/thesis-tracker 腾讯`
 - `/thesis-tracker 茅台 建立论文`
 - `/thesis-tracker 英伟达 季度检查`
@@ -68,21 +69,27 @@
 ## 使用示例
 
 ### 示例1：首次建立论文
+
 ```
 /thesis-tracker 腾讯
 ```
+
 不存在 `reports/腾讯-thesis.md` 时，进入建立论文模式，输出包含核心论文、假设清单、红线清单、估值锚点的完整论文文件。
 
 ### 示例2：季度追踪检查
+
 ```
 /thesis-tracker 腾讯 季度检查
 ```
+
 基于最新财报数据，逐条检查核心假设与红线，输出论文健康度评分与持有/调仓建议。
 
 ### 示例3：强制重建论文
+
 ```
 /thesis-tracker 茅台 建立论文
 ```
+
 强制重新建立投资论文，覆盖原有论文文件。
 
 ---
@@ -91,10 +98,10 @@
 
 报告将保存在以下位置：
 
-| 报告类型 | 文件路径 |
-|---------|---------|
-| 投资论文 | `reports/{公司名}-thesis.md` |
-| 追踪检查报告 | 追加到 `reports/{公司名}-thesis.md` 的追踪记录表 |
+| 报告类型     | 文件路径                                          |
+| ------------ | ------------------------------------------------- |
+| 投资论文     | `reports/{公司名}-thesis.md`                    |
+| 追踪检查报告 | 追加到`reports/{公司名}-thesis.md` 的追踪记录表 |
 
 ### 论文文件结构
 
@@ -148,27 +155,28 @@
 ### 论文健康度评分
 
 **计算公式**：
+
 ```
 健康度 = 10 - (⚫破裂假设数×3) - (🔴受损假设数×2) - (🟡弱化假设数×1) - (红线触发数×5)
 最低1分，最高10分
 ```
 
-| 评分 | 含义 | 建议动作 |
-|:----:|------|---------|
-| 9-10 | 所有假设成立，论文比买入时更强 | 考虑加仓 |
-| 7-8 | 核心假设成立，个别边际弱化 | 继续持有 |
-| 5-6 | 1-2个假设受损，但核心逻辑未变 | 持有但提高警惕 |
-| 3-4 | 多个假设受损，论文基础动摇 | 考虑减仓 |
-| 1-2 | 红线触发或核心假设破裂 | 强烈建议卖出 |
+| 评分 | 含义                           | 建议动作       |
+| :--: | ------------------------------ | -------------- |
+| 9-10 | 所有假设成立，论文比买入时更强 | 考虑加仓       |
+| 7-8 | 核心假设成立，个别边际弱化     | 继续持有       |
+| 5-6 | 1-2个假设受损，但核心逻辑未变  | 持有但提高警惕 |
+| 3-4 | 多个假设受损，论文基础动摇     | 考虑减仓       |
+| 1-2 | 红线触发或核心假设破裂         | 强烈建议卖出   |
 
 ### 假设状态定义
 
-| 状态 | 含义 |
-|------|------|
-| 🟢 **成立** | 最新数据支持该假设 |
-| 🟡 **边际弱化** | 数据仍在可接受范围，但趋势不利 |
-| 🔴 **受损** | 数据明确不支持该假设 |
-| ⚫ **破裂** | 假设已被推翻 |
+| 状态                 | 含义                           |
+| -------------------- | ------------------------------ |
+| 🟢**成立**     | 最新数据支持该假设             |
+| 🟡**边际弱化** | 数据仍在可接受范围，但趋势不利 |
+| 🔴**受损**     | 数据明确不支持该假设           |
+| ⚫**破裂**     | 假设已被推翻                   |
 
 ---
 
@@ -178,22 +186,23 @@
 
 根据上市地点选择相应的工具：
 
-| 市场 | 工具 | 功能 | 命令示例 |
-|------|------|------|---------|
-| A股 | `tools/a_share/stock_info.py` | 股票信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
-| A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
-| A股 | `tools/a_share/stock_quote.py` | 历史股价 | `python tools/a_share/stock_quote.py --code 601899` |
-| 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
-| 港股 | `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
-| 美股 | `tools/us_stock/stock_info.py` | 美股信息查询 | `python tools/us_stock/stock_info.py --search Apple` |
-| 美股 | `tools/us_stock/stock_financial.py` | 美股财务指标 | `python tools/us_stock/stock_financial.py --code AAPL` |
-| 美股 | `tools/us_stock/stock_quote.py` | 美股行情数据 | `python tools/us_stock/stock_quote.py --code AAPL` |
+| 市场 | 工具                                  | 功能                      | 命令示例                                                       |
+| ---- | ------------------------------------- | ------------------------- | -------------------------------------------------------------- |
+| A股  | `tools/a_share/stock_info.py`       | 股票信息查询              | `python tools/a_share/stock_info.py --search 紫金矿业`       |
+| A股  | `tools/a_share/stock_financial.py`  | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899`      |
+| A股  | `tools/a_share/stock_quote.py`      | 历史股价                  | `python tools/a_share/stock_quote.py --code 601899`          |
+| 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标        | `python tools/hk_stock/stock_financial.py --financial 00700` |
+| 港股 | `tools/hk_stock/stock_quote.py`     | 港股历史K线               | `python tools/hk_stock/stock_quote.py --code 00700`          |
+| 美股 | `tools/us_stock/stock_info.py`      | 美股信息查询              | `python tools/us_stock/stock_info.py --search Apple`         |
+| 美股 | `tools/us_stock/stock_financial.py` | 美股财务指标              | `python tools/us_stock/stock_financial.py --code AAPL`       |
+| 美股 | `tools/us_stock/stock_quote.py`     | 美股行情数据              | `python tools/us_stock/stock_quote.py --code AAPL`           |
 
 **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
 **数据源**：东方财富、新浪财经、巨潮资讯（A股）；东方财富、新浪财经（港股）；yfinance（美股）
 
 详细使用说明请参考：
+
 - **A股工具**：[docs/A股工具使用指南.md](../../docs/A股工具使用指南.md)
 - **港股工具**：[docs/港股工具使用指南.md](../../docs/港股工具使用指南.md)
 - **美股工具**：[docs/美股工具使用指南.md](../../docs/美股工具使用指南.md)
@@ -201,33 +210,35 @@
 
 ### 精确计算工具
 
-| 工具 | 功能 | 命令示例 |
-|------|------|---------|
+| 工具                                | 功能                                          | 命令示例                                                                         |
+| ----------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
 | `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证、三情景估值） | `python tools/common/financial_rigor.py verify-valuation --pe 25.5 --eps 10.2` |
-| `tools/common/report_audit.py` | 报告审核与数据抽检 | `python tools/common/report_audit.py extract --report reports/xxx.md` |
+| `tools/common/report_audit.py`    | 报告审核与数据抽检                            | `python tools/common/report_audit.py extract --report reports/xxx.md`          |
 
 ### 网络搜索工具
 
-由于官方 WebSearch/WebFetch 在中国大陆不可用，请使用本地网络搜索工具。
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-**工具优先级**（基于上市地点）：
+**投资论文追踪场景下的搜索选型**：
 
-| 上市地点 | 主搜索工具 | 辅助搜索工具 | 说明 |
-|---------|-----------|------------|------|
-| A股 | `tools/common/doubao_search.py` | `tools/common/web_search.py` | 豆包搜索为推荐首选 |
-| 港股/美股 | `tools/common/doubao_search.py` | `tools/common/tavily_search.py` + `tools/common/web_search.py` | 非境内上市需双源验证 |
+- A股：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- 港股：`doubao --sites hkexnews.hk` 主 + `tavily` 辅；双源 doubao+tavily
+- 美股：`exa --type deep` 主 + `doubao` 辅；双源 exa+doubao
 
-**搜索规范**：
-- 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-- 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
-- 非境内上市公司须 Doubao + Tavily 双源验证
-- 关键信息缺失时标注"信息不足"，不得用推测填充
+**搜索规范**（论文追踪特有）：
+
+- 时效性优先：使用 `--time-range month/week` 限定到本次与上次检查之间的区间
+- 双源验证按市场矩阵执行：A股 anysearch+doubao；港股 doubao+tavily；美股 exa+doubao；
+- 红线触发证据须来自监管披露/公司公告/财报原文
+- 假设状态变化须标注证据来源日期，措辞变化不算状态变化
+- 信息缺口标注"信息不足"，不得用搜索片段补造假设验证结论
 
 **重要约束**：
-- 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
-- 使用本地工具进行网络搜索和数据获取
+
+- 网络搜索须使用本地五工具组合（详见 [web-search-tools](../tools-scripts/web-search-tools.md)）
 - 估值数据须使用 `financial_rigor.py` 校验，禁止 LLM 心算
 - 关键财务数据须至少两个来源交叉验证
+- 港股 doubao+tavily、美股 exa+doubao 双源验证
 
 ---
 
@@ -242,7 +253,7 @@
 7. **数据准确性** — 关键数据至少两个来源交叉验证
 8. **客观性原则** — 区分事实与观点，用数据支撑判断
 9. **网络搜索时效性** — 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-10. **非境内上市双源验证** — 港股/美股公司须 Doubao + Tavily 双源验证
+10. **非境内上市双源验证** — 港股/美股公司须按市场双源验证（港股 doubao+tavily；美股 exa+doubao）
 
 ---
 
@@ -256,7 +267,7 @@
 - 红线触发时在报告中用醒目标注，给出明确的行动建议
 - 不预设立场：先摆数据 → 推逻辑 → 出结论
 - 网络搜索须使用 `--time-range month/week` 限制时间范围，优先获取最新信息
-- 港股/美股公司须 Doubao + Tavily 双源验证，确保信息准确性
+- 港股/美股公司须按市场双源验证（港股 doubao+tavily；美股 exa+doubao），确保信息准确性
 
 ---
 

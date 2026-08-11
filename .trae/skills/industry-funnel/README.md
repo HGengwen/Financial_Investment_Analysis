@@ -207,19 +207,21 @@
 
 ### 网络信息获取
 
-| 工具 | 适用范围 | 命令示例 |
-|------|---------|---------|
-| `tools/common/doubao_search.py` | **推荐**：跨市场检索、财经定向、SEC公告 | `python tools/common/doubao_search.py "{关键词}" --finance --need-content --export` |
-| `tools/common/tavily_search.py` | 深度内容搜索（管理层讨论、分析师点评） | `python tools/common/tavily_search.py "{关键词}" --max-results 5` |
-| `tools/common/web_search.py` | 多源视角交叉验证 | `python tools/common/web_search.py "{关键词}"` |
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-**重要约束**：
-- 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
-- 使用本地工具进行网络搜索和数据获取
-- **优先使用豆包搜索**（`doubao_search.py`），支持 `--finance`（财经定向）、`--need-content`（抓正文）、`--export`（导出报告）、`--sites`（定向 SEC/港交所披露易）
-- 港股/美股重要分析建议以豆包搜索为主，Tavily 和 WebSearch 互为补充
-- **网络搜索必须优先获取最新数据**：搜索时须使用 `--time-range month` 或 `--time-range week` 限制时间范围，确保获取的信息和数据为最新。禁止采用过时数据（如使用2024年数据描述2026年行业现状），避免分析偏差。搜索结果须标注数据来源日期，过时数据须明确标注并说明时效性
+**行业漏斗筛选场景下的搜索选型**：
+- A股产业链/财报/研报/公告：anysearch 主 + doubao 辅
+- 港股披露易/公告/回购：doubao --sites hkexnews.hk 主 + tavily 辅
+- 港股管理层讨论/分析师点评：tavily 主 + doubao 辅
+- 美股 SEC filings/财报/MD&A：exa --type deep 主 + tavily 辅
+- 美股新闻/舆情/跨市场对比：doubao 主 + anysearch --zone intl 辅
+
+**搜索规范**（行业漏斗筛选特有）：
+- 时效性优先：使用 `--time-range month/week` 限制时间范围，禁止采用过时数据（如使用2024年数据描述2026年行业现状），搜索结果须标注数据来源日期
+- 双源验证：港股 doubao + tavily；美股 exa + doubao；A股 anysearch + doubao
+- 全市场扫描须覆盖 A股/港股/美股/国际市场，不遗漏重要标的
 - 关键数据必须至少两个独立来源交叉验证，误差>1%须标记
+- 关键信息缺失时标注"信息不足"，不得用推测填充
 
 ### PDF文档提取
 

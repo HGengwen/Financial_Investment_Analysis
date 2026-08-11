@@ -415,20 +415,23 @@ pdftoppm -png cninfo_reports/601899_2025年报.pdf cninfo_reports/601899_2025年
 
 ### 网络搜索多源验证示例
 
-对于港股/美股的重要研究，建议以豆包搜索为主，Tavily 和 WebSearch 互为补充：
+按市场×场景矩阵执行双源验证（港股 doubao+tavily；美股 exa+doubao；A股 anysearch+doubao），完整选型矩阵见 [web-search-tools](../tools-scripts/web-search-tools.md)：
 
 ```bash
-# 主：豆包搜索（正文 + 权威度 + 报告导出）
-python tools/common/doubao_search.py "腾讯 商业模式 护城河" --need-content --export
+# A股双主验证（anysearch 垂直检索 + doubao 财经定向正文）
+python tools/common/anysearch.py "紫金矿业 财报" --tag finance
+python tools/common/doubao_search.py "紫金矿业 商业模式 护城河" --finance --need-content --export
 
-# 补充1：Tavily（深度内容，适合管理层讨论、分析师点评）
-python tools/common/tavily_search.py "腾讯 商业模式 护城河"
+# 港股双源验证（doubao 披露易定向 + tavily 管理层讨论深度内容）
+python tools/common/doubao_search.py "腾讯 商业模式 护城河" --finance --sites hkexnews.hk --need-content --export
+python tools/common/tavily_search.py "腾讯 商业模式 管理层讨论"
 
-# 补充2：WebSearch（多源视角，交叉验证）
-python tools/common/web_search.py "腾讯 商业模式 护城河"
+# 美股双源验证（exa SEC filings 深度 + doubao 新闻/舆情/分析师点评）
+python tools/common/exa_search.py "AAPL 10-K business model moat" --type deep --max-results 10
+python tools/common/doubao_search.py "AAPL business model analyst reactions" --finance --need-content
 ```
 
-**WebSearch/WebFetch 在中国大陆不可用，所有网络信息必须使用本地工具。**
+**禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），所有网络信息必须使用本地五工具组合。**
 
 ---
 
