@@ -191,7 +191,7 @@
 
 ### PDF文档内容提取（首选 pdf_extract.py）
 
-提取文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
+提取文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，支持自动乱码检测 + OCR 回退），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
 
 | 工具 | 功能 |
 |------|------|
@@ -273,7 +273,7 @@
 
 - **版本**：1.1.0
 - **创建日期**：2026-07-22
-- **最后更新**：2026-08-06（PDF 文档提取首选 `pdf_extract.py`，Poppler 作为失败回退）
+- **最后更新**：2026-08-13（新增自动乱码检测 + OCR 回退功能）
 - **维护状态**：活跃维护
 
 ---

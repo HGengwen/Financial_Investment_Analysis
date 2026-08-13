@@ -77,7 +77,7 @@ def test_run_all_half_report(half_report_path: Path, tmp_path: Path) -> None:
     assert summary["markdown"]["length"] > 100
     assert 2 in summary["markdown"]["pages_with_tables"]
     # md 文件已写盘
-    md_file = tmp_path / "601899_2026半年报_markdown.md"
+    md_file = tmp_path / "601899_2026半年报.md"
     assert md_file.exists()
     assert summary["markdown"]["file"] == str(md_file)
 

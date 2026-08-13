@@ -67,19 +67,21 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-ty
 
 **PDF文档阅读工具（首选 pdf_extract.py）**：
 
-提取 PDF 文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，能自动还原财务附表），仅当返回失败（退出码非0 / success=false / 扫描件）时回退 Poppler 工具集。
+提取 PDF 文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，能自动还原财务附表），支持自动乱码检测 + OCR 回退；仅当返回失败（退出码非0 / success=false / 扫描件）时回退 Poppler 工具集。
 
 | 工具 | 功能 | 命令示例 |
 | ---- | ---- | -------- |
 | `pdf_extract.py` | PDF文字与表格提取（首选） | `python tools/common/pdf_extract.py markdown cninfo_reports/601899_2025年报.pdf --save-md` |
+| `pdf_extract.py --force-ocr` | 强制 OCR 提取（Adobe-CNS1 乱码时） | `python tools/common/pdf_extract.py text cninfo_reports/688235_2025年报.pdf --force-ocr --ocr-langs chi_tra+eng` |
 | `pdftotext` | 将PDF转换为纯文本（回退） | `pdftotext -layout cninfo_reports/601899_2025年报.pdf 601899_2025年报.txt` |
 | `pdfinfo` | 获取PDF文档信息（回退） | `pdfinfo cninfo_reports/601899_2025年报.pdf` |
 | `pdftoppm` | 将PDF渲染为图像（回退） | `pdftoppm -png -r 300 cninfo_reports/601899_2025年报.pdf output/page` |
 
 **注意**：
 - 首选 `pdf_extract.py` 提取文字与表格；返回失败时才回退 Poppler 工具集（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
+- `pdf_extract.py` 内置自动乱码检测，当 pdf-inspector 提取文本出现乱码（如 Adobe-CNS1 字体编码问题）且 tesseract OCR 可用时，自动触发 OCR 回退
+- **繁体中文 PDF**（如百济神州）需使用 `--force-ocr --ocr-langs chi_tra+eng` 指定繁体中文语言包
 - 扫描版PDF无法用 pdftotext 提取文本，须用 pdftoppm 渲染为图像后人工核对
-- 从PDF提取的财务数据必须与其他来源交叉验证
 - 详细使用指南见下方"工具使用指南 → PDF文档内容提取"章节
 
 **其他说明**：网络搜索禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合（anysearch/doubao/exa/tavily/web_search），详见 [web-search-tools](../tools-scripts/web-search-tools.md)。美股本地工具基于 yfinance 库，A股本地工具基于 akshare 库，港股本地工具基于东方财富/新浪财经接口。
@@ -248,7 +250,7 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-ty
 
 ### PDF文档内容提取（首选 pdf_extract.py）
 
-下载的财报PDF提取文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库），仅当返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集。完整规范见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)。
+下载的财报PDF提取文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，支持自动乱码检测 + OCR 回退），仅当返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集。完整规范见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)。
 
 #### 年报数据提取工作流
 
@@ -263,6 +265,10 @@ python tools/common/pdf_extract.py detect 601899_2025年报.pdf
 # 步骤3（首选）：提取含财务附表的 Markdown 并写盘
 python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --save-md --out-dir reports/pdf
 
+# 步骤3（OCR 回退）：若 pdf-inspector 提取乱码，自动触发 OCR 回退
+# 也可手动强制 OCR（适用于繁体中文 PDF 如百济神州）
+python tools/common/pdf_extract.py text 688235_2025年报.pdf --force-ocr --ocr-langs chi_tra+eng
+
 # 步骤3回退：若 pdf_extract.py 返回失败，回退 Poppler
 pdftotext -layout 601899_2025年报.pdf 601899_2025年报.txt   # 文本版
 grep -n "净利润\|营业收入\|毛利率\|ROE" 601899_2025年报.txt
@@ -274,8 +280,10 @@ pdftoppm -png -r 300 601899_2025年报.pdf output/page          # 扫描版
 #### 注意事项
 
 - **首选** `pdf_extract.py` 提取文字与表格；返回失败（退出码非0 / success=false / 扫描件）时回退 Poppler 工具集
+- **自动乱码回退**：`pdf_extract.py` 内置 CJK 占比检测，低于 30% 时自动触发 OCR 回退（需安装 tesseract）
+- **繁体中文 PDF**（如百济神州）：建议使用 `--force-ocr --ocr-langs chi_tra+eng` 指定繁体中文语言包
 - **扫描版PDF**：`pdf_extract.py` 会返回 scanned 标志；回退 Poppler 后无法用 `pdftotext` 提取文本，须用 `pdftoppm` 渲染为图像后人工核对（或配合 OCR 工具如 tesseract）
-- **工具安装**：首选需 `pip install pdf-inspector`；回退需安装 Poppler（Windows 需安装 Poppler for Windows；Linux/macOS 通常已预装）
+- **工具安装**：首选需 `pip install pdf-inspector`；OCR 回退需安装 tesseract + pytesseract + pymupdf；回退需安装 Poppler
 - **数据验证**：从PDF提取的数据必须与其他来源交叉验证，特别关注数字、单位、小数点位置
 - **文件大小**：高分辨率渲染会生成大量图像（每页1-5MB），建议先低分辨率预览定位页面后再高分辨率渲染
 

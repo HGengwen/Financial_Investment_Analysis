@@ -7,6 +7,8 @@ disable-model-invocation: true
 
 **首选手段**：使用 `tools/common/pdf_extract.py`（基于 pdf-inspector 库，底层 Rust）从 PDF 格式文档中提取文字和表格等数据和信息，支持文本版和扫描版 PDF 检测。
 
+**新增功能（v1.3.0）**：自动乱码检测 + OCR 回退。当检测到提取的文本为乱码（如 Adobe-CNS1 缺少 CMap 映射）且 tesseract OCR 可用时，自动触发 OCR 回退渲染提取。
+
 **回退手段**：仅当 `tools/common/pdf_extract.py` 返回失败时，才使用 **Poppler 工具集**（pdftotext、pdfinfo、pdftoppm）从 PDF 格式文档中提取数据和信息。
 
 **适用场景**：从下载的年报、季报、半年报等财务报告中提取财务数据和信息。
@@ -14,8 +16,11 @@ disable-model-invocation: true
 ## 快速开始
 
 ```
-# 首选：使用 pdf_extract.py 提取（含表格）
+# 首选：使用 pdf_extract.py 提取（含表格，自动 OCR 回退）
 python tools/common/pdf_extract.py markdown {PDF文件路径} --save-md
+
+# 强制 OCR 模式（当自动检测未触发时使用）
+python tools/common/pdf_extract.py text {PDF文件路径} --force-ocr
 
 # 回退：pdf_extract.py 失败时使用 Poppler
 pdftotext -layout {PDF文件路径} -
@@ -26,6 +31,7 @@ pdftotext -layout {PDF文件路径} -
 - `python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --save-md`
 - `python tools/common/pdf_extract.py all ./cninfo_reports/茅台_2024年报.pdf --save-md`
 - `python tools/common/pdf_extract.py detect reports/腾讯_2025Q2财报.pdf`
+- `python tools/common/pdf_extract.py text 688235_2025年报.pdf --force-ocr --ocr-langs chi_tra+eng`
 
 ## 设计理念
 
@@ -47,10 +53,15 @@ pdftotext -layout {PDF文件路径} -
 ### 依赖安装
 
 ```bash
+# 核心依赖：pdf-inspector（基于 Firecrawl 开源 Rust 库）
 pip install pdf-inspector
+
+# OCR 回退依赖（处理乱码/扫描版 PDF 时需安装）
+pip install pytesseract pymupdf pillow
+# 并安装 tesseract OCR 引擎（详见下方"使用 Poppler 的注意事项 → 4. 工具可用性"）
 ```
 
-> 当前工作环境已安装该库。若在其他环境使用，请先执行上述安装命令后再调用。
+> 当前工作环境已安装 pdf-inspector、pytesseract、pymupdf 等依赖。若在其他环境使用，请先执行上述安装命令后再调用。
 
 ### 支持的子命令
 
@@ -73,11 +84,18 @@ python tools/common/pdf_extract.py text 601899_2025年报.pdf
 # (3) 提取含财务附表的 Markdown（推荐，能还原表格）
 python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --save-md --out-dir reports/pdf
 
-# (4) 仅提取指定页（0 索引，逗号分隔）
+# (4) 仅提取指定页（0 索引，支持逗号分隔或范围语法）
 python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --pages 0,1
+python tools/common/pdf_extract.py markdown 688235_2025年报.pdf --pages 0-5,10,40-45
 
 # (5) 全流程（分类 + 纯文本 + Markdown）
 python tools/common/pdf_extract.py all 601899_2025年报.pdf --save-md
+
+# (6) 强制 OCR（绕过 pdf-inspector，直接使用 tesseract OCR）
+python tools/common/pdf_extract.py text 601899_2025年报.pdf --force-ocr
+
+# (7) 指定 OCR 语言包（如繁体中文）
+python tools/common/pdf_extract.py text 688235_2025年报.pdf --force-ocr --ocr-langs chi_tra+eng
 ```
 
 ### 输出与失败判定
@@ -92,7 +110,38 @@ python tools/common/pdf_extract.py all 601899_2025年报.pdf --save-md
 
 ### 扫描格式处理
 
-当 `detect` 判定 PDF 为扫描格式（`scanned`/`mixed`）或存在需 OCR 页面时，`pdf_extract.py` 会返回 `data.scanned.scanned = true` 且 `content` 为空。此时应**转交 Poppler 的 pdftoppm + OCR 流程**（见下文"回退到 Poppler 工具集"），而非继续尝试提取。
+当 `detect` 判定 PDF 为扫描格式（`scanned`/`mixed`）或存在需 OCR 页面时，`pdf_extract.py` 会返回 `data.scanned.scanned = true` 且 `content` 为空。此时优先使用 `--force-ocr` 参数尝试 OCR 提取：
+
+```bash
+# 优先：强制 OCR 提取（需安装 tesseract + pytesseract + pymupdf）
+python tools/common/pdf_extract.py text 报告.pdf --force-ocr
+
+# 或：转交 Poppler 的 pdftoppm + OCR 流程（见下文"回退到 Poppler 工具集"）
+```
+
+### 自动乱码检测与 OCR 回退（v1.3.0）
+
+当 `pdf_extract.py` 的非强制 OCR 模式（未加 `--force-ocr`）提取文本时，会自动检测以下情况并触发 OCR 回退：
+
+1. **Adobe-CNS1 字体映射失败**：繁体中文 PDF 使用 Adobe-CNS1 CMap 编码，但 pdf-inspector 缺少 CMap 数据文件，导致输出为其他语系字形（藏文、埃塞俄比亚文等）
+2. **其他字体编码不兼容**：PDF 内部字体编码无法被 pdf-inspector 正确解码
+
+**检测机制**：计算文本中 CJK 字符（中文）占比，低于 30% 时判定为乱码，自动回退到 OCR 提取。
+
+**注意**：此检测仅针对**非强制 OCR 模式**。使用 `--force-ocr` 时直接跳过检测，直接使用 OCR。
+
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `--force-ocr` | 强制使用 OCR 提取（绕过 pdf-inspector） | 不启用 |
+| `--ocr-langs` | 指定 tesseract 语言包组合 | `chi_sim+eng` |
+
+**语言包选择建议**：
+
+| 语言包 | 适用场景 |
+|--------|----------|
+| `chi_sim+eng`（默认） | 简体中文 + 英文（如紫金矿业年报） |
+| `chi_tra+eng` | 繁体中文 + 英文（如百济神州年报） |
+| `chi_sim+chi_tra+eng` | 简体 + 繁体 + 英文（混合文档） |
 
 ---
 
@@ -259,6 +308,26 @@ python tools/a_share/stock_financial.py --code 601899
 | **文本版PDF** | pdf_extract.py detect 返回 `text_based` | `pdf_extract.py markdown` | `pdftotext` | 直接提取文字/表格，用 grep 搜索关键词 |
 | **扫描版PDF** | pdf_extract.py detect 返回 `scanned`/`mixed` 或 `scanned=true` | `pdf_extract.py` 返回标志，转 Poppler | `pdftoppm + OCR` | 渲染为图像，用 OCR 工具识别或人工核对 |
 | **混合版PDF** | 部分页面可提取，部分需 OCR | `pdf_extract.py`（自动识别表格页） | `pdftotext + pdftoppm` | 区分处理，文本部分直接提取，扫描部分渲染 |
+| **OCR 大文档（300+页）** | 需强制 OCR 提取 | 先提取目录页（0-10页） | 按需提取关键章节 | 避免全量 OCR，节省时间；找到目录后再提取财务章节 |
+
+---
+
+### 性能优化建议：OCR 提取大文档分步处理
+
+OCR 渲染每页耗时约 1-2 秒，300+ 页年报全量 OCR 需 5-10 分钟。建议**分步提取**：
+
+```bash
+# 第一步：仅提取前 10 页（目录 + 财务摘要），定位章节位置
+python tools/common/pdf_extract.py text 年报.pdf --force-ocr --ocr-langs chi_tra+eng --pages 0-10
+
+# 第二步：根据目录确定财务报表章节页码，仅提取关键页
+python tools/common/pdf_extract.py markdown 年报.pdf --force-ocr --ocr-langs chi_tra+eng --pages 40-60,80-120 --save-md
+```
+
+**优势**：
+- 避免对整个大 PDF 全量 OCR，节省大量时间
+- 目录帮助定位关键章节，只提取需要的内容
+- 对于 300+ 页年报，通常只需要提取财务报表（50-80 页），可节省 70% 时间
 
 ---
 
@@ -339,6 +408,59 @@ pdftotext -v
 # Windows 下若提示找不到命令，检查 PATH 是否已包含 Poppler 安装目录
 where pdftotext
 ```
+
+### tesseract OCR 引擎安装
+
+**OCR 回退功能需要安装 tesseract OCR 引擎，Python 包已提前安装**（`pytesseract`, `pymupdf`, `pillow`），但需要单独安装引擎二进制文件：
+
+**Windows**：
+
+```bash
+# 方式A：从 GitHub 下载安装包
+# 1. 访问 https://github.com/tesseract-ocr/tesseract 下载 UB-Mannheim 编译的安装包
+# 2. 运行安装程序，默认安装路径：C:\Program Files\Tesseract-OCR\tesseract.exe
+# 3. 安装时勾选简体中文 (chi_sim) 和繁体中文 (chi_tra) 语言包
+
+# 方式B：choco 安装（推荐，需先安装 Chocolatey）
+choco install tesseract
+choco install tesseract-chi-sim  # 简体中文语言包
+choco install tesseract-chi-tra  # 繁体中文语言包
+
+# 方式C：winget 安装
+winget install UB-Mannheim.TesseractOCR
+```
+
+**Linux**：
+
+```bash
+# Ubuntu / Debian
+sudo apt-get install tesseract-ocr
+sudo apt-get install tesseract-ocr-chi-sim  # 简体中文
+sudo apt-get install tesseract-ocr-chi-tra  # 繁体中文
+
+# CentOS / RHEL
+sudo yum install tesseract tesseract-devel
+sudo yum install tesseract-langpack-chi-sim
+```
+
+**macOS**：
+
+```bash
+brew install tesseract
+brew install tesseract-lang  # 包含所有语言包
+```
+
+**验证安装**：
+
+```bash
+# 验证命令
+tesseract --version
+
+# 列出可用语言包
+tesseract --list-langs
+```
+
+**当前环境**：tesseract 已安装在 `C:\Program Files\Tesseract-OCR\tesseract.exe`，且已安装 `chi_sim` 和 `chi_tra` 语言包。
 
 ### 5. 数据验证原则
 
@@ -496,10 +618,10 @@ pdftotext -f 51 -l 100 -layout 报告.pdf 报告_第51-100页.txt
 
 ## 局限性说明
 
-1. **扫描版PDF处理限制**：扫描版PDF需要额外使用OCR工具，准确度依赖图像质量；`pdf_extract.py` 检测到扫描格式会返回标志并转交 Poppler
+1. **扫描版PDF处理限制**：扫描版PDF需要额外使用OCR工具，准确度依赖图像质量；`pdf_extract.py` 检测到扫描格式会返回标志，优先使用 `--force-ocr` 参数尝试 OCR 提取，失败后再转交 Poppler
 2. **表格数据提取困难**：`pdf_extract.py` 能自动还原多数财务附表，但极复杂表格仍可能需手动核对
 3. **数据验证要求**：提取的数据必须与其他来源交叉验证，不能单独使用
-4. **工具依赖性**：首选方式依赖 `pdf-inspector` 库（需 `pip install pdf-inspector`）；回退方式需安装 Poppler 工具集，Windows 用户需要额外配置
+4. **工具依赖性**：首选方式依赖 `pdf-inspector` 库（需 `pip install pdf-inspector`）；OCR 回退需安装 tesseract + pytesseract + pymupdf；回退方式需安装 Poppler 工具集，Windows 用户需要额外配置
 
 ---
 
@@ -512,20 +634,22 @@ pdftotext -f 51 -l 100 -layout 报告.pdf 报告_第51-100页.txt
 | **提取纯文本** | `pdf_extract.py text` | `pdftotext` | `python tools/common/pdf_extract.py text 年报.pdf` |
 | **全流程提取** | `pdf_extract.py all` | `pdftotext + pdftoppm` | `python tools/common/pdf_extract.py all 年报.pdf --save-md` |
 | **查看PDF信息** | `pdf_extract.py detect` | `pdfinfo` | `python tools/common/pdf_extract.py detect 年报.pdf` |
-| **处理扫描版PDF** | `pdf_extract.py`（返回标志转 Poppler） | `pdftoppm` | `python tools/common/pdf_extract.py detect 年报.pdf` |
+| **处理扫描版PDF** | `pdf_extract.py --force-ocr` | `pdftoppm` | `python tools/common/pdf_extract.py text 年报.pdf --force-ocr` |
+| **处理繁体中文PDF** | `pdf_extract.py --ocr-langs chi_tra+eng` | `pdftotext` | `python tools/common/pdf_extract.py text 年报.pdf --force-ocr --ocr-langs chi_tra+eng` |
+| **自动乱码回退** | `pdf_extract.py text`（自动） | `--force-ocr` | `python tools/common/pdf_extract.py text 年报.pdf` |
 | **搜索关键数据** | `pdf_extract.py markdown` | `pdftotext + grep` | `python tools/common/pdf_extract.py markdown 年报.pdf` |
-| **提取特定页面** | `pdf_extract.py markdown --pages` | `pdftotext -f -l` | `python tools/common/pdf_extract.py markdown 年报.pdf --pages 80,81` |
+| **提取特定页面** | `pdf_extract.py markdown --pages`（支持 `0-5,10,20-25` 范围语法） | `pdftotext -f -l` | `python tools/common/pdf_extract.py markdown 年报.pdf --pages 0-5,10,20-25` |
 | **批量OCR处理** | - | `tesseract` | `tesseract page.png output -l chi_sim` |
 
 ---
 
 ## 版本信息
 
-- **版本**：1.2.0
+- **版本**：1.3.0
 - **创建日期**：2026-07-22
-- **最后更新**：2026-08-06（首选 pdf_extract.py 提取，Poppler 作为失败回退）
+- **最后更新**：2026-08-13（新增自动乱码检测 + OCR 回退功能）
 - **维护状态**：活跃维护
-- **依赖工具**：首选 `pdf-inspector` 库（`tools/common/pdf_extract.py`）；回退 Poppler 工具集（pdftotext、pdfinfo、pdftoppm）
+- **依赖工具**：首选 `pdf-inspector` 库（`tools/common/pdf_extract.py`）；OCR 回退 tesseract + pytesseract + pymupdf；回退 Poppler 工具集（pdftotext、pdfinfo、pdftoppm）
 - **相关技能**：[A股数据获取](./a-share-data.md)、[财务计算与验证](./financial-calc.md)、[全局约束规范](./global-constraints.md)、[公共工具索引](./common-tools-guide.md)
 
 ---

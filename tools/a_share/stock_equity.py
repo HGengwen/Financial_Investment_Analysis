@@ -485,10 +485,11 @@ class StockEquityData:
         Returns:
             True 表示是完整版报告
         """
-        # 排除项：摘要、简版、英文版、自愿性披露公告（通常不含完整财报）
+        # 排除项：摘要、简版、英文版、自愿性披露公告、提示性公告（不含完整财报）
         exclude_keywords = [
             '摘要', '简版', '英文版', 'English',
-            '自愿性披露', '自愿披露'
+            '自愿性披露', '自愿披露',
+            '提示性', '披露提示', '更正', '补充'
         ]
         for keyword in exclude_keywords:
             if keyword in title_clean:
@@ -551,8 +552,15 @@ class StockEquityData:
                 continue
 
             # 如果需要完整版，检查是否为完整版
-            if require_full and not self._is_full_report(title_clean):
-                continue
+            if require_full:
+                # 标题排除：摘要、简版、英文版、提示性等
+                if not self._is_full_report(title_clean):
+                    continue
+                # 文件大小排除：API 返回的 adjunctSize 单位为 KB
+                # 完整版年报通常 > 1MB（1024KB），摘要版/提示性公告通常 < 500KB
+                adjunct_size = ann.get("adjunctSize", 0)
+                if isinstance(adjunct_size, (int, float)) and 0 < adjunct_size < 1024:
+                    continue
 
             # 提取年份和季度信息
             year_match = re.search(r'(\d{4})', title_clean)
@@ -730,14 +738,22 @@ class StockEquityData:
         pdf_filename = f"{self.code}_{year}{report_name}.pdf"
         pdf_path = os.path.join(save_dir, pdf_filename)
 
-        # 检查是否已下载
+        # 检查是否已下载（需验证文件大小，避免摘要版/提示性公告被误认为完整版）
+        # 完整版年报通常 > 1MB，摘要版通常 < 500KB
+        MIN_FULL_REPORT_SIZE = 1024 * 1024  # 1MB
         if os.path.exists(pdf_path):
-            self.api_results.append({
-                'api_name': f'财报已存在({pdf_path})',
-                'status': '成功',
-                'rows': 1
-            })
-            return pdf_path
+            file_size = os.path.getsize(pdf_path)
+            if file_size >= MIN_FULL_REPORT_SIZE:
+                self.api_results.append({
+                    'api_name': f'财报已存在({pdf_path}, {file_size/1024:.1f}KB)',
+                    'status': '成功',
+                    'rows': 1
+                })
+                return pdf_path
+            else:
+                # 文件过小，可能是摘要版，删除后重新下载
+                print(f"⚠️  检测到文件过小（{file_size/1024:.1f}KB < 1MB），可能是摘要版，将重新下载...")
+                os.remove(pdf_path)
 
         # 下载PDF
         try:

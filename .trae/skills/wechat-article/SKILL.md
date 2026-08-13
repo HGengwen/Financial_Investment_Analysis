@@ -318,7 +318,7 @@ python tools/common/tavily_search.py "Qwen3 technical report" --max-results 5
 
 ### PDF文档内容提取（首选 pdf_extract.py）
 
-在公众号文章写作中，常需从 PDF（论文、年报、技术报告）中提取文本内容和高清图表。**文字与表格提取首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集；**高清图像渲染提取配图仍需使用 Poppler `pdftoppm`**（`pdf_extract.py` 不提供图像渲染能力）。
+在公众号文章写作中，常需从 PDF（论文、年报、技术报告）中提取文本内容和高清图表。**文字与表格提取首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，支持自动乱码检测 + OCR 回退），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集；**高清图像渲染提取配图仍需使用 Poppler `pdftoppm`**（`pdf_extract.py` 不提供图像渲染能力）。
 
 #### 首选工具（pdf_extract.py）
 
@@ -326,6 +326,7 @@ python tools/common/tavily_search.py "Qwen3 technical report" --max-results 5
 |------|------|---------|
 | `pdf_extract.py` | 文字与表格提取（首选） | `python tools/common/pdf_extract.py markdown 论文.pdf --save-md --out-dir reports/pdf` |
 | `pdf_extract.py detect` | 分类检测 | `python tools/common/pdf_extract.py detect 论文.pdf` |
+| `pdf_extract.py --force-ocr` | 强制 OCR 提取（乱码时） | `python tools/common/pdf_extract.py text 论文.pdf --force-ocr --ocr-langs chi_sim+eng` |
 
 #### 文本内容提取工作流
 
@@ -336,6 +337,9 @@ python tools/common/pdf_extract.py detect 论文.pdf
 
 # 步骤2（首选）：提取 Markdown 并搜索关键内容
 python tools/common/pdf_extract.py markdown 论文.pdf --save-md --out-dir reports/pdf
+
+# 步骤2（OCR 回退）：若 pdf-inspector 提取乱码，自动触发 OCR 回退或手动强制 OCR
+python tools/common/pdf_extract.py text 论文.pdf --force-ocr --ocr-langs chi_sim+eng
 
 # 步骤2回退：若 pdf_extract.py 返回失败，回退 Poppler 提取文本
 pdftotext -layout 论文.pdf 论文.txt

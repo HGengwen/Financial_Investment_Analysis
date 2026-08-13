@@ -254,7 +254,7 @@ python tools/common/financial_rigor.py three-scenario \
 - ❓ **灰色地带** — 说明关键争议点是什么，投资者需要自行判断什么
 - N/A — 未上市/无法买入
 
-将完整报告写入 `reports/{公司名}-checklist-{YYYYMMDD}.md`
+将完整报告写入 `reports/{公司名}-checklist-{YYYYMMDD}.md`（单公司），或 `reports/{公司1}-{公司2}-...-checklist-{YYYYMMDD}.md`（多公司，文件名包含所有被分析公司名称，用 `-` 分隔）
 
 ---
 
@@ -354,7 +354,7 @@ python tools/common/financial_rigor.py three-scenario \
 ## 报告输出规范
 
 - **单公司报告**：`reports/{公司名}/{公司名}-checklist-{YYYYMMDD}.md`
-- **多公司对比报告**：`reports/多公司对比-checklist-{YYYYMMDD}.md`
+- **多公司对比报告**：`reports/{公司1}-{公司2}-...-checklist-{YYYYMMDD}.md`（文件名包含所有被分析公司名称，按输入顺序用 `-` 分隔，置于 reports/ 根目录）
 - 报告必须包含：交易所、板块、上市日期、上市年限等信息
 - 数据截止日期必须在报告头部明确标注
 

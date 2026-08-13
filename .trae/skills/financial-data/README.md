@@ -213,7 +213,7 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-ty
 python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly    # 季报
 ```
 
-下载的PDF保存于 `cninfo_reports/` 目录，命名格式：`{股票代码}_{年份}年报.pdf`。提取文字与表格**首选** `pdf_extract.py`，返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
+下载的PDF保存于 `cninfo_reports/` 目录，命名格式：`{股票代码}_{年份}年报.pdf`。提取文字与表格**首选** `pdf_extract.py`（支持自动乱码检测 + OCR 回退），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
@@ -312,7 +312,7 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-ty
 
 - **版本**：1.2.0
 - **创建日期**：2026-07-22
-- **最后更新**：2026-08-07（新增国际货币汇率获取工具 `fx_rate.py` 说明与跨币种实时汇率折算规范）
+- **最后更新**：2026-08-13（新增 pdf_extract.py 自动乱码检测 + OCR 回退功能）
 - **维护状态**：活跃维护
 
 ---

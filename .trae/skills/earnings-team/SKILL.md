@@ -59,7 +59,7 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-ty
 
 #### 1.2 PDF文档阅读工具
 
-下载的财报PDF文档提取文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
+下载的财报PDF文档提取文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，支持自动乱码检测 + OCR 回退），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
 
 **首选工具**：
 ```bash
@@ -68,6 +68,9 @@ python tools/common/pdf_extract.py detect cninfo_reports/002465_2025年报.pdf
 
 # 提取含财务附表的 Markdown 并写盘
 python tools/common/pdf_extract.py markdown cninfo_reports/002465_2025年报.pdf --save-md --out-dir reports/pdf
+
+# 强制 OCR 提取（适用于 pdf-inspector 提取乱码时，如 Adobe-CNS1 繁体中文 PDF）
+python tools/common/pdf_extract.py text cninfo_reports/688235_2025年报.pdf --force-ocr --ocr-langs chi_tra+eng
 ```
 
 **回退工具（Poppler 工具集，仅当 pdf_extract.py 返回失败时使用）**：
@@ -90,6 +93,8 @@ pdftoppm -png cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年
 **注意事项**：
 
 - 首选 `pdf_extract.py` 提取文字与表格；返回失败时才回退 Poppler 工具集（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
+- `pdf_extract.py` 内置自动乱码检测，当 pdf-inspector 提取文本出现乱码（如 Adobe-CNS1 字体编码问题）且 tesseract OCR 可用时，自动触发 OCR 回退
+- **繁体中文 PDF**（如百济神州）需使用 `--force-ocr --ocr-langs chi_tra+eng` 指定繁体中文语言包
 - 如果PDF无法提取信息和信息，应在报告中标注"资料评级：B级"，说明扫描版PDF限制
 
 #### 1.3 并行获取其他原始材料

@@ -516,7 +516,7 @@ AI无法和管理层面对面交流，但可以通过公开渠道的侧面信息
 
 ### PDF文档内容提取（首选 pdf_extract.py）
 
-下载的财报 PDF 提取管理层承诺、战略发言等内容时，**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，能自动还原财务附表与正文排版），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集。
+下载的财报 PDF 提取管理层承诺、战略发言等内容时，**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，能自动还原财务附表与正文排版，支持自动乱码检测 + OCR 回退），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集。
 
 **首选工具**：
 ```bash
@@ -525,6 +525,9 @@ python tools/common/pdf_extract.py detect 601899_2025年报.pdf
 
 # 提取 Markdown（含表格）并写盘
 python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --save-md --out-dir reports/pdf
+
+# 强制 OCR 提取（适用于 pdf-inspector 提取乱码时，如 Adobe-CNS1 繁体中文 PDF）
+python tools/common/pdf_extract.py text 688235_2025年报.pdf --force-ocr --ocr-langs chi_tra+eng
 ```
 
 **回退工具（Poppler 工具集，仅当 pdf_extract.py 返回失败时使用）**：
@@ -547,6 +550,9 @@ python tools/common/pdf_extract.py detect 601899_2025年报.pdf
 
 # 3（首选）：提取 Markdown 并搜索管理层承诺与战略发言
 python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --save-md --out-dir reports/pdf
+
+# 3（OCR 回退）：若 pdf-inspector 提取乱码，也可手动强制 OCR
+python tools/common/pdf_extract.py text 688235_2025年报.pdf --force-ocr --ocr-langs chi_tra+eng
 
 # 3回退：若 pdf_extract.py 返回失败，回退 Poppler
 pdftotext -layout 601899_2025年报.pdf 601899_2025年报.txt

@@ -124,7 +124,7 @@
 | `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值校验、三情景估值）   | `python tools/common/financial_rigor.py verify-valuation --help` |
 | `tools/common/fx_rate.py`         | 国际主要货币汇率（Akshare 优先，yfinance 回退） | `python tools/common/fx_rate.py --code USDCNY`                   |
 | `tools/common/commodity_price.py` | 大宗商品价格（Akshare 优先，yfinance 回退）     | `python tools/common/commodity_price.py --code cu,GC,CL`         |
-| `tools/common/pdf_extract.py`     | PDF文字与表格提取（基于 pdf-inspector）         | `python tools/common/pdf_extract.py markdown report.pdf`         |
+| `tools/common/pdf_extract.py`     | PDF文字与表格提取（基于 pdf-inspector，支持自动乱码检测 + OCR 回退） | `python tools/common/pdf_extract.py markdown report.pdf`         |
 | `tools/common/report_audit.py`    | 报告审核工具                                    | `python tools/common/report_audit.py --help`                     |
 | `tools/common/anysearch.py`      | AnySearch（**A 股投研首选**，23 类垂直库）       | `python tools/common/anysearch.py "紫金矿业 财报" --tag finance` |
 | `tools/common/doubao_search.py`   | 豆包搜索（**实时资讯/舆情首选**，火山引擎）     | `python tools/common/doubao_search.py "腾讯 财报" --finance`     |

@@ -83,7 +83,7 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-ty
 
 **流程检查点**：确认PDF文件下载成功后，方可启动后续的4个研究Agent。
 
-**PDF文档阅读工具**（首选 `pdf_extract.py`，返回失败时才回退 Poppler 工具集）：
+**PDF文档阅读工具**（首选 `pdf_extract.py`，支持自动乱码检测 + OCR 回退；失败时才回退 Poppler 工具集）：
 
 **首选工具**：
 ```bash
@@ -92,6 +92,12 @@ python tools/common/pdf_extract.py detect cninfo_reports/601899_2025年报.pdf
 
 # 提取含财务附表的 Markdown 并写盘
 python tools/common/pdf_extract.py markdown cninfo_reports/601899_2025年报.pdf --save-md --out-dir reports/pdf
+
+# 强制 OCR 提取（适用于 pdf-inspector 提取乱码时，如 Adobe-CNS1 繁体中文 PDF）
+python tools/common/pdf_extract.py text cninfo_reports/688235_2025年报.pdf --force-ocr --ocr-langs chi_tra+eng
+
+# 指定页码 OCR 提取（性能优化：先提取关键页，避免全量 OCR 377 页，支持范围语法）
+python tools/common/pdf_extract.py text cninfo_reports/688235_2025年报.pdf --force-ocr --ocr-langs chi_tra+eng --pages 0-5
 ```
 
 **回退工具（Poppler 工具集，仅当 pdf_extract.py 返回失败时使用）**：
@@ -111,7 +117,13 @@ pdftotext cninfo_reports/601899_2025年报.pdf cninfo_reports/601899_2025年报.
 pdftoppm -png cninfo_reports/601899_2025年报.pdf cninfo_reports/601899_2025年报
 ```
 
-**注意事项**：首选 `pdf_extract.py` 提取文字与表格；返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）。如果PDF无法提取信息，应在报告中标注"资料评级：B级"，说明扫描版PDF限制。
+**注意事项**：
+- 首选 `pdf_extract.py` 提取文字与表格（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
+- `pdf_extract.py` 内置自动乱码检测，当 pdf-inspector 提取文本出现乱码（如 Adobe-CNS1 字体编码问题）且 tesseract OCR 可用时，自动触发 OCR 回退
+- **繁体中文 PDF**（如百济神州）需使用 `--force-ocr --ocr-langs chi_tra+eng` 指定繁体中文语言包
+- **性能提示**：OCR 全量 377 页年报耗时较长，建议先 `detect` 确认页码，用 `--pages` 指定关键页提取
+- 返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler
+- 如果PDF无法提取信息，应在报告中标注"资料评级：B级"，说明扫描版PDF限制
 
 ---
 

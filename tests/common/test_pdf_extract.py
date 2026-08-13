@@ -26,10 +26,10 @@ from tools.common import pdf_extract as tool  # noqa: E402
 # 工具函数
 # ===========================================================================
 def test_output_path_naming() -> None:
-    """输出文件名应形如 {stem}_markdown.md。"""
+    """输出文件名应形如 {stem}.md（后缀为空时不加后缀）。"""
     pdf = Path("/tmp/601899_2026半年报.pdf")
-    out = tool._output_path(pdf, "markdown", Path("/tmp/out"))
-    assert out == Path("/tmp/out/601899_2026半年报_markdown.md")
+    out = tool._output_path(pdf, "", Path("/tmp/out"))
+    assert out == Path("/tmp/out/601899_2026半年报.md")
 
 
 def test_parse_pages_normal() -> None:
@@ -171,7 +171,7 @@ def test_run_all_save_md(tmp_path: Path) -> None:
             patch.object(tool.pdf_inspector, "process_pdf", return_value=fake_result):
         summary = tool.run_all(pdf, save_md=True, out_dir=out_dir)
 
-    md_file = (out_dir / "sample_markdown.md")
+    md_file = (out_dir / "sample.md")
     assert md_file.exists()
     assert md_file.read_text(encoding="utf-8").startswith("|a|b|")
     assert summary["markdown"]["file"] == str(md_file)
@@ -195,7 +195,7 @@ def test_run_all_no_save_md(tmp_path: Path) -> None:
         summary = tool.run_all(pdf, save_md=False, out_dir=out_dir)
 
     assert summary["markdown"]["file"] is None
-    assert not (out_dir / "sample_markdown.md").exists()
+    assert not (out_dir / "sample.md").exists()
 
 
 # ===========================================================================
@@ -285,8 +285,8 @@ def test_main_markdown_save(tmp_path: Path, capsys: pytest.CaptureFixture[str]) 
         )
     assert code == 0
     out = json.loads(capsys.readouterr().out)
-    assert out["data"]["file"] == str(out_dir / "s_markdown.md")
-    assert (out_dir / "s_markdown.md").exists()
+    assert out["data"]["file"] == str(out_dir / "s.md")
+    assert (out_dir / "s.md").exists()
 
 
 # ===========================================================================
@@ -380,4 +380,4 @@ def test_main_markdown_scanned(
     assert out["data"]["content"] == ""
     assert out["data"]["file"] is None
     mock_proc.assert_not_called()
-    assert not (out_dir / "scan_markdown.md").exists()
+    assert not (out_dir / "scan.md").exists()
