@@ -1,1 +1,0 @@
-F:/Financial_Investment_Analysis/CLAUDE.md
