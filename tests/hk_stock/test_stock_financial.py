@@ -274,61 +274,61 @@ class TestGetHkFinancialIndicators(unittest.TestCase):
     通过 mock safe_api_call 隔离网络依赖。
     """
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_returns_dict(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_returns_dict(self, mock_cache):
         """测试返回类型为字典。"""
-        mock_safe_call.return_value = make_mock_financial_df()
+        mock_cache.return_value = make_mock_financial_df()
         result = get_hk_financial_indicators("00700")
         self.assertIsInstance(result, dict)
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_result_structure(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_result_structure(self, mock_cache):
         """测试返回字典包含必要结构字段。"""
-        mock_safe_call.return_value = make_mock_financial_df()
+        mock_cache.return_value = make_mock_financial_df()
         result = get_hk_financial_indicators("00700")
         for key in ("code", "indicator", "count", "data", "fields"):
             self.assertIn(key, result, f"返回结果缺少字段: {key}")
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_default_indicator_is_yearly(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_default_indicator_is_yearly(self, mock_cache):
         """测试默认指标类型为"年度"。"""
-        mock_safe_call.return_value = make_mock_financial_df()
+        mock_cache.return_value = make_mock_financial_df()
         result = get_hk_financial_indicators("00700")
         self.assertEqual(result["indicator"], "年度")
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_indicator_report_period(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_indicator_report_period(self, mock_cache):
         """测试指定 indicator="报告期" 时正确传递。"""
-        mock_safe_call.return_value = make_mock_financial_df()
+        mock_cache.return_value = make_mock_financial_df()
         result = get_hk_financial_indicators("00700", indicator="报告期")
         self.assertEqual(result["indicator"], "报告期")
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_code_zfill_to_5_digits(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_code_zfill_to_5_digits(self, mock_cache):
         """测试代码补齐 5 位（"700" -> "00700"）。"""
-        mock_safe_call.return_value = make_mock_financial_df()
+        mock_cache.return_value = make_mock_financial_df()
         result = get_hk_financial_indicators("700")
         self.assertEqual(result["code"], "00700")
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_code_already_5_digits(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_code_already_5_digits(self, mock_cache):
         """测试已经是 5 位的代码保持不变。"""
-        mock_safe_call.return_value = make_mock_financial_df()
+        mock_cache.return_value = make_mock_financial_df()
         result = get_hk_financial_indicators("00700")
         self.assertEqual(result["code"], "00700")
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_count_matches_data_length(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_count_matches_data_length(self, mock_cache):
         """测试 count 字段等于 data 列表长度。"""
-        mock_safe_call.return_value = make_mock_financial_df()
+        mock_cache.return_value = make_mock_financial_df()
         result = get_hk_financial_indicators("00700")
         self.assertEqual(result["count"], len(result["data"]))
         self.assertEqual(result["count"], 2)
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_records_sorted_by_report_date_desc(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_records_sorted_by_report_date_desc(self, mock_cache):
         """测试记录按 REPORT_DATE 降序排列（最新在前）。"""
-        mock_safe_call.return_value = make_mock_financial_df()
+        mock_cache.return_value = make_mock_financial_df()
         result = get_hk_financial_indicators("00700")
         dates = [r["REPORT_DATE"] for r in result["data"]]
         self.assertEqual(dates, sorted(dates, reverse=True))
@@ -336,20 +336,20 @@ class TestGetHkFinancialIndicators(unittest.TestCase):
         self.assertEqual(result["data"][0]["REPORT_DATE"], "2023-12-31")
         self.assertEqual(result["data"][1]["REPORT_DATE"], "2022-12-31")
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_record_contains_key_indicator_fields(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_record_contains_key_indicator_fields(self, mock_cache):
         """测试每条记录包含所有关键指标字段。"""
-        mock_safe_call.return_value = make_mock_financial_df()
+        mock_cache.return_value = make_mock_financial_df()
         result = get_hk_financial_indicators("00700")
         first_record = result["data"][0]
         for field in _KEY_INDICATORS:
             self.assertIn(field, first_record,
                           f"记录缺少关键指标字段: {field}")
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_record_has_fields_chinese_map(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_record_has_fields_chinese_map(self, mock_cache):
         """测试每条记录包含 _fields 中文字段映射。"""
-        mock_safe_call.return_value = make_mock_financial_df()
+        mock_cache.return_value = make_mock_financial_df()
         result = get_hk_financial_indicators("00700")
         first_record = result["data"][0]
         self.assertIn("_fields", first_record)
@@ -358,92 +358,92 @@ class TestGetHkFinancialIndicators(unittest.TestCase):
         for field in _KEY_INDICATORS:
             self.assertIn(field, first_record["_fields"])
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_roe_avg_value_correct(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_roe_avg_value_correct(self, mock_cache):
         """测试 ROE_AVG（平均净资产收益率）值正确并保留 2 位小数。"""
-        mock_safe_call.return_value = make_mock_financial_df()
+        mock_cache.return_value = make_mock_financial_df()
         result = get_hk_financial_indicators("00700")
         first_record = result["data"][0]
         self.assertEqual(first_record["ROE_AVG"], 28.15)
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_gross_profit_ratio_value_correct(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_gross_profit_ratio_value_correct(self, mock_cache):
         """测试 GROSS_PROFIT_RATIO（毛利率）值正确。"""
-        mock_safe_call.return_value = make_mock_financial_df()
+        mock_cache.return_value = make_mock_financial_df()
         result = get_hk_financial_indicators("00700")
         first_record = result["data"][0]
         self.assertEqual(first_record["GROSS_PROFIT_RATIO"], 52.55)
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_net_profit_ratio_value_correct(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_net_profit_ratio_value_correct(self, mock_cache):
         """测试 NET_PROFIT_RATIO（净利率）值正确。"""
-        mock_safe_call.return_value = make_mock_financial_df()
+        mock_cache.return_value = make_mock_financial_df()
         result = get_hk_financial_indicators("00700")
         first_record = result["data"][0]
         self.assertEqual(first_record["NET_PROFIT_RATIO"], 18.91)
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_debt_asset_ratio_value_correct(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_debt_asset_ratio_value_correct(self, mock_cache):
         """测试 DEBT_ASSET_RATIO（资产负债率）值正确。"""
-        mock_safe_call.return_value = make_mock_financial_df()
+        mock_cache.return_value = make_mock_financial_df()
         result = get_hk_financial_indicators("00700")
         first_record = result["data"][0]
         self.assertEqual(first_record["DEBT_ASSET_RATIO"], 45.60)
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_current_ratio_value_correct(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_current_ratio_value_correct(self, mock_cache):
         """测试 CURRENT_RATIO（流动比率）值正确。"""
-        mock_safe_call.return_value = make_mock_financial_df()
+        mock_cache.return_value = make_mock_financial_df()
         result = get_hk_financial_indicators("00700")
         first_record = result["data"][0]
         self.assertEqual(first_record["CURRENT_RATIO"], 1.25)
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_holder_profit_to_yi(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_holder_profit_to_yi(self, mock_cache):
         """测试 HOLDER_PROFIT（归母净利润）转换为亿元（/1e8）。"""
-        mock_safe_call.return_value = make_mock_financial_df()
+        mock_cache.return_value = make_mock_financial_df()
         result = get_hk_financial_indicators("00700")
         first_record = result["data"][0]
         # 原始值 115200000000.0 → 1152.0 亿
         self.assertEqual(first_record["HOLDER_PROFIT"], 1152.0)
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_operate_income_to_yi(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_operate_income_to_yi(self, mock_cache):
         """测试 OPERATE_INCOME（营业总收入）转换为亿元（/1e8）。"""
-        mock_safe_call.return_value = make_mock_financial_df()
+        mock_cache.return_value = make_mock_financial_df()
         result = get_hk_financial_indicators("00700")
         first_record = result["data"][0]
         # 原始值 609015000000.0 → 6090.15 亿
         self.assertEqual(first_record["OPERATE_INCOME"], 6090.15)
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_string_field_type(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_string_field_type(self, mock_cache):
         """测试字符串类型字段（如 SECURITY_NAME_ABBR）转为 str。"""
-        mock_safe_call.return_value = make_mock_financial_df()
+        mock_cache.return_value = make_mock_financial_df()
         result = get_hk_financial_indicators("00700")
         first_record = result["data"][0]
         self.assertIsInstance(first_record["SECURITY_NAME_ABBR"], str)
         self.assertEqual(first_record["SECURITY_NAME_ABBR"], "腾讯控股")
         self.assertIsInstance(first_record["REPORT_DATE"], str)
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_percentage_rounded_to_2(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_percentage_rounded_to_2(self, mock_cache):
         """测试百分比/比率字段保留 2 位小数。"""
         # 构造带多位小数的原始数据
         df = make_mock_financial_df().copy()
         df.loc[0, "ROE_AVG"] = 28.15456789
         df.loc[0, "GROSS_PROFIT_RATIO"] = 52.559999
-        mock_safe_call.return_value = df
+        mock_cache.return_value = df
 
         result = get_hk_financial_indicators("00700")
         first_record = result["data"][0]
         self.assertEqual(first_record["ROE_AVG"], 28.15)
         self.assertEqual(first_record["GROSS_PROFIT_RATIO"], 52.56)
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_nan_values_become_none(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_nan_values_become_none(self, mock_cache):
         """测试 NaN 值被转换为 None。"""
-        mock_safe_call.return_value = make_mock_financial_df_with_nan()
+        mock_cache.return_value = make_mock_financial_df_with_nan()
         result = get_hk_financial_indicators("00700")
         first_record = result["data"][0]
         # NaN 字段应为 None
@@ -460,10 +460,10 @@ class TestGetHkFinancialIndicators(unittest.TestCase):
         self.assertIsNotNone(first_record["ROE_YEARLY"])
         self.assertEqual(first_record["ROE_YEARLY"], 30.50)
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_empty_dataframe(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_empty_dataframe(self, mock_cache):
         """测试空 DataFrame 时的返回结构。"""
-        mock_safe_call.return_value = pd.DataFrame()
+        mock_cache.return_value = pd.DataFrame()
         result = get_hk_financial_indicators("00700")
         self.assertEqual(result["code"], "00700")
         self.assertEqual(result["indicator"], "年度")
@@ -471,33 +471,28 @@ class TestGetHkFinancialIndicators(unittest.TestCase):
         self.assertEqual(result["data"], [])
         self.assertIn("note", result)
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_none_dataframe(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_none_dataframe(self, mock_cache):
         """测试返回 None 时的空数据处理。"""
-        mock_safe_call.return_value = None
+        mock_cache.return_value = None
         result = get_hk_financial_indicators("00700")
         self.assertEqual(result["count"], 0)
         self.assertEqual(result["data"], [])
         self.assertIn("note", result)
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_fields_map_in_result(self, mock_safe_call):
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_fields_map_in_result(self, mock_cache):
         """测试返回结果中的 fields 是完整字段映射。"""
-        mock_safe_call.return_value = make_mock_financial_df()
+        mock_cache.return_value = make_mock_financial_df()
         result = get_hk_financial_indicators("00700")
         self.assertEqual(result["fields"], _FINANCIAL_FIELD_MAP)
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_api_called_with_correct_args(self, mock_safe_call):
-        """测试 safe_api_call 被调用（间接验证 akshare 接口被调用）。"""
-        mock_safe_call.return_value = make_mock_financial_df()
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_api_called_with_correct_args(self, mock_cache):
+        """测试缓存层被正确调用（代码与指标类型参数）。"""
+        mock_cache.return_value = make_mock_financial_df()
         get_hk_financial_indicators("00700", indicator="报告期")
-        self.assertTrue(mock_safe_call.called)
-        # 第一个参数是 callable，第二个是 api_name（字符串）
-        args, kwargs = mock_safe_call.call_args
-        self.assertEqual(len(args), 2)
-        self.assertIsInstance(args[1], str)
-        self.assertIn("stock_financial_hk_analysis_indicator_em", args[1])
+        mock_cache.assert_called_once_with("00700", "报告期")
 
 
 # ===========================================================================
@@ -711,10 +706,14 @@ class TestErrorHandling(unittest.TestCase):
                 except SystemExit as cm:
                     return parse_json_output(fake_err.getvalue()), cm.code
 
-    @patch("tools.hk_stock.stock_financial.safe_api_call")
-    def test_network_error_in_get_indicators(self, mock_safe_call):
-        """测试 get_hk_financial_indicators 网络错误抛出异常。"""
-        mock_safe_call.side_effect = Exception("获取港股数据失败（已重试3次）: Connection failed")
+    @patch("tools.hk_stock.stock_financial.hk_stock_cache.get_financial_indicators")
+    def test_network_error_in_get_indicators(self, mock_cache):
+        """测试 get_hk_financial_indicators 网络错误抛出异常。
+
+        数据已改走 hk_stock_cache 缓存层，此处 mock 缓存层抛异常，
+        验证异常以"获取港股财务指标失败"前缀重新抛出。
+        """
+        mock_cache.side_effect = Exception("获取港股数据失败（已重试3次）: Connection failed")
         with self.assertRaises(Exception) as cm:
             get_hk_financial_indicators("00700")
         self.assertIn("获取港股财务指标失败", str(cm.exception))

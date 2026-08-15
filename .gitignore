@@ -20,6 +20,9 @@ refs/
 # 本地的缓存文件
 *.xlsx
 
+# A股/港股/美股数据本地缓存目录（a_stock_cache.py / hk_stock_cache.py / us_stock_cache.py 生成的 CSV）
+data/
+
 # 本地测试用文件
 *.pdf
 

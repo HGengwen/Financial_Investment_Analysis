@@ -13,6 +13,7 @@ Usage:
 
 import argparse
 import json
+import os
 import sys
 import traceback
 from datetime import datetime
@@ -28,11 +29,23 @@ except ImportError as e:
     sys.exit(1)
 
 # ---------------------------------------------------------------------------
+# 导入本地缓存模块（tools/common/a_stock_cache.py）
+# ---------------------------------------------------------------------------
+# 将项目根目录加入 sys.path，使本工具以独立脚本方式运行时也能导入 tools.common 包
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from tools.common import a_stock_cache  # noqa: E402 - 需在 sys.path 设置之后导入
+
+# ---------------------------------------------------------------------------
 # 工具函数
 # ---------------------------------------------------------------------------
 
 def get_latest_quarter_date() -> str:
-    """获取最近的季度末日期字符串。"""
+    """获取最近的季度末日期字符串。
+
+    返回格式为 8 位 YYYYMMDD（如 20260630）。该函数供外部调用方及测试
+    使用；本工具内部已改为通过 a_stock_cache 读取最新季度数据。
+    """
     now = datetime.now()
     y, m = now.year, now.month
     if m <= 3:
@@ -94,9 +107,9 @@ def get_exchange_info(code: str) -> dict:
 
 
 def get_ipo_info(code: str) -> dict:
-    """获取IPO信息（上市日期、上市地等）。"""
+    """获取IPO信息（上市日期、上市地等，走本地缓存）。"""
     try:
-        df = ak.stock_ipo_info(stock=code)
+        df = a_stock_cache.get_ipo_info(code)
         
         result = {
             "listing_date": None,
@@ -371,8 +384,8 @@ def calc_interest_coverage(code: str) -> dict:
     这种情况下用财务费用近似代替。
     """
     try:
-        # 获取利润表数据
-        df = ak.stock_financial_report_sina(stock=code, symbol="利润表")
+        # 获取利润表数据（走本地缓存）
+        df = a_stock_cache.get_income_statement_sina(code)
 
         if df.empty:
             return {"value": None, "note": "未获取到利润表数据"}
@@ -552,11 +565,11 @@ def screen_stock(code: str) -> dict:
     """对单只股票执行 7 条指标筛选。"""
     code = code.zfill(6)
 
-    # 1. 获取基本信息
+    # 1. 获取基本信息（优先本地缓存）
     try:
-        name_df = ak.stock_info_a_code_name()
-        stock_row = name_df[name_df["code"].astype(str).str.zfill(6) == code]
-        stock_name = str(stock_row.iloc[0]["name"]).strip() if not stock_row.empty else ""
+        stocks = a_stock_cache.get_code_name_list()
+        stock_row = [s for s in stocks if s["code"] == code]
+        stock_name = stock_row[0]["name"] if stock_row else ""
     except Exception:
         stock_name = ""
 
@@ -566,21 +579,19 @@ def screen_stock(code: str) -> dict:
     # 3. 获取IPO信息（上市日期）
     ipo_info = get_ipo_info(code)
 
-    # 4. 获取业绩报表信息
+    # 4. 获取业绩报表信息（行业字段，优先本地缓存）
     industry = ""
     try:
-        q_date = get_latest_quarter_date()
-        yjbb = ak.stock_yjbb_em(date=q_date)
-        sub = yjbb[yjbb["股票代码"] == code]
-        if not sub.empty:
-            row = sub.iloc[0]
-            industry = str(row.get("所处行业", ""))
+        industry_map = a_stock_cache.get_industry_map()
+        info = industry_map.get(code)
+        if info:
+            industry = str(info.get("industry", ""))
     except Exception:
         pass
 
-    # 5. 获取财务摘要数据
+    # 5. 获取财务摘要数据（走本地缓存）
     try:
-        df = ak.stock_financial_abstract(symbol=code)
+        df = a_stock_cache.get_financial_abstract(code)
     except Exception as e:
         return {
             "success": False,
@@ -684,6 +695,7 @@ def screen_stock(code: str) -> dict:
         "meta": {
             "tool": "stock_screen",
             "code": code,
+            "cache": a_stock_cache.get_financial_status(),
             "timestamp": datetime.now().isoformat()
         }
     }

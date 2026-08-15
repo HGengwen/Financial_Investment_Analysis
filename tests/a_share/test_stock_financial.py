@@ -543,14 +543,13 @@ class TestMainLogic(unittest.TestCase):
         self.assertIn("毛利率", output["data"]["indicators"])
         self.assertIn("净利率", output["data"]["indicators"])
 
-    @patch("tools.a_share.stock_financial.ak")
+    @patch("tools.a_share.stock_financial.a_stock_cache.get_industry_map")
     @patch("tools.a_share.stock_financial.get_raw_data")
-    def test_default_key_metrics(self, mock_get_raw, mock_ak):
+    def test_default_key_metrics(self, mock_get_raw, mock_industry_map):
         """测试默认（无 --indicator）输出关键指标。"""
         mock_get_raw.return_value = make_mock_df()
-        # mock ak.stock_yjbb_em 返回空 DataFrame
-        mock_ak.stock_yjbb_em.return_value = pd.DataFrame(
-            columns=["股票代码", "所处行业", "净资产收益率", "销售毛利率", "每股收益"])
+        # mock 缓存层行业映射（默认路径读取最新季度业绩数据）
+        mock_industry_map.return_value = {}
 
         output = self._run_main_with_args(["--code", "300502"])
 
@@ -562,13 +561,12 @@ class TestMainLogic(unittest.TestCase):
         self.assertIn("ROE", output["data"]["indicators"])
         self.assertIn("毛利率", output["data"]["indicators"])
 
-    @patch("tools.a_share.stock_financial.ak")
+    @patch("tools.a_share.stock_financial.a_stock_cache.get_industry_map")
     @patch("tools.a_share.stock_financial.get_raw_data")
-    def test_default_yearly_format(self, mock_get_raw, mock_ak):
+    def test_default_yearly_format(self, mock_get_raw, mock_industry_map):
         """测试默认输出中年份格式化为 YYYY。"""
         mock_get_raw.return_value = make_mock_df()
-        mock_ak.stock_yjbb_em.return_value = pd.DataFrame(
-            columns=["股票代码", "所处行业", "净资产收益率", "销售毛利率", "每股收益"])
+        mock_industry_map.return_value = {}
 
         output = self._run_main_with_args(["--code", "300502"])
         roe_data = output["data"]["indicators"]["ROE"]

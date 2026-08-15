@@ -24,6 +24,7 @@ Usage:
 
 import argparse
 import json
+import os
 import sys
 import time
 import traceback
@@ -46,6 +47,12 @@ except ImportError as e:
         "meta": {"tool": "stock_financial", "timestamp": datetime.now().isoformat()}
     }, ensure_ascii=False))
     sys.exit(1)
+
+# 导入本地缓存模块（tools/common/hk_stock_cache.py）
+# 将项目根目录加入 sys.path，使本工具以独立脚本方式运行时也能导入 tools.common 包
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from tools.common import hk_stock_cache  # noqa: E402 - 需在 sys.path 设置之后导入
 
 
 # ---------------------------------------------------------------------------
@@ -160,15 +167,8 @@ def get_hk_financial_indicators(code: str, indicator: str = "年度") -> dict:
     code = code.zfill(5)
 
     try:
-        api_name = f"ak.stock_financial_hk_analysis_indicator_em(symbol='{code}', indicator='{indicator}')"
-        print(f"正在获取港股财务指标 - API: {api_name}", file=sys.stderr)
-
-        df = safe_api_call(
-            lambda: ak.stock_financial_hk_analysis_indicator_em(symbol=code, indicator=indicator),
-            api_name,
-            max_retries=3,
-            delay=2.0
-        )
+        # 通过本地缓存获取原始 DataFrame
+        df = hk_stock_cache.get_financial_indicators(code, indicator)
 
         if df is None or df.empty:
             return {
@@ -261,6 +261,7 @@ def cmd_financial(code: str, indicator: str = "年度") -> None:
                 "code": code,
                 "indicator": indicator,
                 "market": "hk",
+                "cache": hk_stock_cache.get_financial_status(),
                 "timestamp": datetime.now().isoformat()
             }
         }

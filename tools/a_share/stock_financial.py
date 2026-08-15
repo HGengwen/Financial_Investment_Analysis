@@ -24,6 +24,7 @@ Usage:
 
 import argparse
 import json
+import os
 import re
 import sys
 import traceback
@@ -41,6 +42,14 @@ except ImportError as e:
         "meta": {"tool": "stock_financial", "timestamp": datetime.now().isoformat()}
     }, ensure_ascii=False))
     sys.exit(1)
+
+# ---------------------------------------------------------------------------
+# 导入本地缓存模块（tools/common/a_stock_cache.py）
+# ---------------------------------------------------------------------------
+# 将项目根目录加入 sys.path，使本工具以独立脚本方式运行时也能导入 tools.common 包
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from tools.common import a_stock_cache  # noqa: E402 - 需在 sys.path 设置之后导入
 
 # ---------------------------------------------------------------------------
 # 关键财务指标映射（中文名 -> 英文标识）
@@ -70,8 +79,8 @@ KEY_INDICATORS = {
 # ---------------------------------------------------------------------------
 
 def get_raw_data(symbol: str):
-    """获取原始财务摘要数据。"""
-    df = ak.stock_financial_abstract(symbol=symbol)
+    """获取原始财务摘要数据（走本地缓存）。"""
+    df = a_stock_cache.get_financial_abstract(symbol)
     return df
 
 
@@ -212,6 +221,7 @@ def main():
                     "code": code,
                     "indicator": "all",
                     "indicator_count": len(parsed),
+                    "cache": a_stock_cache.get_financial_status(),
                     "timestamp": datetime.now().isoformat()
                 }
             }
@@ -248,6 +258,7 @@ def main():
                     "tool": "stock_financial",
                     "code": code,
                     "indicator": args.indicator,
+                    "cache": a_stock_cache.get_financial_status(),
                     "timestamp": datetime.now().isoformat()
                 }
             }
@@ -267,30 +278,17 @@ def main():
             else:
                 latest_gross = None
 
-            # 获取业绩报表中的最新数据
-            from datetime import datetime as dt
-            now = dt.now()
-            y, m = now.year, now.month
-            if m <= 3:
-                q_date = f"{y-1}1231"
-            elif m <= 6:
-                q_date = f"{y}0331"
-            elif m <= 9:
-                q_date = f"{y}0630"
-            else:
-                q_date = f"{y}0930"
-
+            # 获取业绩报表中的最新数据（优先本地缓存）
             industry_info = {}
             try:
-                yjbb = ak.stock_yjbb_em(date=q_date)
-                sub = yjbb[yjbb["股票代码"] == code]
-                if not sub.empty:
-                    row = sub.iloc[0]
+                industry_map = a_stock_cache.get_industry_map()
+                info = industry_map.get(code)
+                if info:
                     industry_info = {
-                        "行业": row.get("所处行业", ""),
-                        "ROE_latest": float(row.get("净资产收益率", 0)) if row.get("净资产收益率") else None,
-                        "毛利率_latest": float(row.get("销售毛利率", 0)) if row.get("销售毛利率") else None,
-                        "每股收益_latest": float(row.get("每股收益", 0)) if row.get("每股收益") else None,
+                        "行业": info.get("industry", ""),
+                        "ROE_latest": info.get("roe"),
+                        "毛利率_latest": info.get("gross_margin"),
+                        "每股收益_latest": info.get("eps"),
                     }
             except Exception:
                 pass
