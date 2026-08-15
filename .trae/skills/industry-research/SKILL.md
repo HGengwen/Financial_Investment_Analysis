@@ -292,6 +292,7 @@ disable-model-invocation: true
 - 报告审核与抽检：[report-audit](../tools-scripts/report-audit.md)
 - 全局约束规范：[global-constraints](../tools-scripts/global-constraints.md)
 - PDF文档提取：[pdf-extraction](../tools-scripts/pdf-extraction.md)（年报一手数据提取）
+- 报告获取与提取统一使用 report_hub.py（带下载与提取缓存），详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)
 - 完整索引：[公共工具索引](../tools-scripts/common-tools-guide.md)
 - 国际货币汇率获取：[国际货币汇率工具](../../../docs/A股工具使用指南.md#十三fx_ratepy---国际主要货币汇率)（`tools/common/fx_rate.py`，Akshare 优先 + yfinance 回退，19 个货币对）
 
@@ -309,7 +310,7 @@ disable-model-invocation: true
    - **双源验证按市场矩阵执行**：A股 `anysearch`+`doubao`；港股 `doubao`+`tavily`；美股 `exa`+`doubao`
      **网络搜索必须优先获取最新数据**：搜索时须使用 `--time-range month` 或 `--time-range week` 限制时间范围，确保获取的信息和数据为最新。禁止采用过时数据（如使用2024年数据描述2026年行业现状），避免分析偏差。搜索结果须标注数据来源日期，过时数据须明确标注并说明时效性
 4. **对每家公司标注"信息充分度"**（A/B/C级），让读者知道 AI 分析的可靠程度
-5. **关键财务数据须从年报 PDF 一手数据源交叉验证**：使用 `stock_equity.py --download-report` 下载年报，**首选** `tools/common/pdf_extract.py` 提取文字与表格（能自动还原财务附表），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集，完整流程见 [pdf-extraction](../tools-scripts/pdf-extraction.md) 与下方"PDF 年报提取示例"
+5. **关键财务数据须从年报 PDF 一手数据源交叉验证**：使用 `report_hub.py ensure` 获取年报，**统一用** `tools/common/report_hub.py extract` 提取文字与表格（内部首选 pdf_extract.py，能自动还原财务附表），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集，完整流程见 [pdf-extraction](../tools-scripts/pdf-extraction.md) 与下方"PDF 年报提取示例"
 6. **大宗商品相关行业须获取价格数据**：涉及有色金属、贵金属、能源化工、新能源金属等产业链的行业，须使用 `tools/common/commodity_price.py` 获取大宗商品价格，辅助判断产业链上游成本压力与下游需求景气度
 7. **禁止使用 PowerShell 管道解析 JSON 输出**：`stock_financial.py` 等工具输出含中文键（"毛利率""净利率"等）。PowerShell 5.1 在原生程序间用管道传输时按系统 ANSI/GBK 重新编码，而 `python -c` 按 UTF-8 读取，导致 JSON 损坏、`json.loads` 报错（如 `JSONDecodeError`）。**正确用法是直接运行工具并解析其标准输出**，不要经过 PowerShell 管道把输出喂给 `python -c` 或 `tail/head/grep` 截断
 8. **跨市场估值对比须统一货币口径**：A股/港股/美股标的估值对比、市值统一口径、财务数据折算时，用 `tools/common/fx_rate.py` 获取当日实时汇率（如 `USDCNY`、`HKDCNY`、`USDHKD`），**不得**使用训练数据中的固定汇率，避免换算误差
@@ -379,28 +380,25 @@ python tools/common/commodity_price.py --code lc --start 2026-07-25 --end 2026-0
 
 ### PDF 年报提取示例
 
-行业研究的财务质量分析（毛利率、ROE、现金流、负债率）与产业链各环节头部公司交叉验证，须从年报 PDF 一手数据源提取。提取文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，能自动还原财务附表），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集。完整规范见 [pdf-extraction](../tools-scripts/pdf-extraction.md)。
+行业研究的财务质量分析（毛利率、ROE、现金流、负债率）与产业链各环节头部公司交叉验证，须从年报 PDF 一手数据源提取。A股统一用 `tools/common/report_hub.py extract`（内部首选 pdf_extract.py，基于 pdf-inspector 库，能自动还原财务附表），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集。完整规范见 [pdf-extraction](../tools-scripts/pdf-extraction.md) 与 [报告下载与提取统一入口](../tools-scripts/report-hub.md)。
 
 ```bash
-# 1. 下载年报 PDF（A 股）
-python tools/a_share/stock_equity.py --code 601899 --download-report --report-type annual
+# 1. 获取年报 PDF（A 股，披露窗口感知下载 + 缓存，统一保存到 cninfo_reports/）
+python tools/common/report_hub.py ensure --code 601899 --report-type annual
 # 港股：HKEX 披露易手动下载；美股：SEC EDGAR 获取 10-K/10-Q
 
-# 2（首选）：分类检测 PDF 类型（text_based / scanned / mixed）
-python tools/common/pdf_extract.py detect cninfo_reports/601899_2025年报.pdf
+# 2（首选）：提取含财务附表的 Markdown 并写盘（内部 pdf_extract.py 自动检测 PDF 类型 + 乱码回退）
+python tools/common/report_hub.py extract --code 601899 --report-type annual
 
-# 3（首选）：提取含财务附表的 Markdown 并写盘
-python tools/common/pdf_extract.py markdown cninfo_reports/601899_2025年报.pdf --save-md --out-dir reports/pdf
-
-# 4（回退）：pdf_extract.py 返回失败时回退 Poppler
+# 3（回退）：report_hub.py extract 返回失败时回退 Poppler
 pdftotext -layout cninfo_reports/601899_2025年报.pdf 601899_2025年报.txt
 pdftoppm -png -r 300 cninfo_reports/601899_2025年报.pdf output/page   # 扫描版
 
 # 5. 搜索关键财务数据（交叉验证用）
-grep -n "净利润\|营业收入\|毛利率\|ROE\|资产负债率" 601899_2025年报.txt
+grep -n "净利润\|营业收入\|毛利率\|ROE\|资产负债率" cninfo_reports/extracted/601899_2025年报.md
 ```
 
-**扫描版处理**：`pdf_extract.py` detect 返回 `scanned`/`mixed` 或 `scanned=true` 时，说明无法直接提取文字/表格，回退 `pdftoppm` 渲染为图像后人工核对（或配合 OCR 工具如 tesseract），并在报告中标注"资料评级：B级"。
+**扫描版处理**：`report_hub.py extract` 检测到扫描格式（scanned=true）时，说明无法直接提取文字/表格，回退 `pdftoppm` 渲染为图像后人工核对（或配合 OCR 工具如 tesseract），并在报告中标注"资料评级：B级"。
 
 ---
 

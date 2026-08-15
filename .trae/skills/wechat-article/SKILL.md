@@ -263,7 +263,8 @@ disable-model-invocation: true
 | A股 | `tools/a_share/stock_info.py` | 股票信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
 | A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
 | A股 | `tools/a_share/stock_quote.py` | 历史股价与实时行情 | `python tools/a_share/stock_quote.py --code 601899` |
-| A股 | `tools/a_share/stock_equity.py` | 股权结构与财报下载 | `python tools/a_share/stock_equity.py --code 601899` |
+| A股 | `report_hub.py（tools/common/）` | A股财报下载与提取统一入口（带缓存） | `python tools/common/report_hub.py ensure --code 601899 --report-type annual` |
+| A股 | `tools/a_share/stock_equity.py` | 股权结构数据 | `python tools/a_share/stock_equity.py --code 601899` |
 | 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
 | 港股 | `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
 | 港股 | `tools/hk_stock/stock_screen.py` | 港股质量筛选 | `python tools/hk_stock/stock_screen.py --code 00700` |
@@ -378,15 +379,15 @@ cropped.save('assets/论文主题/fig1-核心架构.png', compress_level=1)
 投资类文章可从A股年报PDF提取财务数据：
 
 ```bash
-# 1. 下载年报PDF
-python tools/a_share/stock_equity.py --code 601899 --download-report
+# 1. 下载年报PDF（report_hub.py ensure 统一入口，带缓存）
+python tools/common/report_hub.py ensure --code 601899 --report-type annual
 
-# 2（首选）：用 pdf_extract.py 提取 Markdown 并搜索关键财务数据
-python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --save-md --out-dir reports/pdf
+# 2（首选）：用 report_hub.py extract 提取 Markdown（内部 pdf_extract.py，带提取缓存）并搜索关键财务数据
+python tools/common/report_hub.py extract --code 601899 --report-type annual
 
-# 2回退：若 pdf_extract.py 返回失败，回退 Poppler
-pdftotext -layout 601899_2025年报.pdf 601899_2025年报.txt
-grep -n "净利润\|营业收入\|毛利率\|ROE\|增长率" 601899_2025年报.txt | head -30
+# 2回退：若 report_hub.py extract 返回失败（退出码非0 / success=false / 扫描件），回退 Poppler
+pdftotext -layout cninfo_reports/601899_2025年报.pdf 601899_2025年报.txt
+grep -n "净利润\|营业收入\|毛利率\|ROE\|增长率" cninfo_reports/601899_2025年报.txt | head -30
 ```
 
 #### 注意事项

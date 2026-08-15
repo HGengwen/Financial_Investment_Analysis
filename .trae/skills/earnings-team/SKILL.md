@@ -30,66 +30,28 @@ disable-model-invocation: true
 
 #### 1.1 A股财报原文下载（优先执行，必须完成）
 
-**重要流程**：对于A股公司，必须首先使用 `stock_equity.py` 工具下载原始财报PDF，**下载完成后方可进行下一步的阅读分析工作**。
+**重要流程**：对于A股公司，必须首先使用 `report_hub.py ensure` 工具获取原始财报PDF，**确认返回 success=true 后方可进行下一步的阅读分析工作**。
 
 ```bash
-# 下载最新年报PDF
-python tools/a_share/stock_equity.py --code {股票代码} --download-report --report-type annual
+# 获取最新年报PDF
+python tools/common/report_hub.py ensure --code {股票代码} --report-type annual
 
-# 下载最新半年报PDF（如需分析半年报）
-python tools/a_share/stock_equity.py --code {股票代码} --download-report --report-type semiannual
+# 获取最新半年报PDF（如需分析半年报）
+python tools/common/report_hub.py ensure --code {股票代码} --report-type semiannual
 
-# 下载最新季报PDF（如需分析季报）
-python tools/a_share/stock_equity.py --code {股票代码} --download-report --report-type quarterly
+# 获取最新季报PDF（如需分析季报）
+python tools/common/report_hub.py ensure --code {股票代码} --report-type quarterly
 ```
 
-下载的PDF文件保存在 `cninfo_reports/` 目录，文件命名格式：
+获取的PDF文件统一保存到 `cninfo_reports/` 目录，文件命名格式：
 
 - 年报：`{股票代码}_{年份}年报.pdf`
 - 半年报：`{股票代码}_{年份}半年报.pdf`
 - 季报：`{股票代码}_{年份}{季度}季报.pdf`
 
-可使用 `--report-dir` 参数指定其他保存目录：
+报告获取与提取统一使用 report_hub.py（带下载与提取缓存），详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)。
 
-```bash
-python tools/a_share/stock_equity.py --code 601899 --download-report --report-type annual --report-dir ./reports/紫金矿业
-```
-
-**流程检查点**：确认PDF文件下载成功后，方可启动后续的4个研究Agent。
-
-#### 1.2 PDF文档阅读工具
-
-下载的财报PDF文档提取文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，支持自动乱码检测 + OCR 回退），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
-
-**首选工具**：
-```bash
-# 分类检测 PDF 类型
-python tools/common/pdf_extract.py detect cninfo_reports/002465_2025年报.pdf
-
-# 提取含财务附表的 Markdown 并写盘
-python tools/common/pdf_extract.py markdown cninfo_reports/002465_2025年报.pdf --save-md --out-dir reports/pdf
-
-# 强制 OCR 提取（适用于 pdf-inspector 提取乱码时，如 Adobe-CNS1 繁体中文 PDF）
-python tools/common/pdf_extract.py text cninfo_reports/688235_2025年报.pdf --force-ocr --ocr-langs chi_tra+eng
-```
-
-**回退工具（Poppler 工具集，仅当 pdf_extract.py 返回失败时使用）**：
-
-- `pdftotext`：将PDF转换为文本格式
-- `pdfinfo`：查看PDF文件信息
-- `pdftoppm`：将PDF转换为图像
-
-```bash
-# 查看PDF文件信息
-pdfinfo cninfo_reports/002465_2025年报.pdf
-
-# 将PDF转换为文本文件
-pdftotext cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年报.txt
-
-# 将PDF转换为图像（用于扫描版PDF）
-pdftoppm -png cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年报
-```
-
+**流程检查点**：确认 report_hub ensure 返回 success=true 后，方可启动后续的4个研究Agent。
 **注意事项**：
 
 - 首选 `pdf_extract.py` 提取文字与表格；返回失败时才回退 Poppler 工具集（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
@@ -536,7 +498,8 @@ python tools/common/report_audit.py verdict \
 | A股 | `tools/a_share/stock_info.py` | 股票信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
 | A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
 | A股 | `tools/a_share/stock_quote.py` | 历史股价与实时行情 | `python tools/a_share/stock_quote.py --code 601899` |
-| A股 | `tools/a_share/stock_equity.py` | 股权结构与财报下载 | `python tools/a_share/stock_equity.py --code 601899` |
+| A股 | `tools/common/report_hub.py` | 财报下载与提取统一入口（带缓存） | `python tools/common/report_hub.py ensure --code 601899 --report-type annual` |
+| A股 | `tools/a_share/stock_equity.py` | 股权结构数据 | `python tools/a_share/stock_equity.py --code 601899` |
 | 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
 | 港股 | `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
 | 美股 | `tools/us_stock/stock_info.py` | 美股信息查询 | `python tools/us_stock/stock_info.py --search Apple` |
@@ -553,36 +516,34 @@ python tools/common/report_audit.py verdict \
 - **美股工具**：[docs/美股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/美股工具使用指南.md)
 - **国际货币汇率**（跨币种财报数据折算）：`tools/common/fx_rate.py`，详见 A股工具使用指南汇率章节
 
-### 财报下载工具（A股专用）
+### 财报下载与提取工具（A股专用）
 
-财报精读的核心数据来源是一手财报PDF。A股使用 `tools/a_share/stock_equity.py` 下载：
+财报精读的核心数据来源是一手财报PDF。报告获取与提取统一使用 report_hub.py（带下载与提取缓存），详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)。A股使用 `tools/common/report_hub.py`：
 
 | 功能 | 命令示例 |
 |------|---------|
-| 下载年报 | `python tools/a_share/stock_equity.py --code 601899 --download-report --report-type annual` |
-| 下载半年报 | `python tools/a_share/stock_equity.py --code 601899 --download-report --report-type semiannual` |
-| 下载季报 | `python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly` |
+| 获取年报 | `python tools/common/report_hub.py ensure --code 601899 --report-type annual` |
+| 获取半年报 | `python tools/common/report_hub.py ensure --code 601899 --report-type semiannual` |
+| 获取季报 | `python tools/common/report_hub.py ensure --code 601899 --report-type quarterly` |
+| 提取 Markdown | `python tools/common/report_hub.py extract --code 601899 --report-type annual` |
 | 股权结构数据 | `python tools/a_share/stock_equity.py --code 601899` |
 
-**文件保存位置**：默认目录 `./cninfo_reports/`，命名格式：
+**文件保存位置**：统一保存到 `./cninfo_reports/` 目录，命名格式：
 - 年报：`{股票代码}_{年份}年报.pdf`
 - 半年报：`{股票代码}_{年份}半年报.pdf`
 - 季报：`{股票代码}_{年份}{季度}季报.pdf`
 
-**流程检查点**：确认PDF文件下载成功后，方可启动4个研究Agent。
+**流程检查点**：确认 report_hub ensure 返回 success=true 后，方可启动4个研究Agent。
 
-### PDF文档阅读工具（首选 pdf_extract.py）
+### PDF文档阅读工具（经 report_hub extract 统一调用）
 
-提取文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，能自动还原财务附表），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
+A股财报提取文字与表格统一使用 `tools/common/report_hub.py extract`（内置类型检测、自动乱码检测 + OCR 回退与提取缓存），返回失败时才按 report-hub.md 回退 Poppler 工具集：
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `pdf_extract.py` | PDF文字与表格提取（首选） | `python tools/common/pdf_extract.py markdown cninfo_reports/002465_2025年报.pdf --save-md` |
-| `pdftotext` | 将PDF转换为文本格式（回退） | `pdftotext cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年报.txt` |
-| `pdfinfo` | 查看PDF文件信息（回退） | `pdfinfo cninfo_reports/002465_2025年报.pdf` |
-| `pdftoppm` | 将PDF转换为图像（回退，用于扫描版PDF） | `pdftoppm -png cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年报` |
+| `report_hub.py extract` | PDF文字与表格提取（统一入口，带缓存） | `python tools/common/report_hub.py extract --code 002465 --report-type annual` |
 
-**注意**：首选 `pdf_extract.py`，返回失败时才回退 Poppler（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）；如果PDF无法提取内容，应在报告中标注"资料评级：B级"，说明扫描版PDF限制。
+**注意**：首选 `report_hub.py extract`，返回失败时才回退 Poppler（命令详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)）；如果PDF无法提取内容，应在报告中标注"资料评级：B级"，说明扫描版PDF限制。
 
 ### 精确计算工具
 

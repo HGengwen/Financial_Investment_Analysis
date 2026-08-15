@@ -456,7 +456,8 @@
 | `tools/a_share/stock_financial.py` | A 股财务指标            |
 | `tools/a_share/stock_quote.py`     | A 股行情数据            |
 | `tools/a_share/stock_screen.py`    | 质量筛选 7 条指标       |
-| `tools/a_share/stock_equity.py`    | 股权结构与财报 PDF 下载 |
+| `tools/common/report_hub.py` | A股财报下载与提取统一入口（ensure/extract/list，带缓存） |
+| `tools/a_share/stock_equity.py`    | 股权结构与财报数据（股权结构/导出） |
 
 **港股数据工具**：
 
@@ -662,7 +663,7 @@
 
 ```bash
 # 下载年报/半年报/季报 PDF
-python tools/a_share/stock_equity.py --code 601899 --download-report --report-type annual
+python tools/common/report_hub.py ensure --code 601899 --report-type annual
 
 # 用 Poppler 工具集提取内容
 pdftotext -layout cninfo_reports/601899_2025年报.pdf 601899_2025年报.txt

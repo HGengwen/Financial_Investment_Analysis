@@ -37,7 +37,7 @@
 
 1. **展示团队框架** — 确认后启动四Agent并行研究
 2. **信息丰富度评估** — A/B/C级评级，影响各Agent研究方式
-3. **A股财报原文下载** — 仅A股，必须先下载PDF才能启动Agent
+3. **A股财报原文获取** — 仅A股，必须先获取PDF（report_hub ensure）才能启动Agent
 4. **启动4个并行研究Agent** — 同一条消息中调用4次Task工具
 5. **实时跟踪进度** — 每收到一份报告更新进度+核心发现
 6. **Team Lead 汇总最终报告** — 找交叉和矛盾，不是拼报告
@@ -64,7 +64,7 @@
 ```
 /investment-team 紫金矿业
 ```
- 先用 `stock_equity.py` 下载年报PDF，再启动4个并行研究Agent
+ 先用 `report_hub.py ensure` 获取年报PDF，`report_hub.py extract` 提取关键内容后，再启动4个并行研究Agent
 
 ---
 
@@ -145,8 +145,8 @@
 
 investment-team 没有专属工具，但 4 个 Agent 并行研究时有以下特殊使用约束：
 
-1. **A股财报下载是前置流程**：A股公司必须先执行 `stock_equity.py --download-report` 下载年报 PDF，提取一手数据后再启动 4 个研究 Agent
-2. **港股公司数据获取**：使用 `tools/hk_stock/stock_financial.py --financial {代码}` 获取财务指标（ROE/毛利率/净利率等），港股历史行情用 `tools/hk_stock/stock_quote.py`。港股无 A股的 `stock_equity.py` 财报下载工具，年报一手数据需从 HKEX 披露易获取（可用豆包搜索 `--sites hkex.com.hk` 定向检索公告，或浏览器手动下载 PDF 后按 [pdf-extraction](../tools-scripts/pdf-extraction.md) 流程提取）。东方财富港股接口连接不稳定（非地理封锁），工具已内置重试机制
+1. **A股财报获取是前置流程**：A股公司必须先执行 `report_hub.py ensure` 获取年报 PDF，`report_hub.py extract` 提取一手数据后再启动 4 个研究 Agent（报告获取与提取统一入口，带下载与提取缓存，详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)）
+2. **港股公司数据获取**：使用 `tools/hk_stock/stock_financial.py --financial {代码}` 获取财务指标（ROE/毛利率/净利率等），港股历史行情用 `tools/hk_stock/stock_quote.py`。港股无 A股的 `report_hub.py` 财报下载/提取工具，年报一手数据需从 HKEX 披露易获取（可用豆包搜索 `--sites hkex.com.hk` 定向检索公告，或浏览器手动下载 PDF 后按 [pdf-extraction](../tools-scripts/pdf-extraction.md) 流程提取）。东方财富港股接口连接不稳定（非地理封锁），工具已内置重试机制
 3. **美股公司数据获取**：使用 `tools/us_stock/` 三个模块（stock_info/stock_quote/stock_financial），详见 [美股工具使用指南](../../../docs/美股工具使用指南.md)
 4. **4 个 Agent 的财务计算须用 financial_rigor.py 验算**：Agent 2（巴菲特视角）的核心财务数据必须使用 `tools/common/financial_rigor.py` 交叉验证，**禁止 LLM 心算** PE/ROE/市值等
 5. **网络信息搜索优先使用豆包搜索**：支持 `--finance`（财经定向+权威信源）、`--need-content`（抓正文）、`--export`（导出 Markdown）、`--sites`（定向 SEC/港交所披露易），多源验证规范详见 [web-search-tools](../tools-scripts/web-search-tools.md)
@@ -166,7 +166,7 @@ A股/港股/美股的行情、财务、信息查询工具的完整命令示例�
 - 网络搜索须使用本地五工具组合（详见 [web-search-tools](../tools-scripts/web-search-tools.md)），美股深度数据须 exa + doubao 双源验证
 - 使用本地工具进行网络搜索和数据获取，按市场×场景矩阵选型（港股 doubao+tavily；美股 exa+doubao；A股 anysearch+doubao）
 - **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
-- A股公司必须首先使用 `stock_equity.py` 下载原始财报PDF，**下载完成后方可启动4个研究Agent**
+- A股公司必须首先使用 `report_hub.py ensure` 获取原始财报PDF，**获取完成后方可启动4个研究Agent**（详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)）
 - 4个 Agent 的核心财务数据必须使用 `financial_rigor.py` 验算，**禁止 LLM 心算** PE/ROE/市值等
 
 ### 数据来源优先级
@@ -174,7 +174,7 @@ A股/港股/美股的行情、财务、信息查询工具的完整命令示例�
 | 数据类型 | 优先来源 | 备用来源 |
 |---------|---------|---------|
 | A股财务指标 | `tools/a_share/stock_financial.py` | 年报PDF一手数据、券商研报 |
-| A股年报一手数据 | `stock_equity.py --download-report` + PDF 提取 | 巨潮资讯网 |
+| A股年报一手数据 | `report_hub.py ensure`（下载）+ `report_hub.py extract`（提取） | 巨潮资讯网 |
 | 港股财务指标 | `tools/hk_stock/stock_financial.py` | HKEX披露易、豆包搜索 |
 | 港股年报一手数据 | HKEX披露易 + 豆包搜索 `--sites hkex.com.hk` | 浏览器手动下载 PDF |
 | 美股财务指标 | `tools/us_stock/stock_financial.py` | SEC EDGAR、豆包搜索 |
@@ -202,7 +202,7 @@ A股/港股/美股的行情、财务、信息查询工具的完整命令示例�
 
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
 - 4个Agent必须在同一条消息中并行启动，不可串行
-- A股公司必须先下载财报PDF，**下载完成后方可启动4个研究Agent**
+- A股公司必须先使用 `report_hub.py ensure` 获取财报PDF，**获取完成后方可启动4个研究Agent**
 - 资料评级（A/B/C级）需告知每个Agent，影响其研究方式
 - 所有分析必须有数据支撑，附数据来源
 - 关键财务数据至少两个独立来源交叉验证，使用 `financial_rigor.py` 工具验算

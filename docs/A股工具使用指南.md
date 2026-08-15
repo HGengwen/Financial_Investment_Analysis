@@ -12,6 +12,7 @@
 
 | 工具文件                      | 功能                     | 命令示例                                                     |
 | ----------------------------- | ------------------------ | ------------------------------------------------------------ |
+| `report_hub.py`（tools/common/） | A股财报下载与提取统一入口 | `python tools/common/report_hub.py ensure --code 601899 --report-type annual` |
 | `stock_info.py`             | A股信息查询              | `python tools/a_share/stock_info.py --search 新易盛`       |
 | `stock_quote.py`            | A股行情数据              | `python tools/a_share/stock_quote.py --code 300502`        |
 | `stock_financial.py`        | A股财务指标              | `python tools/a_share/stock_financial.py --code 300502`    |
@@ -2172,19 +2173,98 @@ python tools/common/fx_rate.py --code USDCNY --start 2026-07-20 --end 2026-08-01
 
 ---
 
-## 二十三、局限性说明
+## 二十四、report_hub.py - A股财报下载与提取统一入口
 
-1. **数据窗口**：部分公司上市时间较短，财务数据可能不足10年
-2. **周期性行业**：周期性行业需用完整周期平均值判断，避免单一年份误导
-3. **数据准确性**：免费接口数据可能存在延迟或误差，重要决策需交叉验证
-4. **财务报表**：部分公司财务报表数据可能缺失特定字段
+### 功能说明
+
+统一管理年报、半年报、季报的下载与提取，提供两层缓存：
+- **下载层**：披露窗口感知 —— 窗口外零网络直接返回本地 PDF；窗口内才查询巨潮 API
+- **提取层**：结果缓存 —— 同一 PDF 未变时秒回已生成的 Markdown
+
+所有报告集中存储在 `cninfo_reports/` 目录，避免技能间重复下载与重复提取。
+
+### 命令说明
+
+| 命令 | 功能 |
+| --- | --- |
+| `ensure` | 确保最新报告就绪。窗口外只查本地缓存，窗口内最多每 7 天查一次巨潮 |
+| `extract` | PDF 提取为 Markdown，带结果缓存（全量 / 目录页 / 目标章节） |
+| `list` | 列出本地缓存（报告年份、大小、是否已提取） |
+
+### 用法示例
+
+```bash
+# 下载
+python tools/common/report_hub.py ensure --code 601899 --report-type annual
+python tools/common/report_hub.py ensure --code 601899 --report-type semiannual
+python tools/common/report_hub.py ensure --code 601899 --report-type quarterly
+
+# 提取
+python tools/common/report_hub.py extract --code 601899 --report-type annual
+python tools/common/report_hub.py extract --pdf cninfo_reports/601899_2025年报.pdf --pages 0-10
+
+# 强制 OCR（扫描件场景）
+python tools/common/report_hub.py extract --code 601899 --report-type annual --force-ocr
+
+# 列出缓存
+python tools/common/report_hub.py list --code 601899
+```
+
+### 输出字段
+
+| 字段 | 说明 |
+| --- | --- |
+| success | 是否成功 |
+| code | 股票代码 |
+| report_type | 报告类型 |
+| year | 报告年份 |
+| pdf_path | PDF 文件路径 |
+| extract_path | 提取产物路径（extract 命令） |
+| meta.cache | hit / check_hit / refresh / stale / error |
+
+### 缓存语义
+
+- **hit**：本地缓存直接命中（窗口外零网络）
+- **check_hit**：窗口内查巨潮确认无更新后返回本地
+- **refresh**：检测到新版本并重新下载/提取
+- **stale**：巨潮 API 失败，降级返回旧文件
+- **error**：无缓存且获取失败
+
+### 设计要点
+
+- 披露窗口：年报 1-5 月、半年报 7-9 月、季报 4-5 月或 10-11 月（含缓冲期）
+- 目录统一：所有报告保存在 `cninfo_reports/`（禁用 `--report-dir`，避免破坏缓存）
+- 并行安全：`.part` 临时文件 + 原子替换，多 Agent 并行无损坏风险
+- 提取缓存：提取产物输出到 `cninfo_reports/extracted/`，PDF 重新下载后自动失效
+- 股权结构等其它数据仍使用 `stock_equity.py`
+
+### 数据缓存
+
+所有报告 PDF 按股票分文件缓存于 `cninfo_reports/` 目录，通过 `.meta/{code}_{type}.json`
+元数据追溯检查时间与来源。
+
+### 数据来源
+
+- 报告 PDF：巨潮资讯网（通过 stock_equity.py 底层下载）
+- 提取引擎：pdf_extract.py（基于 pdf-inspector 库，底层 Rust）
+
+### 常见问题
+
+Q: 为什么 ensure 说"文件已存在"却不返回？A: 文件 < 1MB 时可能是摘要版，会删除重下完整版。
+
+Q: 如何强制重新下载？A: 使用 `--force` 参数跳过窗口检查。
+
+Q: 提取结果如何缓存？A: 提取的 Markdown 文件保存于 `cninfo_reports/extracted/`，同名 md 存在且 mtime 新于 PDF 时秒回。PDF 重新下载后提取缓存自动失效。
+
+Q: 自定义目录为什么不支持？A: 只有统一目录才能让多个技能、多个 Agent 共享缓存。自定义目录会产生重复下载。
 
 ---
 
-**文档版本**: v2.5
-**更新日期**: 2026-08-10
+**文档版本**: v2.6
+**更新日期**: 2026-08-15
 **变更记录**:
 
+- v2.6 (2026-08-15): 新增 report_hub.py 工具说明章节（A股财报下载与提取统一入口，ensure/extract/list，披露窗口感知 + 两层缓存）；第五章 stock_equity.py 追加"技能流程推荐使用 report_hub"引导；第十六章 pdf_extract.py 组合流程示例改为 report_hub 方式；工具列表新增 report_hub.py 行
 - v2.5 (2026-08-10): 搜索工具章节按重要性重排（anysearch 升首、doubao 第二、exa 第三、tavily 新增专章、web_search 降级兜底）；第13章选型对比全量重写为 5 工具 × 市场矩阵（含角色定位总览、参数速查、市场 × 场景矩阵、通用规范、实测结论、决策流程图、实战推荐表）；网络搜索工具表格更新角色定位；原 13~22 章节顺延为 14~23
 - v2.4 (2026-08-09): 新增 anysearch.py 工具说明章节（AnySearch 全域结构化搜索，23 大垂直数据库 + tag 定向），更新网络搜索工具表格与搜索工具选型对比；原十一~二十一章节顺延为十二~二十二
 - v2.3 (2026-08-07): 新增 fx_rate.py 汇率工具说明章节（国际主要货币汇率，Akshare优先/yfinance回退），新增常见使用场景9；原十四~二十章节顺延为十五~二十一
