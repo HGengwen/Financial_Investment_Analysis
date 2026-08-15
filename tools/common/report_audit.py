@@ -444,6 +444,7 @@ def main():
     ext.add_argument('--ratio', type=float, default=0.15, help='抽样比例，默认 0.15')
     ext.add_argument('--seed', type=int, default=None, help='随机种子（可选，用于复现）')
     ext.add_argument('--dry-run', action='store_true', help='只打印，不输出 JSON')
+    ext.add_argument('--output-json', action='store_true', help='仅输出抽检清单 JSON 到 stdout（供脚本/管道解析）')
 
     # verdict
     vrd = sub.add_parser('verdict', help='根据核验结果输出准出/打回判决')
@@ -463,6 +464,27 @@ def main():
 
         all_points = extract_data_points(text)
         sampled = sample_points(all_points, ratio=args.ratio, seed=args.seed)
+
+        # 可填写的 JSON 模板（供 verdict 命令消费）
+        template = []
+        for p in sampled:
+            template.append({
+                'id': p['id'],
+                'label': p['label'],
+                'reported_value': p['reported_value'],
+                'unit': p['unit'],
+                'line_number': p['line_number'],
+                'raw_text': p['raw_text'],
+                'fetched_value': None,       # ← 填入主来源核验值
+                'fetched_source': '',        # ← 填入主来源名称
+                'fetched_value2': None,      # ← 填入副来源核验值（可选）
+                'fetched_source2': '',       # ← 填入副来源名称（可选）
+            })
+
+        # --output-json：仅输出纯 JSON 到 stdout，供脚本/管道直接解析
+        if args.output_json:
+            print(json.dumps(template, ensure_ascii=False, indent=2))
+            sys.exit(0)
 
         print('=' * 70)
         print(f'报告数据抽检清单')
@@ -485,20 +507,6 @@ def main():
 
         if not args.dry_run:
             # 输出可填写的 JSON 模板
-            template = []
-            for p in sampled:
-                template.append({
-                    'id': p['id'],
-                    'label': p['label'],
-                    'reported_value': p['reported_value'],
-                    'unit': p['unit'],
-                    'line_number': p['line_number'],
-                    'raw_text': p['raw_text'],
-                    'fetched_value': None,       # ← 填入主来源核验值
-                    'fetched_source': '',        # ← 填入主来源名称
-                    'fetched_value2': None,      # ← 填入副来源核验值（可选）
-                    'fetched_source2': '',       # ← 填入副来源名称（可选）
-                })
             print('抽检清单 JSON（填入 fetched_value 后，传给 verdict 命令）：')
             print()
             print(json.dumps(template, ensure_ascii=False, indent=2))

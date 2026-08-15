@@ -18,6 +18,14 @@ python tools/common/report_audit.py extract \
   --report {报告文件路径}
 ```
 
+如需以脚本方式获取可解析的 JSON（避免 shell 管道处理混合输出），使用 `--output-json`：
+
+```bash
+# 仅输出纯 JSON 模板到 stdout，可直接重定向到 .json 文件后 json.load 解析
+python tools/common/report_audit.py extract \
+  --report {报告文件路径} --seed 42 --output-json > checklist.json
+```
+
 ---
 
 ## Step 2：取数核验

@@ -453,8 +453,10 @@ python tools/common/doubao_search.py "AAPL business model analyst reactions" --f
 
 ```bash
 # Step 1 - 提取抽检清单（15%随机抽样）
+#   注意：extract 默认输出为"表格+JSON"混合内容，如需脚本解析请加 --output-json 参数
+#   （仅输出纯 JSON，可安全重定向到 .json 文件）
 python tools/common/report_audit.py extract \
-  --report reports/{公司名}/{公司名}-research-{YYYYMMDD}.md
+  --report reports/{公司名}/{公司名}-research-{YYYYMMDD}.md --seed 42 --output-json > "$TEMP/audit.json"
 
 # Step 2 - 对清单每项从可靠信源取数（按市场分别使用对应工具）
 #   A股：tools/a_share/stock_financial.py（东方财富主） -> 巨潮资讯副 -> 年报PDF原始一手
