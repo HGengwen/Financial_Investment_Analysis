@@ -54,52 +54,74 @@ disable-model-invocation: true
 
 ---
 
-### 第三步：A股财报原文获取（优先执行，仅A股）
+### 第三步：A股财报原文下载（优先执行，仅A股）
 
-报告获取与提取统一使用 report_hub.py（带下载与提取缓存），详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)。
-
-**重要流程**：对于A股公司，必须首先使用 `report_hub.py` 工具获取原始财报PDF（ensure），**获取完成后方可进行下一步的阅读分析工作**。
+**重要流程**：对于A股公司，必须首先使用 `stock_equity.py` 工具下载原始财报PDF，**下载完成后方可进行下一步的阅读分析工作**。
 
 ```bash
-# 获取最新年报PDF
-python tools/common/report_hub.py ensure --code {股票代码} --report-type annual
+# 下载最新年报PDF
+python tools/a_share/stock_equity.py --code {股票代码} --download-report --report-type annual
 
-# 获取最新半年报PDF（如需分析半年报）
-python tools/common/report_hub.py ensure --code {股票代码} --report-type semiannual
+# 下载最新半年报PDF（如需分析半年报）
+python tools/a_share/stock_equity.py --code {股票代码} --download-report --report-type semiannual
 
-# 获取最新季报PDF（如需分析季报）
-python tools/common/report_hub.py ensure --code {股票代码} --report-type quarterly
+# 下载最新季报PDF（如需分析季报）
+python tools/a_share/stock_equity.py --code {股票代码} --download-report --report-type quarterly
 ```
 
-下载的PDF文件统一保存在 `cninfo_reports/` 目录（report_hub 自带下载与提取缓存，统一目录才能命中），文件命名格式：
+下载的PDF文件保存在 `cninfo_reports/` 目录，文件命名格式：
 
 - 年报：`{股票代码}_{年份}年报.pdf`
 - 半年报：`{股票代码}_{年份}半年报.pdf`
 - 季报：`{股票代码}_{年份}{季度}季报.pdf`
 
-**流程检查点**：确认 report_hub ensure 返回 success=true 后，方可启动后续的4个研究Agent。
+可使用 `--report-dir` 参数指定其他保存目录：
 
-**PDF文档阅读工具**（首选 `report_hub.py extract`，带提取缓存；底层 `pdf_extract.py` 基于 pdf-inspector 库，支持自动乱码检测 + OCR 回退），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
+```bash
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type annual --report-dir ./reports/紫金矿业
+```
+
+**流程检查点**：确认PDF文件下载成功后，方可启动后续的4个研究Agent。
+
+**PDF文档阅读工具**（首选 `pdf_extract.py`，支持自动乱码检测 + OCR 回退；失败时才回退 Poppler 工具集）：
 
 **首选工具**：
 ```bash
-# 提取年报含财务附表的 Markdown 并写盘（report_hub 自动类型检测 + 提取缓存）
-python tools/common/report_hub.py extract --code 002465 --report-type annual
+# 分类检测 PDF 类型
+python tools/common/pdf_extract.py detect cninfo_reports/601899_2025年报.pdf
+
+# 提取含财务附表的 Markdown 并写盘
+python tools/common/pdf_extract.py markdown cninfo_reports/601899_2025年报.pdf --save-md --out-dir reports/pdf
 
 # 强制 OCR 提取（适用于 pdf-inspector 提取乱码时，如 Adobe-CNS1 繁体中文 PDF）
-python tools/common/report_hub.py extract --code 688235 --report-type annual --force-ocr --ocr-langs chi_tra+eng
+python tools/common/pdf_extract.py text cninfo_reports/688235_2025年报.pdf --force-ocr --ocr-langs chi_tra+eng
 
-# 指定页码提取（性能优化：先提取关键页，避免全量 OCR 377 页，支持范围语法）
-python tools/common/report_hub.py extract --pdf cninfo_reports/688235_2025年报.pdf --pages 0-5
+# 指定页码 OCR 提取（性能优化：先提取关键页，避免全量 OCR 377 页，支持范围语法）
+python tools/common/pdf_extract.py text cninfo_reports/688235_2025年报.pdf --force-ocr --ocr-langs chi_tra+eng --pages 0-5
 ```
 
-**回退方案（Poppler 工具集命令）详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)。**
+**回退工具（Poppler 工具集，仅当 pdf_extract.py 返回失败时使用）**：
+
+- `pdftotext`：将PDF转换为文本格式
+- `pdfinfo`：查看PDF文件信息
+- `pdftoppm`：将PDF转换为图像
+
+```bash
+# 查看PDF文件信息
+pdfinfo cninfo_reports/601899_2025年报.pdf
+
+# 将PDF转换为文本文件
+pdftotext cninfo_reports/601899_2025年报.pdf cninfo_reports/601899_2025年报.txt
+
+# 将PDF转换为图像（用于扫描版PDF）
+pdftoppm -png cninfo_reports/601899_2025年报.pdf cninfo_reports/601899_2025年报
+```
 
 **注意事项**：
-- 首选 `report_hub.py extract` 提取文字与表格（底层仍为 `pdf_extract.py`），返回失败时才回退 Poppler（详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)；底层提取指南 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
-- `report_hub.py extract` 底层 `pdf_extract.py` 内置自动乱码检测，当 pdf-inspector 提取文本出现乱码（如 Adobe-CNS1 字体编码问题）且 tesseract OCR 可用时，自动触发 OCR 回退
+- 首选 `pdf_extract.py` 提取文字与表格（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
+- `pdf_extract.py` 内置自动乱码检测，当 pdf-inspector 提取文本出现乱码（如 Adobe-CNS1 字体编码问题）且 tesseract OCR 可用时，自动触发 OCR 回退
 - **繁体中文 PDF**（如百济神州）需使用 `--force-ocr --ocr-langs chi_tra+eng` 指定繁体中文语言包
-- **性能提示**：OCR 全量 377 页年报耗时较长，建议用 `--pages` 指定关键页提取
+- **性能提示**：OCR 全量 377 页年报耗时较长，建议先 `detect` 确认页码，用 `--pages` 指定关键页提取
 - 返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler
 - 如果PDF无法提取信息，应在报告中标注"资料评级：B级"，说明扫描版PDF限制
 
@@ -382,7 +404,6 @@ python tools/common/report_hub.py extract --pdf cninfo_reports/688235_2025年报
 
 本技能的工具使用规范详见以下公共技能文件：
 
-- A股财报下载与提取：[报告下载与提取统一入口](../tools-scripts/report-hub.md)（`tools/common/report_hub.py`，A股财报下载与提取统一入口，带两层缓存）
 - A股/港股数据获取：[A股数据](../tools-scripts/a-share-data.md) / [港股数据](../tools-scripts/hk-share-data.md)
 - 美股数据获取：[美股工具使用指南](../../../docs/美股工具使用指南.md)（`tools/us_stock/` 目录下三个模块）
 - 大宗商品数据获取：[大宗商品价格工具](../../../docs/A股工具使用指南.md#十二commodity_pricepy---大宗商品价格数据)（`tools/common/commodity_price.py`，Akshare 优先 + yfinance 回退）
@@ -396,8 +417,8 @@ python tools/common/report_hub.py extract --pdf cninfo_reports/688235_2025年报
 
 ### investment-team 的特殊工具使用注意
 
-1. **A股财报获取是前置流程**：A股公司必须先执行第三步的 `report_hub.py ensure` 获取年报 PDF，`report_hub.py extract` 提取一手数据后再启动 4 个研究 Agent（报告获取与提取统一入口，带下载与提取缓存，详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)）
-2. **港股公司数据获取**：使用 `tools/hk_stock/stock_financial.py --financial {代码}` 获取财务指标（ROE/毛利率/净利率等），港股历史行情用 `tools/hk_stock/stock_quote.py`。港股无 A股的 `report_hub.py` 财报下载/提取工具，年报一手数据需从 HKEX 披露易获取（可用豆包搜索 `--sites hkex.com.hk` 定向检索公告，或浏览器手动下载 PDF 后按 [pdf-extraction](../tools-scripts/pdf-extraction.md) 流程提取）。东方财富港股接口连接不稳定（非地理封锁），工具已内置重试机制
+1. **A股财报下载是前置流程**：A股公司必须先执行第三步的 `stock_equity.py --download-report` 下载年报 PDF，提取一手数据后再启动 4 个研究 Agent
+2. **港股公司数据获取**：使用 `tools/hk_stock/stock_financial.py --financial {代码}` 获取财务指标（ROE/毛利率/净利率等），港股历史行情用 `tools/hk_stock/stock_quote.py`。港股无 A股的 `stock_equity.py` 财报下载工具，年报一手数据需从 HKEX 披露易获取（可用豆包搜索 `--sites hkex.com.hk` 定向检索公告，或浏览器手动下载 PDF 后按 [pdf-extraction](../tools-scripts/pdf-extraction.md) 流程提取）。东方财富港股接口连接不稳定（非地理封锁），工具已内置重试机制
 3. **美股公司数据获取**：使用 `tools/us_stock/` 三个模块（stock_info/stock_quote/stock_financial），详见 [美股工具使用指南](../../../docs/美股工具使用指南.md)
 4. **4 个 Agent 的财务计算须用 financial_rigor.py 验算**：Agent 2（巴菲特视角）的核心财务数据必须使用 `tools/common/financial_rigor.py` 交叉验证，**禁止 LLM 心算** PE/ROE/市值等（具体命令见 Agent 2 分析内容）
 5. **网络信息搜索优先使用豆包搜索**：支持 `--finance`（财经定向+权威信源）、`--need-content`（抓正文）、`--export`（导出 Markdown）、`--sites`（定向 SEC/港交所披露易），多源验证规范详见 [web-search-tools](../tools-scripts/web-search-tools.md)

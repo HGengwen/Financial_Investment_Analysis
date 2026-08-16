@@ -59,7 +59,7 @@
 ```
 /management-deep-dive 紫金矿业
 ```
- 使用 `report_hub.py` 获取年报PDF（ensure），提取管理层承诺，追踪兑现情况
+ 使用 `stock_equity.py` 下载年报PDF，提取管理层承诺，追踪兑现情况
 
 ---
 
@@ -153,8 +153,7 @@
 | A股 | `tools/a_share/stock_info.py` | 股票代码查询 |
 | A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） |
 | A股 | `tools/a_share/stock_quote.py` | 实时行情与历史K线 |
-| A股 | `tools/common/report_hub.py` | A股财报下载与提取统一入口（带缓存） |
-| A股 | `tools/a_share/stock_equity.py` | 股权结构 + 导出Excel |
+| A股 | `tools/a_share/stock_equity.py` | **财报PDF下载** + 股权结构 + 导出Excel |
 | A股 | `tools/a_share/stock_screen.py` | 质量筛选7条指标 |
 | 港股 | `tools/hk_stock/stock_info.py` | 港股信息查询与财务指标 |
 | 港股 | `tools/hk_stock/stock_financial.py` | 港股财务指标 |
@@ -190,18 +189,18 @@
 - 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
 - 管理层信息须覆盖最近12个月，非境内上市公司须按市场矩阵双源验证（港股 doubao+tavily；美股 exa+doubao）
 
-### PDF文档内容提取（A股财报统一用 report_hub.py）
+### PDF文档内容提取（首选 pdf_extract.py）
 
-报告获取与提取统一使用 report_hub.py（带下载与提取缓存），详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)。下载的 A 股财报 PDF 提取文字与表格**统一使用** `tools/common/report_hub.py extract`（内置类型检测、自动乱码检测 + OCR 回退与提取缓存），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
+提取文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，支持自动乱码检测 + OCR 回退），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
 
 | 工具 | 功能 |
 |------|------|
-| `report_hub.py` | A股财报PDF下载与提取统一入口（带缓存，首选，提取管理层承诺、战略发言） |
-| `pdf_extract.py` | PDF文字与表格提取（非 A 股 PDF 或独立 PDF 文件场景） |
+| `pdf_extract.py` | PDF文字与表格提取（首选，提取管理层承诺、战略发言） |
+| `pdftotext` | 将PDF转换为文本（回退） |
+| `pdfinfo` | 查看PDF文件信息（回退） |
+| `pdftoppm` | 将PDF转换为图像（回退，处理扫描版PDF） |
 
-回退方案（Poppler 工具集命令）详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)。
-
-详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md) 与 [报告下载与提取统一入口](../tools-scripts/report-hub.md)。
+详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)。
 
 ### 报告审核工具
 
@@ -211,7 +210,7 @@
 
 **重要约束**：
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
-- A股公司优先使用 `report_hub.py ensure` 获取原始财报PDF，统一用 `report_hub.py extract` 提取管理层承诺
+- A股公司优先使用 `stock_equity.py` 下载原始财报PDF，提取管理层承诺
 - 美股数据使用 `tools/us_stock/` 本地工具 + `doubao_search.py`/`tavily_search.py` 搜索（多源交叉验证）
 - 多地上市公司需综合获取多个市场数据
 
@@ -241,7 +240,7 @@
 - A+H股公司需同时获取A股和港股数据，分析H股占比和A股/H股溢价
 - 港股+美股ADR公司需港股工具+美股工具/搜索综合分析
 - 三地上市公司（A股+港股+美股）信息披露更复杂，需仔细比对各市场披露差异
-- 扫描版PDF无法直接提取文本，需使用 report_hub.py extract 的 OCR 处理（必要时 `--force-ocr`）
+- 扫描版PDF无法直接提取文本，需使用 pdftoppm 转为图像或OCR处理
 - 员工评价、客户反馈等侧面信息可能因平台限制而不完整，需标注可得性
 - 报告写完后主动询问是否推送到GitHub
 

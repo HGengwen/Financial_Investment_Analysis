@@ -15,7 +15,6 @@ disable-model-invocation: true
 | 技能文件 | 职责 | 核心工具 |
 |---------|------|---------|
 | [a-share-data.md](./a-share-data.md) | A股数据获取 | `stock_info.py`、`stock_financial.py`、`stock_quote.py`、`stock_screen.py`、`stock_equity.py` |
-| [report-hub.md](./report-hub.md) | A股财报下载与提取统一入口 | `report_hub.py`（ensure / extract / list，披露窗口感知，两层缓存） |
 | [hk-share-data.md](./hk-share-data.md) | 港股数据获取 | `stock_financial.py`、`stock_quote.py`、`stock_screen.py` |
 | [financial-calc.md](./financial-calc.md) | 财务计算与验证 | `financial_rigor.py`（市值验算、交叉验证、估值验算、三情景估值） |
 | [web-search-tools.md](./web-search-tools.md) | 网络信息搜索（v3.0 五工具） | `anysearch.py`（A股投研首选）、`doubao_search.py`（实时资讯首选）、`exa_search.py`（美股深度研究首选）、`tavily_search.py`（港美股辅源）、`web_search.py`（仅兜底） |
@@ -45,7 +44,6 @@ disable-model-invocation: true
 - 财务计算与验证：[financial-calc](../tools-scripts/financial-calc.md)
 - 网络信息搜索：[web-search-tools](../tools-scripts/web-search-tools.md)
 - 报告审核与抽检：[report-audit](../tools-scripts/report-audit.md)
-- 报告下载与提取统一入口：[report-hub](../tools-scripts/report-hub.md)
 - 全局约束规范：[global-constraints](../tools-scripts/global-constraints.md)
 - 国际货币汇率获取：[fx_rate.py 说明](../A股工具使用指南.md#十三fx_ratepy---国际主要货币汇率)
 

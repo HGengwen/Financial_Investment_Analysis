@@ -4,55 +4,103 @@
 本模块位于 tools/a_share/ 目录下，专门用于查询 A 股上市公司的
 代码、名称、行业等基本信息，是 A 股数据工具集的核心查询入口。
 
-数据获取策略：优先从本地缓存（data/a_share/ 下的 CSV，由 tools/common/
-a_stock_cache.py 管理）读取代码/名称与最新季度行业数据；仅当缓存缺失、
-过期或本地未命中时才调用 akshare 刷新缓存，从而减少 API 调用、规避限流。
+使用 akshare 库获取 A 股上市公司的代码、名称、行业等信息。
 
 Usage:
     {py} tools/a_share/stock_info.py --list
     {py} tools/a_share/stock_info.py --search 新易盛
     {py} tools/a_share/stock_info.py --code 300502
     {py} tools/a_share/stock_info.py --industry 通信设备
-    {py} tools/a_share/stock_info.py --refresh
 
 港股查询请使用: tools/stock_info_hk.py
 """
 
 import argparse
 import json
-import os
 import sys
-import time
 import traceback
 from datetime import datetime
 
 # ---------------------------------------------------------------------------
-# 导入本地缓存模块（tools/common/a_stock_cache.py）
+# 尝试导入 akshare（提供友好的错误提示）
 # ---------------------------------------------------------------------------
-# 将项目根目录加入 sys.path，使本工具以独立脚本方式运行时也能导入 tools.common 包
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
-from tools.common import a_stock_cache  # noqa: E402 - 需在 sys.path 设置之后导入
+try:
+    import akshare as ak
+except ImportError as e:
+    print(json.dumps({
+        "success": False,
+        "error": f"无法导入 akshare 库: {e}。请运行: pip install akshare",
+        "meta": {"tool": "stock_info", "timestamp": datetime.now().isoformat()}
+    }, ensure_ascii=False))
+    sys.exit(1)
 
 # ---------------------------------------------------------------------------
-# A股数据获取函数（基于本地缓存，减少 API 调用）
+# A股数据获取函数
 # ---------------------------------------------------------------------------
 
 def get_all_a_stocks():
-    """获取全部 A 股代码和名称。
-
-    优先从本地缓存读取，缓存缺失或过期时自动通过 a_stock_cache 刷新。
-    """
-    return a_stock_cache.get_code_name_list()
+    """获取全部 A 股代码和名称。"""
+    df = ak.stock_info_a_code_name()
+    records = []
+    for _, row in df.iterrows():
+        records.append({
+            "code": str(row["code"]).zfill(6),
+            "name": str(row["name"]).strip(),
+            "market": "a"
+        })
+    return records
 
 
 def get_a_stock_industry_info():
     """获取A股股票行业信息（从最新业绩报表提取）。
 
-    优先从本地缓存读取，缓存缺失或过期时自动通过 a_stock_cache 刷新，
-    继承原逻辑的 3 季度回退与有效性校验（>1000 行且 >100 只股票有行业数据）。
+    尝试最近的季度数据，如果数据不完整则回退到上一个季度。
     """
-    return a_stock_cache.get_industry_map()
+    now = datetime.now()
+    year = now.year
+    month = now.month
+
+    # 按优先顺序生成日期列表（最近的季度 -> 前一个季度 -> ...）
+    date_candidates = []
+    if month <= 3:
+        # 当前Q1，尝试 Q4去年、Q3去年
+        date_candidates = [f"{year-1}1231", f"{year-1}0930", f"{year-1}0630"]
+    elif month <= 6:
+        # 当前Q2，尝试 Q1当年、Q4去年、Q3去年
+        date_candidates = [f"{year}0331", f"{year-1}1231", f"{year-1}0930"]
+    elif month <= 9:
+        # 当前Q3，尝试 Q2当年、Q1当年、Q4去年
+        date_candidates = [f"{year}0630", f"{year}0331", f"{year-1}1231"]
+    else:
+        # 当前Q4，尝试 Q3当年、Q2当年、Q1当年
+        date_candidates = [f"{year}0930", f"{year}0630", f"{year}0331"]
+
+    for date_str in date_candidates:
+        try:
+            df = ak.stock_yjbb_em(date=date_str)
+            # 检查数据是否有效：至少有1000行且行业字段有数据
+            if len(df) > 1000:
+                # 检查是否有行业数据
+                有行业数据 = df[df["所处行业"].notna() & (df["所处行业"] != "")]
+                if len(有行业数据) > 100:
+                    # 数据有效，使用此日期
+                    break
+        except Exception:
+            continue
+
+    result = {}
+    for _, row in df.iterrows():
+        code = str(row["股票代码"]).zfill(6)
+        result[code] = {
+            "code": code,
+            "name": str(row.get("股票简称", "")).strip(),
+            "market": "a",
+            "industry": str(row.get("所处行业", "")).strip(),
+            "roe": float(row.get("净资产收益率", 0)) if row.get("净资产收益率") else None,
+            "gross_margin": float(row.get("销售毛利率", 0)) if row.get("销售毛利率") else None,
+            "eps": float(row.get("每股收益", 0)) if row.get("每股收益") else None,
+        }
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -71,7 +119,6 @@ def cmd_list():
                 "command": "list",
                 "market": "a",
                 "count": len(records),
-                "cache": a_stock_cache.get_code_name_status(),
                 "timestamp": datetime.now().isoformat()
             }
         }
@@ -86,34 +133,6 @@ def cmd_list():
         sys.exit(1)
 
 
-def _build_matched(keyword, stocks, industry_map):
-    """在股票列表中按名称关键词匹配，并附带行业信息。
-
-    Args:
-        keyword: 搜索关键词。
-        stocks: 股票记录列表 [{"code", "name", "market"}, ...]。
-        industry_map: 以股票代码为键的行业信息字典。
-
-    Returns:
-        匹配结果列表。
-    """
-    matched = []
-    keyword_upper = keyword.upper()
-    for s in stocks:
-        if keyword_upper in s["name"].upper():
-            info = industry_map.get(s["code"], {})
-            matched.append({
-                "code": s["code"],
-                "name": s["name"],
-                "market": "a",
-                "industry": info.get("industry", ""),
-                "roe": info.get("roe"),
-                "gross_margin": info.get("gross_margin"),
-                "eps": info.get("eps"),
-            })
-    return matched
-
-
 def cmd_search(keyword):
     """--search: 按名称关键词搜索A股。"""
     if not keyword:
@@ -125,16 +144,23 @@ def cmd_search(keyword):
         sys.exit(1)
 
     try:
-        # 搜索A股（优先本地缓存）
+        matched = []
+
+        # 搜索A股
         industry_map = get_a_stock_industry_info()
         all_a_stocks = get_all_a_stocks()
-        matched = _build_matched(keyword, all_a_stocks, industry_map)
-
-        # miss 双触发：本地查不到时强制刷新一次缓存后再查（新IPO/改名股自愈）
-        if not matched:
-            all_a_stocks = get_all_a_stocks(force_refresh=True)
-            industry_map = get_a_stock_industry_info(force_refresh=True)
-            matched = _build_matched(keyword, all_a_stocks, industry_map)
+        for s in all_a_stocks:
+            if keyword.upper() in s["name"].upper():
+                info = industry_map.get(s["code"], {})
+                matched.append({
+                    "code": s["code"],
+                    "name": s["name"],
+                    "market": "a",
+                    "industry": info.get("industry", ""),
+                    "roe": info.get("roe"),
+                    "gross_margin": info.get("gross_margin"),
+                    "eps": info.get("eps"),
+                })
 
         output = {
             "success": True,
@@ -145,7 +171,6 @@ def cmd_search(keyword):
                 "keyword": keyword,
                 "market": "a",
                 "count": len(matched),
-                "cache": a_stock_cache.get_code_name_status(),
                 "timestamp": datetime.now().isoformat()
             }
         }
@@ -171,7 +196,7 @@ def cmd_code(code):
         sys.exit(1)
 
     try:
-        # A股查询（优先本地缓存）
+        # A股查询
         code = code.zfill(6)  # A股补齐6位
         industry_map = get_a_stock_industry_info()
         info = industry_map.get(code)
@@ -185,7 +210,6 @@ def cmd_code(code):
                     "command": "code",
                     "code": code,
                     "market": "a",
-                    "cache": a_stock_cache.get_industry_status(),
                     "timestamp": datetime.now().isoformat()
                 }
             }
@@ -193,28 +217,7 @@ def cmd_code(code):
             # 尝试在全部列表中找到
             all_stocks = get_all_a_stocks()
             found = [s for s in all_stocks if s["code"] == code]
-
-            # miss 双触发：本地查不到时强制刷新一次缓存后再查（新IPO/改名股自愈）
-            if not found:
-                industry_map = get_a_stock_industry_info(force_refresh=True)
-                info = industry_map.get(code)
-                all_stocks = get_all_a_stocks(force_refresh=True)
-                found = [s for s in all_stocks if s["code"] == code]
-
-            if info:
-                output = {
-                    "success": True,
-                    "data": info,
-                    "meta": {
-                        "tool": "stock_info",
-                        "command": "code",
-                        "code": code,
-                        "market": "a",
-                        "cache": a_stock_cache.get_industry_status(),
-                        "timestamp": datetime.now().isoformat()
-                    }
-                }
-            elif found:
+            if found:
                 output = {
                     "success": True,
                     "data": {
@@ -231,7 +234,6 @@ def cmd_code(code):
                         "command": "code",
                         "code": code,
                         "market": "a",
-                        "cache": a_stock_cache.get_code_name_status(),
                         "timestamp": datetime.now().isoformat()
                     }
                 }
@@ -244,7 +246,6 @@ def cmd_code(code):
                         "command": "code",
                         "code": code,
                         "market": "a",
-                        "cache": a_stock_cache.get_code_name_status(),
                         "timestamp": datetime.now().isoformat()
                     }
                 }
@@ -278,44 +279,6 @@ def cmd_industry(industry_name):
     sys.exit(1)
 
 
-def cmd_refresh():
-    """--refresh: 强制刷新本地 A 股代码/名称与行业数据缓存。"""
-    try:
-        start = time.time()
-        code_records = a_stock_cache.get_code_name_list(force_refresh=True)
-        industry_map = a_stock_cache.get_industry_map(force_refresh=True)
-        elapsed = round(time.time() - start, 2)
-        output = {
-            "success": True,
-            "data": {
-                "stock_code": {
-                    "count": len(code_records),
-                    "cache_file": str(a_stock_cache.CODE_CACHE_FILE),
-                },
-                "stock_industry": {
-                    "count": len(industry_map),
-                    "cache_file": str(a_stock_cache.INDUSTRY_CACHE_FILE),
-                },
-            },
-            "meta": {
-                "tool": "stock_info",
-                "command": "refresh",
-                "market": "a",
-                "elapsed_seconds": elapsed,
-                "timestamp": datetime.now().isoformat()
-            }
-        }
-        print(json.dumps(output, ensure_ascii=False))
-    except Exception as e:
-        print(json.dumps({
-            "success": False,
-            "error": f"刷新缓存失败: {e}",
-            "detail": traceback.format_exc(),
-            "meta": {"tool": "stock_info", "command": "refresh", "timestamp": datetime.now().isoformat()}
-        }, ensure_ascii=False), file=sys.stderr)
-        sys.exit(1)
-
-
 # ---------------------------------------------------------------------------
 # CLI 入口
 # ---------------------------------------------------------------------------
@@ -330,7 +293,6 @@ def main():
   %(prog)s --search 新易盛                   # 在A股中搜索
   %(prog)s --code 300502                     # 查询A股股票
   %(prog)s --industry 通信设备                # 按行业筛选
-  %(prog)s --refresh                        # 强制刷新本地缓存
 
 港股查询请使用: stock_info_hk.py
         """)
@@ -342,13 +304,11 @@ def main():
                         help="查询单只股票详细信息")
     parser.add_argument("--industry", type=str, default=None, metavar="INDUSTRY",
                         help="按行业名称筛选股票")
-    parser.add_argument("--refresh", action="store_true",
-                        help="强制刷新本地 A 股代码/名称与行业数据缓存")
 
     args = parser.parse_args()
 
     # 确保至少一个操作
-    if not args.list and not args.search and not args.code and not args.industry and not args.refresh:
+    if not args.list and not args.search and not args.code and not args.industry:
         parser.print_help()
         print("\n错误: 请指定至少一个操作", file=sys.stderr)
         sys.exit(1)
@@ -361,8 +321,6 @@ def main():
         cmd_code(args.code)
     elif args.industry:
         cmd_industry(args.industry)
-    elif args.refresh:
-        cmd_refresh()
 
 
 if __name__ == "__main__":

@@ -179,12 +179,9 @@ class TestGetStockRealtimeInfo(unittest.TestCase):
         self.assertEqual(result["symbol"], "TEST")
 
     def test_exception_handling(self):
-        """测试异常且无缓存兜底时的错误处理（使用 mock）。"""
-        with patch('tools.us_stock.stock_info.safe_api_call') as mock_safe, \
-                patch('tools.us_stock.stock_info.us_stock_cache.get_slow_fields') as mock_slow:
+        """测试异常时的错误处理（使用 mock）。"""
+        with patch('tools.us_stock.stock_info.safe_api_call') as mock_safe:
             mock_safe.side_effect = Exception("网络连接失败")
-            # 无可用慢变字段缓存兜底 → 返回失败
-            mock_slow.return_value = None
             result = get_stock_realtime_info("AAPL")
 
         self.assertFalse(result["success"])
@@ -383,7 +380,7 @@ class TestCommandLineInterface(unittest.TestCase):
         """测试 --help 参数输出。"""
         rc, out, err = self._run_cli(["--help"])
         self.assertEqual(rc, 0)
-        self.assertIn("美股个股实时行情、估值指标与代码列表查询工具", out)
+        self.assertIn("美股个股实时行情与估值指标查询工具", out)
         self.assertIn("--realtime", out)
         self.assertIn("--json", out)
 

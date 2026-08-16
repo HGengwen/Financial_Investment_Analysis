@@ -38,7 +38,7 @@
 |------|---------------------|-------------------|-------------|
 | 美股 | `tools/us_stock/stock_financial.py`（yfinance） | macrotrends.net / stockanalysis.com | SEC EDGAR（10-K/10-Q） |
 | 港股 | `tools/hk_stock/stock_financial.py`（东方财富/新浪） | aastocks.com / macrotrends（ADR） | HKEX披露易（年报PDF） |
-| A股 | `tools/a_share/stock_financial.py`（akshare） | eastmoney.com | 巨潮资讯（年报PDF，通过 `report_hub.py ensure` 下载） |
+| A股 | `tools/a_share/stock_financial.py`（akshare） | eastmoney.com | 巨潮资讯（年报PDF，通过 `stock_equity.py --download-report` 下载） |
 
 ---
 
@@ -144,7 +144,7 @@
 | A股 | `tools/a_share/stock_info.py` | 股票信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
 | A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
 | A股 | `tools/a_share/stock_quote.py` | 历史股价与实时行情 | `python tools/a_share/stock_quote.py --code 601899` |
-| A股 | `tools/common/report_hub.py` | A股财报下载与提取统一入口（带缓存） | `python tools/common/report_hub.py ensure --code 601899 --report-type annual` |
+| A股 | `tools/a_share/stock_equity.py` | 股权结构与财报下载 | `python tools/a_share/stock_equity.py --code 601899` |
 | 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
 | 港股 | `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
 | 港股 | `tools/hk_stock/stock_screen.py` | 港股质量筛选 | `python tools/hk_stock/stock_screen.py --code 00700` |
@@ -202,28 +202,28 @@ python tools/common/fx_rate.py --code USDCNY --start 2026-07-20 --end 2026-08-01
 - 关键数据缺失时标注"信息不足"，不得用搜索结果推测填充
 - 非境内上市须双源验证（港股 doubao+tavily；美股 exa+doubao），见 web-search-tools.md 第五节
 
-### PDF文档内容提取（统一用 report_hub.py extract）
+### PDF文档内容提取（首选 pdf_extract.py）
 
-A股年报/半年报/季报PDF通过 `tools/common/report_hub.py ensure` 下载（披露窗口感知下载，统一保存到 `cninfo_reports/`）：
+A股年报/半年报/季报PDF通过 `tools/a_share/stock_equity.py --download-report` 下载：
 
 ```bash
-# 使用 report_hub.py ensure 下载年报/半年报/季报 PDF
-python tools/common/report_hub.py ensure --code 601899 --report-type annual      # 年报
-python tools/common/report_hub.py ensure --code 601899 --report-type semiannual   # 半年报
-python tools/common/report_hub.py ensure --code 601899 --report-type quarterly    # 季报
+# 下载年报/半年报/季报 PDF
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type annual      # 年报
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type semiannual   # 半年报
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly    # 季报
 ```
 
-下载的PDF保存于 `cninfo_reports/` 目录，命名格式：`{股票代码}_{年份}年报.pdf`。提取文字与表格**统一用** `report_hub.py extract`（内部首选 `pdf_extract.py`，支持自动乱码检测 + OCR 回退），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集。报告获取与提取统一使用 report_hub.py（带下载与提取缓存），详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)：
+下载的PDF保存于 `cninfo_reports/` 目录，命名格式：`{股票代码}_{年份}年报.pdf`。提取文字与表格**首选** `pdf_extract.py`（支持自动乱码检测 + OCR 回退），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `report_hub.py extract` | A股年报/季报PDF提取（首选，内部调用 pdf_extract.py） | `python tools/common/report_hub.py extract --code 601899 --report-type annual` |
+| `pdf_extract.py` | PDF文字与表格提取（首选） | `python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --save-md` |
 | `pdftotext` | 将PDF转换为纯文本（回退） | `pdftotext -layout 601899_2025年报.pdf output.txt` |
 | `pdfinfo` | 获取PDF文档信息（回退） | `pdfinfo 601899_2025年报.pdf` |
 | `pdftoppm` | 将PDF页面渲染为图像（回退） | `pdftoppm -png -r 300 601899_2025年报.pdf output/page` |
 
 **关键提示**：
-- 统一用 `report_hub.py extract` 提取文字与表格（内部首选 `pdf_extract.py`）；返回失败时才回退 Poppler 工具集（详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md) 与 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
+- 首选 `pdf_extract.py` 提取文字与表格；返回失败时才回退 Poppler 工具集（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
 - 扫描版PDF无法用 `pdftotext` 提取文本，须用 `pdftoppm` 渲染为图像后人工核对
 - 从PDF提取的数据必须与其他来源交叉验证
 - 详细工作流见 [SKILL.md](./SKILL.md) "PDF文档内容提取"章节

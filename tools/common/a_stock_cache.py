@@ -21,19 +21,19 @@ stock_financial 等）提供「代码/名称列表」与「最新季度业绩数
 - 损坏回退：CSV 解析失败视为缓存缺失，重新拉取并覆写
 
 Usage:
-    from tools.common import a_stock_cache
+    from tools.common import stock_cache
 
     # 获取全部 A 股代码与名称（默认走缓存）
-    stocks = a_stock_cache.get_code_name_list()
+    stocks = stock_cache.get_code_name_list()
 
     # 获取行业/ROE/毛利率/EPS 映射（按股票代码为键）
-    industry_map = a_stock_cache.get_industry_map()
+    industry_map = stock_cache.get_industry_map()
 
     # 强制刷新缓存
-    stocks = a_stock_cache.get_code_name_list(force_refresh=True)
+    stocks = stock_cache.get_code_name_list(force_refresh=True)
 
     # 读取最近一次缓存状态（hit / refresh / stale）
-    status = a_stock_cache.get_code_name_status()
+    status = stock_cache.get_code_name_status()
 """
 
 import os
@@ -118,12 +118,11 @@ _industry_status: str = "unknown"
 # 通用工具函数
 # ---------------------------------------------------------------------------
 
-def _is_cache_fresh(cache_file: Path, ttl_days: int | None = None) -> bool:
+def _is_cache_fresh(cache_file: Path) -> bool:
     """判断缓存文件是否在 TTL 有效期之内。
 
     Args:
         cache_file: 缓存文件路径。
-        ttl_days: 有效期（天）；为 None 时使用列表缓存默认 TTL。
 
     Returns:
         新鲜（未过期）返回 True；文件不存在或已过期返回 False。
@@ -132,8 +131,7 @@ def _is_cache_fresh(cache_file: Path, ttl_days: int | None = None) -> bool:
         return False
     mtime = datetime.fromtimestamp(cache_file.stat().st_mtime)
     age = datetime.now() - mtime
-    ttl = ttl_days if ttl_days is not None else STOCK_CACHE_TTL_DAYS
-    return age.days < ttl
+    return age.days < STOCK_CACHE_TTL_DAYS
 
 
 def _atomic_write_csv(df: pd.DataFrame, cache_file: Path) -> None:
@@ -424,201 +422,3 @@ def get_industry_status() -> str:
         "hit"（缓存命中）/ "refresh"（拉取刷新）/ "stale"（旧缓存降级）。
     """
     return _industry_status
-
-
-# ---------------------------------------------------------------------------
-# A股财务数据（本地缓存）
-# ---------------------------------------------------------------------------
-
-# 财务数据缓存目录（按股票分文件，避免大文件全量读写）
-FINANCIAL_DIR = CACHE_DIR / "financial"
-
-# 财务数据缓存有效期（天），.env 可配置
-_DEFAULT_FINANCIAL_TTL_DAYS = 7  # 财务摘要/利润表（季报披露节奏）
-_DEFAULT_IPO_TTL_DAYS = 90       # IPO 信息（上市后永不变，长 TTL 仅作自愈兜底）
-FINANCIAL_TTL_DAYS: int = _parse_int_env("A_FINANCIAL_TTL_DAYS", _DEFAULT_FINANCIAL_TTL_DAYS)
-IPO_TTL_DAYS: int = _parse_int_env("A_IPO_TTL_DAYS", _DEFAULT_IPO_TTL_DAYS)
-
-# 最近一次财务缓存访问状态：hit / refresh / stale
-_financial_status: str = "unknown"
-
-
-def _financial_cache_file(code: str, kind: str) -> Path:
-    """生成 A 股财务数据缓存文件路径。
-
-    Args:
-        code: 股票代码（6 位数字字符串）。
-        kind: 数据种类（"ipo" / "abstract" / "利润表"）。
-
-    Returns:
-        对应的缓存文件路径。
-    """
-    return FINANCIAL_DIR / f"{code}_{kind}.csv"
-
-
-def _read_financial_df(cache_file: Path) -> pd.DataFrame | None:
-    """从缓存文件读取财务数据 DataFrame。
-
-    Args:
-        cache_file: 缓存文件路径。
-
-    Returns:
-        DataFrame；缓存缺失或解析失败返回 None。
-    """
-    try:
-        df = pd.read_csv(cache_file, encoding="utf-8-sig")
-        return df if not df.empty else None
-    except Exception:
-        return None
-
-
-def _fetch_ipo_df(code: str) -> pd.DataFrame:
-    """拉取 A 股 IPO 信息原始 DataFrame（不缓存）。
-
-    Args:
-        code: 股票代码（6 位数字字符串）。
-
-    Returns:
-        IPO 信息 DataFrame。
-
-    Raises:
-        RuntimeError: akshare 未安装或接口调用失败。
-    """
-    if ak is None:
-        raise RuntimeError("akshare 未安装，无法获取 A 股 IPO 信息。请运行: pip install akshare")
-    return ak.stock_ipo_info(stock=code)
-
-
-def _fetch_financial_abstract_df(symbol: str) -> pd.DataFrame:
-    """拉取 A 股财务摘要原始 DataFrame（不缓存）。
-
-    Args:
-        symbol: 股票代码（6 位数字字符串）。
-
-    Returns:
-        财务摘要 DataFrame。
-
-    Raises:
-        RuntimeError: akshare 未安装或接口调用失败。
-    """
-    if ak is None:
-        raise RuntimeError("akshare 未安装，无法获取 A 股财务摘要。请运行: pip install akshare")
-    return ak.stock_financial_abstract(symbol=symbol)
-
-
-def _fetch_income_statement_df(code: str) -> pd.DataFrame:
-    """拉取 A 股利润表原始 DataFrame（新浪接口，不缓存）。
-
-    Args:
-        code: 股票代码（6 位数字字符串）。
-
-    Returns:
-        利润表 DataFrame。
-
-    Raises:
-        RuntimeError: akshare 未安装或接口调用失败。
-    """
-    if ak is None:
-        raise RuntimeError("akshare 未安装，无法获取 A 股利润表。请运行: pip install akshare")
-    return ak.stock_financial_report_sina(stock=code, symbol="利润表")
-
-
-def _cached_financial_df(cache_file: Path, ttl_days: int, fetch_func, force_refresh: bool) -> pd.DataFrame:
-    """财务数据通用缓存读取逻辑（hit → refresh → stale）。
-
-    Args:
-        cache_file: 缓存文件路径。
-        ttl_days: 有效期（天）。
-        fetch_func: 无参拉取函数，返回原始 DataFrame。
-        force_refresh: 为 True 时跳过缓存有效期检查，强制刷新。
-
-    Returns:
-        财务数据原始 DataFrame。
-
-    Raises:
-        RuntimeError: 无缓存且拉取失败。
-    """
-    global _financial_status
-    if not force_refresh and _is_cache_fresh(cache_file, ttl_days):
-        cached = _read_financial_df(cache_file)
-        if cached is not None:
-            _financial_status = "hit"
-            return cached
-    try:
-        df = fetch_func()
-        if df is None or df.empty:
-            raise RuntimeError(f"财务数据为空: {cache_file.name}")
-        _atomic_write_csv(df, cache_file)
-        _financial_status = "refresh"
-        return df
-    except Exception:
-        # 刷新失败（限流/断连）时优先降级返回旧缓存
-        cached = _read_financial_df(cache_file)
-        if cached is not None:
-            _financial_status = "stale"
-            return cached
-        _financial_status = "stale"
-        raise
-
-
-def get_ipo_info(code: str, force_refresh: bool = False) -> pd.DataFrame:
-    """获取 A 股 IPO 信息（上市日期/发行价等，优先本地缓存）。
-
-    Args:
-        code: 股票代码（6 位数字字符串）。
-        force_refresh: 为 True 时跳过缓存有效期检查，强制刷新。
-
-    Returns:
-        IPO 信息原始 DataFrame。
-
-    Raises:
-        RuntimeError: 无缓存且拉取失败。
-    """
-    return _cached_financial_df(
-        _financial_cache_file(code, "ipo"), IPO_TTL_DAYS,
-        lambda: _fetch_ipo_df(code), force_refresh)
-
-
-def get_financial_abstract(symbol: str, force_refresh: bool = False) -> pd.DataFrame:
-    """获取 A 股财务摘要（优先本地缓存）。
-
-    Args:
-        symbol: 股票代码（6 位数字字符串）。
-        force_refresh: 为 True 时跳过缓存有效期检查，强制刷新。
-
-    Returns:
-        财务摘要原始 DataFrame。
-
-    Raises:
-        RuntimeError: 无缓存且拉取失败。
-    """
-    return _cached_financial_df(
-        _financial_cache_file(symbol, "abstract"), FINANCIAL_TTL_DAYS,
-        lambda: _fetch_financial_abstract_df(symbol), force_refresh)
-
-
-def get_income_statement_sina(code: str, force_refresh: bool = False) -> pd.DataFrame:
-    """获取 A 股利润表（新浪接口，优先本地缓存）。
-
-    Args:
-        code: 股票代码（6 位数字字符串）。
-        force_refresh: 为 True 时跳过缓存有效期检查，强制刷新。
-
-    Returns:
-        利润表原始 DataFrame。
-
-    Raises:
-        RuntimeError: 无缓存且拉取失败。
-    """
-    return _cached_financial_df(
-        _financial_cache_file(code, "利润表"), FINANCIAL_TTL_DAYS,
-        lambda: _fetch_income_statement_df(code), force_refresh)
-
-
-def get_financial_status() -> str:
-    """返回最近一次 A 股财务数据访问的缓存状态。
-
-    Returns:
-        "hit"（缓存命中）/ "refresh"（拉取刷新）/ "stale"（旧缓存降级）。
-    """
-    return _financial_status

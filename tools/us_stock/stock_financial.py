@@ -30,7 +30,6 @@ Usage:
 
 import argparse
 import json
-import os
 import sys
 import time
 import traceback
@@ -63,10 +62,6 @@ except ImportError as e:
         "meta": {"tool": "stock_financial", "timestamp": datetime.now().isoformat()}
     }, ensure_ascii=False))
     sys.exit(1)
-
-# 导入本地缓存模块（tools/common/us_stock_cache.py）
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from tools.common import us_stock_cache  # noqa: E402 - 需在 sys.path 设置之后导入
 
 
 # ---------------------------------------------------------------------------
@@ -113,11 +108,10 @@ def safe_api_call(func, api_name: str, max_retries: int = 3, delay: float = 2.0)
 # ---------------------------------------------------------------------------
 
 def get_stock_financial_statements(symbol: str) -> Dict[str, Any]:
-    """获取个股完整财务报表（优先本地缓存）。
+    """获取个股完整财务报表。
 
     包括：年度/季度利润表、年度/季度资产负债表、年度/季度现金流量表。
-    功能逻辑与原 stock_us_yfinance.py 中 get_stock_financial_statements 相同；
-    数据经 tools/common/us_stock_cache.py 本地缓存，yfinance 限流时降级返回。
+    功能逻辑与原 stock_us_yfinance.py 中 get_stock_financial_statements 相同。
 
     Args:
         symbol: 美股代码，如 "AAPL"。
@@ -134,28 +128,126 @@ def get_stock_financial_statements(symbol: str) -> Dict[str, Any]:
         "meta": {
             "tool": "stock_financial",
             "api": "yf.Ticker.*",
-            "cache": "unknown",
             "timestamp": datetime.now().isoformat()
         }
     }
 
-    data = us_stock_cache.get_financial_statements(symbol)
-    result["meta"]["cache"] = us_stock_cache.get_financial_status()
-    if data is None:
+    try:
+        # 实例化股票对象
+        api_name = f"yf.Ticker('{symbol}')"
+        stock = safe_api_call(lambda: yf.Ticker(symbol), api_name)
+
+        # 1. 年度利润表
+        try:
+            print("  获取年度利润表...", file=sys.stderr)
+            api_name = "stock.income_stmt"
+            income_year = safe_api_call(lambda: stock.income_stmt, api_name)
+
+            if income_year is not None and not income_year.empty:
+                result["data"]["年度利润表"] = {
+                    "count": len(income_year),
+                    "columns": list(income_year.columns),
+                    "index": list(income_year.index)[:10]  # 只取前10个科目
+                }
+                print(f"    ✓ 获取成功，科目数: {len(income_year)}", file=sys.stderr)
+            else:
+                result["data"]["年度利润表"] = {"count": 0, "error": "未获取到数据"}
+        except Exception as e:
+            result["data"]["年度利润表"] = {"error": str(e)}
+            print(f"    ✗ 获取失败: {e}", file=sys.stderr)
+
+        # 2. 季度利润表
+        try:
+            print("  获取季度利润表...", file=sys.stderr)
+            api_name = "stock.quarterly_income_stmt"
+            income_qtr = safe_api_call(lambda: stock.quarterly_income_stmt, api_name)
+
+            if income_qtr is not None and not income_qtr.empty:
+                result["data"]["季度利润表"] = {"count": len(income_qtr)}
+                print(f"    ✓ 获取成功，科目数: {len(income_qtr)}", file=sys.stderr)
+            else:
+                result["data"]["季度利润表"] = {"count": 0, "error": "未获取到数据"}
+        except Exception as e:
+            result["data"]["季度利润表"] = {"error": str(e)}
+
+        # 3. 年度资产负债表
+        try:
+            print("  获取年度资产负债表...", file=sys.stderr)
+            api_name = "stock.balance_sheet"
+            balance_year = safe_api_call(lambda: stock.balance_sheet, api_name)
+
+            if balance_year is not None and not balance_year.empty:
+                result["data"]["年度资产负债表"] = {
+                    "count": len(balance_year),
+                    "columns": list(balance_year.columns),
+                    "index": list(balance_year.index)[:10]
+                }
+                print(f"    ✓ 获取成功，科目数: {len(balance_year)}", file=sys.stderr)
+            else:
+                result["data"]["年度资产负债表"] = {"count": 0, "error": "未获取到数据"}
+        except Exception as e:
+            result["data"]["年度资产负债表"] = {"error": str(e)}
+
+        # 4. 季度资产负债表
+        try:
+            print("  获取季度资产负债表...", file=sys.stderr)
+            api_name = "stock.quarterly_balance_sheet"
+            balance_qtr = safe_api_call(
+                lambda: stock.quarterly_balance_sheet, api_name)
+
+            if balance_qtr is not None and not balance_qtr.empty:
+                result["data"]["季度资产负债表"] = {"count": len(balance_qtr)}
+                print("    ✓ 获取成功", file=sys.stderr)
+            else:
+                result["data"]["季度资产负债表"] = {"count": 0, "error": "未获取到数据"}
+        except Exception as e:
+            result["data"]["季度资产负债表"] = {"error": str(e)}
+
+        # 5. 年度现金流量表
+        try:
+            print("  获取年度现金流量表...", file=sys.stderr)
+            api_name = "stock.cashflow"
+            cash_year = safe_api_call(lambda: stock.cashflow, api_name)
+
+            if cash_year is not None and not cash_year.empty:
+                result["data"]["年度现金流量表"] = {
+                    "count": len(cash_year),
+                    "columns": list(cash_year.columns),
+                    "index": list(cash_year.index)[:10]
+                }
+                print(f"    ✓ 获取成功，科目数: {len(cash_year)}", file=sys.stderr)
+            else:
+                result["data"]["年度现金流量表"] = {"count": 0, "error": "未获取到数据"}
+        except Exception as e:
+            result["data"]["年度现金流量表"] = {"error": str(e)}
+
+        # 6. 季度现金流量表
+        try:
+            print("  获取季度现金流量表...", file=sys.stderr)
+            api_name = "stock.quarterly_cashflow"
+            cash_qtr = safe_api_call(lambda: stock.quarterly_cashflow, api_name)
+
+            if cash_qtr is not None and not cash_qtr.empty:
+                result["data"]["季度现金流量表"] = {"count": len(cash_qtr)}
+                print("    ✓ 获取成功", file=sys.stderr)
+            else:
+                result["data"]["季度现金流量表"] = {"count": 0, "error": "未获取到数据"}
+        except Exception as e:
+            result["data"]["季度现金流量表"] = {"error": str(e)}
+
+    except Exception as e:
         result["success"] = False
-        result["error"] = "获取美股财务报表失败（yfinance 不可用且无本地缓存）"
-        return result
-    result["data"] = data
+        result["error"] = str(e)
 
     return result
 
 
 def get_stock_dividends_splits(symbol: str) -> Dict[str, Any]:
-    """获取个股分红拆股历史（优先本地缓存）。
+    """获取个股分红拆股历史。
 
     包括：分红历史记录、拆股历史记录。
     功能逻辑与原 stock_us_yfinance.py 中 get_stock_extra_data 的
-    分红与拆股部分相同；数据经 tools/common/us_stock_cache.py 本地缓存。
+    分红与拆股部分相同。
 
     Args:
         symbol: 美股代码，如 "AAPL"。
@@ -172,18 +264,53 @@ def get_stock_dividends_splits(symbol: str) -> Dict[str, Any]:
         "meta": {
             "tool": "stock_financial",
             "api": "yf.Ticker.dividends/splits",
-            "cache": "unknown",
             "timestamp": datetime.now().isoformat()
         }
     }
 
-    data = us_stock_cache.get_dividends_splits(symbol)
-    result["meta"]["cache"] = us_stock_cache.get_financial_status()
-    if data is None:
+    try:
+        # 实例化股票对象
+        api_name = f"yf.Ticker('{symbol}')"
+        stock = safe_api_call(lambda: yf.Ticker(symbol), api_name)
+
+        # 1. 分红历史
+        try:
+            print("  获取分红历史...", file=sys.stderr)
+            api_name = "stock.dividends"
+            div_df = safe_api_call(lambda: stock.dividends, api_name)
+
+            if div_df is not None and not div_df.empty:
+                result["data"]["分红历史"] = {
+                    "count": len(div_df),
+                    "latest": div_df.iloc[-1] if len(div_df) > 0 else None,
+                    "total_years": len(div_df.resample('YE').count())
+                }
+                print(f"    ✓ 获取成功，分红次数: {len(div_df)}", file=sys.stderr)
+            else:
+                result["data"]["分红历史"] = {"count": 0, "note": "无分红记录"}
+        except Exception as e:
+            result["data"]["分红历史"] = {"error": str(e)}
+
+        # 2. 拆股历史
+        try:
+            print("  获取拆股历史...", file=sys.stderr)
+            api_name = "stock.splits"
+            split_df = safe_api_call(lambda: stock.splits, api_name)
+
+            if split_df is not None and not split_df.empty:
+                result["data"]["拆股历史"] = {
+                    "count": len(split_df),
+                    "latest": split_df.iloc[-1] if len(split_df) > 0 else None
+                }
+                print(f"    ✓ 获取成功，拆股次数: {len(split_df)}", file=sys.stderr)
+            else:
+                result["data"]["拆股历史"] = {"count": 0, "note": "无拆股记录"}
+        except Exception as e:
+            result["data"]["拆股历史"] = {"error": str(e)}
+
+    except Exception as e:
         result["success"] = False
-        result["error"] = "获取美股分红拆股失败（yfinance 不可用且无本地缓存）"
-        return result
-    result["data"] = data
+        result["error"] = str(e)
 
     return result
 

@@ -61,7 +61,7 @@ AI无法和管理层吃饭，但可以通过公开信息做到：
 
 | 上市情况 | 工具 | 命令示例 |
 |---------|------|---------|
-| 仅A股 | `tools/common/report_hub.py`（财报下载与提取） | `python tools/common/report_hub.py ensure --code 601899 --report-type annual` |
+| 仅A股 | `tools/a_share/stock_equity.py` | `python tools/a_share/stock_equity.py --code 601899` |
 | 仅港股 | `tools/hk_stock/stock_financial.py` | `python tools/hk_stock/stock_financial.py --financial 00700` |
 | A+H股 | **同时使用两个工具** | 见下方详细说明 |
 | 港股+美股ADR | **港股工具 + 美股工具/搜索** | 港股：`python tools/hk_stock/stock_financial.py --financial 09988`<br>美股：`python tools/us_stock/stock_info.py --search Alibaba` |
@@ -129,26 +129,25 @@ python tools/common/doubao_search.py "紫金矿业 A股 H股 股权结构 差异
 
 **使用财报下载工具获取年报**：
 
-报告获取与提取统一使用 report_hub.py（带下载与提取缓存），详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)。
-
-对于A股公司，使用 `tools/common/report_hub.py` 获取年报、半年报、季报PDF：
+对于A股公司，使用 `tools/a_share/stock_equity.py` 下载年报、半年报、季报PDF：
 
 ```bash
-# 获取最新年报
-python tools/common/report_hub.py ensure --code 601899 --report-type annual
+# 下载最新年报
+python tools/a_share/stock_equity.py --code 601899 --download-report
 
-# 获取最新半年报
-python tools/common/report_hub.py ensure --code 601899 --report-type semiannual
+# 下载最新半年报
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type semiannual
 
-# 获取最新季报
-python tools/common/report_hub.py ensure --code 601899 --report-type quarterly
+# 下载最新季报
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly
 ```
 
-**下载的财报统一保存到 cninfo_reports/ 目录**：
+**下载的财报保存位置**：
+- 默认目录：`./cninfo_reports/`
 - 文件命名：`{股票代码}_{年份}{报告类型}.pdf`
 - 示例：`601899_2025年报.pdf`
 
-**从下载的年报中提取管理层承诺**（统一用 `report_hub.py extract`，详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)）：
+**从下载的年报中提取管理层承诺**（首选 `pdf_extract.py`，返回失败时才回退 Poppler，详见"工具使用指南"）：
 
 | # | 时间 | 承诺内容 | 承诺场合 | 兑现情况 | 评价 |
 |---|------|---------|---------|---------|------|
@@ -434,8 +433,7 @@ AI无法和管理层面对面交流，但可以通过公开渠道的侧面信息
 | A股 | `tools/a_share/stock_info.py` | 股票代码查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
 | A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
 | A股 | `tools/a_share/stock_quote.py` | 实时行情与历史K线 | `python tools/a_share/stock_quote.py --code 601899` |
-| A股 | `tools/common/report_hub.py` | 财报下载与提取统一入口（带缓存） | `python tools/common/report_hub.py ensure --code 601899 --report-type annual` |
-| A股 | `tools/a_share/stock_equity.py` | 股权结构数据 | `python tools/a_share/stock_equity.py --code 601899` |
+| A股 | `tools/a_share/stock_equity.py` | 股权结构 + 年报下载 | `python tools/a_share/stock_equity.py --code 601899` |
 | A股 | `tools/a_share/stock_screen.py` | 质量筛选7条指标 | `python tools/a_share/stock_screen.py --code 601899` |
 | 港股 | `tools/hk_stock/stock_info.py` | 港股信息查询 | `python tools/hk_stock/stock_info.py --search 腾讯` |
 | 港股 | `tools/hk_stock/stock_financial.py` | 港股财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
@@ -459,18 +457,17 @@ AI无法和管理层面对面交流，但可以通过公开渠道的侧面信息
 
 ### 财报下载与股权结构工具
 
-管理层研究的核心数据来源是年报 PDF（提取管理层承诺、战略发言、资本配置记录）。报告获取与提取统一使用 report_hub.py（带下载与提取缓存），详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)。A股使用 `tools/common/report_hub.py`：
+管理层研究的核心数据来源是年报 PDF（提取管理层承诺、战略发言、资本配置记录）。A股使用 `tools/a_share/stock_equity.py` 下载：
 
 | 功能 | 命令示例 |
 |------|---------|
-| 获取年报 | `python tools/common/report_hub.py ensure --code 601899 --report-type annual` |
-| 获取半年报 | `python tools/common/report_hub.py ensure --code 601899 --report-type semiannual` |
-| 获取季报 | `python tools/common/report_hub.py ensure --code 601899 --report-type quarterly` |
+| 下载年报 | `python tools/a_share/stock_equity.py --code 601899 --download-report` |
+| 下载半年报 | `python tools/a_share/stock_equity.py --code 601899 --download-report --report-type semiannual` |
+| 下载季报 | `python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly` |
 | 股权结构数据 | `python tools/a_share/stock_equity.py --code 601899` |
-| 提取 Markdown | `python tools/common/report_hub.py extract --code 601899 --report-type annual` |
 | 导出Excel | `python tools/a_share/stock_equity.py --code 601899 --export` |
 
-**文件保存位置**：统一保存到 `./cninfo_reports/`，命名格式 `{股票代码}_{年份}{报告类型}.pdf`
+**文件保存位置**：默认目录 `./cninfo_reports/`，命名格式 `{股票代码}_{年份}{报告类型}.pdf`
 
 **返回数据包括**：前十大股东、前十大流通股东、股本结构历史变动、公司基础信息、A股与H股股本占比（A+H股公司）
 
@@ -517,31 +514,53 @@ AI无法和管理层面对面交流，但可以通过公开渠道的侧面信息
 | 员工评价 | `腾讯 Glassdoor 员工评价` | 侧面验证管理层 |
 | 客户反馈 | `腾讯 客户投诉 App Store` | 了解客户满意度 |
 
-### PDF文档内容提取（经 report_hub extract 统一调用）
+### PDF文档内容提取（首选 pdf_extract.py）
 
-下载的财报 PDF 提取管理层承诺、战略发言等内容时，统一使用 `tools/common/report_hub.py extract`（内置类型检测、自动乱码检测 + OCR 回退与提取缓存），返回失败（退出码非0 / success=false / 扫描件）时才按 report-hub.md 回退 Poppler 工具集。
+下载的财报 PDF 提取管理层承诺、战略发言等内容时，**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，能自动还原财务附表与正文排版，支持自动乱码检测 + OCR 回退），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集。
 
+**首选工具**：
 ```bash
-# 提取 Markdown（含表格）并搜索管理层承诺与战略发言（report_hub 自动检测 PDF 类型）
-python tools/common/report_hub.py extract --code 601899 --report-type annual
+# 分类检测 PDF 类型
+python tools/common/pdf_extract.py detect 601899_2025年报.pdf
 
-# 强制 OCR 提取（适用于提取乱码时，如 Adobe-CNS1 繁体中文 PDF）
-python tools/common/report_hub.py extract --code 601899 --report-type annual --force-ocr --ocr-langs chi_tra+eng
+# 提取 Markdown（含表格）并写盘
+python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --save-md --out-dir reports/pdf
+
+# 强制 OCR 提取（适用于 pdf-inspector 提取乱码时，如 Adobe-CNS1 繁体中文 PDF）
+python tools/common/pdf_extract.py text 688235_2025年报.pdf --force-ocr --ocr-langs chi_tra+eng
 ```
+
+**回退工具（Poppler 工具集，仅当 pdf_extract.py 返回失败时使用）**：
+
+| 工具 | 功能 | 主要用途 |
+|------|------|---------|
+| `pdftotext` | 将PDF转换为纯文本 | 提取年报中的文字内容 |
+| `pdfinfo` | 获取PDF文档信息 | 查看页数、标题、创建日期 |
+| `pdftoppm` | 将PDF页面渲染为图像 | 处理扫描版PDF、提取图表 |
 
 **典型工作流**：
 
 ```bash
-# 1. 获取年报PDF
-python tools/common/report_hub.py ensure --code 601899 --report-type annual
+# 1. 下载年报PDF
+python tools/a_share/stock_equity.py --code 601899 --download-report
 
-# 2（首选）：提取 Markdown 并搜索管理层承诺与战略发言（report_hub 内置类型检测 + 提取缓存）
-python tools/common/report_hub.py extract --code 601899 --report-type annual
+# 2（首选）：用 pdf_extract.py 分类检测 PDF 类型
+python tools/common/pdf_extract.py detect 601899_2025年报.pdf
+# text_based → 文本版PDF；scanned/mixed 或 scanned=true → 扫描版PDF
 
-# 3（OCR 回退）：若提取乱码，强制 OCR
-python tools/common/report_hub.py extract --code 601899 --report-type annual --force-ocr --ocr-langs chi_tra+eng
+# 3（首选）：提取 Markdown 并搜索管理层承诺与战略发言
+python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --save-md --out-dir reports/pdf
 
-# 4（回退）：若 report_hub extract 返回失败，回退 Poppler（命令详见 report-hub.md）
+# 3（OCR 回退）：若 pdf-inspector 提取乱码，也可手动强制 OCR
+python tools/common/pdf_extract.py text 688235_2025年报.pdf --force-ocr --ocr-langs chi_tra+eng
+
+# 3回退：若 pdf_extract.py 返回失败，回退 Poppler
+pdftotext -layout 601899_2025年报.pdf 601899_2025年报.txt
+grep -n "承诺\|计划\|目标\|未来三年" 601899_2025年报.txt | head -20
+grep -n "战略\|行业趋势\|竞争格局" 601899_2025年报.txt | head -20
+
+# 4. 扫描版PDF处理（图像格式，无法直接提取文本）
+pdftoppm -png -r 300 601899_2025年报.pdf output/page
 ```
 
 **注意事项**：

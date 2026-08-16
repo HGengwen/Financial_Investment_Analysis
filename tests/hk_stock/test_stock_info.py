@@ -53,13 +53,6 @@ try:
 except ImportError:
     pd = None
 
-# 尝试导入缓存模块（用于 mock 缓存层函数）
-try:
-    from tools.common import hk_stock_cache
-except ImportError as e:
-    print(f"无法导入 hk_stock_cache 模块: {e}")
-    sys.exit(1)
-
 
 # ---------------------------------------------------------------------------
 # 辅助函数
@@ -139,23 +132,23 @@ class TestGetAllHkStocks(unittest.TestCase):
             self.skipTest(f"网络不可用: {e}")
 
     @unittest.skipIf(pd is None, "pandas 未安装，跳过 mock 测试")
-    @patch('tools.hk_stock.stock_info.hk_stock_cache.get_hk_code_name_list')
-    def test_successful_fetch(self, mock_get_list):
-        """测试成功获取港股列表（mock 缓存层数据源）。"""
-        mock_get_list.return_value = [
-            {"code": "00700", "name": "腾讯控股", "market": "hk"},
-            {"code": "00388", "name": "香港交易所", "market": "hk"},
-        ]
+    @patch('tools.hk_stock.stock_info.safe_api_call')
+    def test_successful_fetch(self, mock_safe_call):
+        """测试成功获取港股列表（mock 数据源）。"""
+        mock_safe_call.return_value = pd.DataFrame([
+            {"代码": "00700", "名称": "腾讯控股"},
+            {"代码": "00388", "名称": "香港交易所"},
+        ])
         result = get_all_hk_stocks()
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0]["code"], "00700")
         self.assertEqual(result[0]["name"], "腾讯控股")
         self.assertEqual(result[0]["market"], "hk")
 
-    @patch('tools.hk_stock.stock_info.hk_stock_cache.get_hk_code_name_list')
-    def test_backup_data_on_failure(self, mock_get_list):
-        """测试底层拉取失败时返回备用数据源（缓存层硬编码兜底主要港股）。"""
-        mock_get_list.return_value = [dict(item) for item in hk_stock_cache.MAJOR_HK_STOCKS]
+    @patch('tools.hk_stock.stock_info.safe_api_call')
+    def test_backup_data_on_failure(self, mock_safe_call):
+        """测试接口失败时返回备用数据源（40只主要港股）。"""
+        mock_safe_call.side_effect = Exception("网络错误")
         result = get_all_hk_stocks()
         self.assertIsInstance(result, list)
         # 备用数据应包含预设的主要港股
@@ -169,16 +162,17 @@ class TestGetAllHkStocks(unittest.TestCase):
         self.assertIn("00700", codes)
 
     @unittest.skipIf(pd is None, "pandas 未安装，跳过 mock 测试")
-    def test_empty_name_filtered(self):
-        """测试空名称记录被过滤（缓存层 _df_to_records 过滤逻辑）。"""
-        df = pd.DataFrame([
+    @patch('tools.hk_stock.stock_info.safe_api_call')
+    def test_empty_name_filtered(self, mock_safe_call):
+        """测试空名称记录被过滤。"""
+        mock_safe_call.return_value = pd.DataFrame([
             {"代码": "00700", "名称": "腾讯控股"},
             {"代码": "00388", "名称": ""},
         ])
-        records = hk_stock_cache._df_to_records(df)
+        result = get_all_hk_stocks()
         # 空名称的记录应被过滤
-        self.assertEqual(len(records), 1)
-        self.assertEqual(records[0]["code"], "00700")
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["code"], "00700")
 
 
 class TestGetHkStockInfo(unittest.TestCase):
@@ -197,10 +191,10 @@ class TestGetHkStockInfo(unittest.TestCase):
             self.skipTest(f"网络不可用: {e}")
 
     @unittest.skipIf(pd is None, "pandas 未安装，跳过 mock 测试")
-    @patch('tools.hk_stock.stock_info.hk_stock_cache.get_hk_spot_dataframe')
-    def test_field_extraction(self, mock_get_spot_df):
+    @patch('tools.hk_stock.stock_info.safe_api_call')
+    def test_field_extraction(self, mock_safe_call):
         """测试字段提取逻辑（mock 数据源）。"""
-        mock_get_spot_df.return_value = make_hk_spot_df("00700", "腾讯控股")
+        mock_safe_call.return_value = make_hk_spot_df("00700", "腾讯控股")
         result = get_hk_stock_info("00700")
         self.assertIsNotNone(result)
         self.assertEqual(result["code"], "00700")
@@ -216,17 +210,17 @@ class TestGetHkStockInfo(unittest.TestCase):
         self.assertEqual(result["pre_close"], 295.5)
 
     @unittest.skipIf(pd is None, "pandas 未安装，跳过 mock 测试")
-    @patch('tools.hk_stock.stock_info.hk_stock_cache.get_hk_spot_dataframe')
-    def test_invalid_code_returns_none(self, mock_get_spot_df):
+    @patch('tools.hk_stock.stock_info.safe_api_call')
+    def test_invalid_code_returns_none(self, mock_safe_call):
         """测试查询不存在的代码返回 None。"""
-        mock_get_spot_df.return_value = make_hk_spot_df("00700", "腾讯控股")
+        mock_safe_call.return_value = make_hk_spot_df("00700", "腾讯控股")
         result = get_hk_stock_info("99999")
         self.assertIsNone(result)
 
-    @patch('tools.hk_stock.stock_info.hk_stock_cache.get_hk_spot_dataframe')
-    def test_api_failure_raises(self, mock_get_spot_df):
-        """测试行情获取失败时抛出异常。"""
-        mock_get_spot_df.side_effect = Exception("网络错误")
+    @patch('tools.hk_stock.stock_info.safe_api_call')
+    def test_api_failure_raises(self, mock_safe_call):
+        """测试 API 调用失败时抛出异常。"""
+        mock_safe_call.side_effect = Exception("网络错误")
         with self.assertRaises(Exception) as cm:
             get_hk_stock_info("00700")
         self.assertIn("获取港股信息失败", str(cm.exception))
@@ -333,15 +327,20 @@ class TestCmdSearch(unittest.TestCase):
 
         self.assertFalse(output["success"])
 
-    @patch('tools.hk_stock.stock_info.hk_stock_cache.get_hk_spot_dataframe')
+    @patch('tools.hk_stock.stock_info.get_hk_stock_info')
     @patch('tools.hk_stock.stock_info.get_all_hk_stocks')
-    def test_successful_search(self, mock_get_stocks, mock_get_spot_df):
+    def test_successful_search(self, mock_get_stocks, mock_get_info):
         """测试成功搜索港股。"""
         mock_get_stocks.return_value = [
             {"code": "00700", "name": "腾讯控股", "market": "hk"},
             {"code": "00388", "name": "香港交易所", "market": "hk"},
         ]
-        mock_get_spot_df.return_value = make_hk_spot_df("00700", "腾讯控股")
+        mock_get_info.return_value = {
+            "code": "00700", "name": "腾讯控股", "market": "hk",
+            "price": 300.0, "change_pct": 1.5, "change": 4.5,
+            "volume": 1000000.0, "amount": 300000000.0,
+            "high": 305.0, "low": 295.0, "open": 298.0, "pre_close": 295.5,
+        }
 
         with patch('sys.stdout', new=StringIO()) as fake_out:
             cmd_search("腾讯")
@@ -353,14 +352,19 @@ class TestCmdSearch(unittest.TestCase):
         self.assertEqual(output["data"][0]["code"], "00700")
         self.assertEqual(output["data"][0]["price"], 300.0)
 
-    @patch('tools.hk_stock.stock_info.hk_stock_cache.get_hk_spot_dataframe')
+    @patch('tools.hk_stock.stock_info.get_hk_stock_info')
     @patch('tools.hk_stock.stock_info.get_all_hk_stocks')
-    def test_case_insensitive_search(self, mock_get_stocks, mock_get_spot_df):
+    def test_case_insensitive_search(self, mock_get_stocks, mock_get_info):
         """测试搜索不区分大小写。"""
         mock_get_stocks.return_value = [
             {"code": "01810", "name": "小米集团-W", "market": "hk"},
         ]
-        mock_get_spot_df.return_value = make_hk_spot_df("01810", "小米集团-W")
+        mock_get_info.return_value = {
+            "code": "01810", "name": "小米集团-W", "market": "hk",
+            "price": None, "change_pct": None, "change": None,
+            "volume": None, "amount": None, "high": None, "low": None,
+            "open": None, "pre_close": None,
+        }
 
         with patch('sys.stdout', new=StringIO()) as fake_out:
             cmd_search("小米")
@@ -369,14 +373,14 @@ class TestCmdSearch(unittest.TestCase):
         self.assertTrue(output["success"])
         self.assertEqual(len(output["data"]), 1)
 
-    @patch('tools.hk_stock.stock_info.hk_stock_cache.get_hk_spot_dataframe')
+    @patch('tools.hk_stock.stock_info.get_hk_stock_info')
     @patch('tools.hk_stock.stock_info.get_all_hk_stocks')
-    def test_no_match(self, mock_get_stocks, mock_get_spot_df):
+    def test_no_match(self, mock_get_stocks, mock_get_info):
         """测试搜索无匹配结果。"""
         mock_get_stocks.return_value = [
             {"code": "00700", "name": "腾讯控股", "market": "hk"},
         ]
-        mock_get_spot_df.return_value = make_hk_spot_df("00700", "腾讯控股")
+        mock_get_info.return_value = None
 
         with patch('sys.stdout', new=StringIO()) as fake_out:
             cmd_search("不存在的公司")
@@ -386,15 +390,15 @@ class TestCmdSearch(unittest.TestCase):
         self.assertEqual(len(output["data"]), 0)
         self.assertEqual(output["meta"]["count"], 0)
 
-    @patch('tools.hk_stock.stock_info.hk_stock_cache.get_hk_spot_dataframe')
+    @patch('tools.hk_stock.stock_info.get_hk_stock_info')
     @patch('tools.hk_stock.stock_info.get_all_hk_stocks')
-    def test_search_fallback_on_info_error(self, mock_get_stocks, mock_get_spot_df):
-        """测试行情拉取失败时回退到基础信息。"""
+    def test_search_fallback_on_info_error(self, mock_get_stocks, mock_get_info):
+        """测试获取实时行情失败时回退到基础信息。"""
         mock_get_stocks.return_value = [
             {"code": "00700", "name": "腾讯控股", "market": "hk"},
         ]
-        # 行情拉取抛异常时，cmd_search 回退使用基础记录
-        mock_get_spot_df.side_effect = Exception("行情获取失败")
+        # get_hk_stock_info 抛异常时，cmd_search 回退使用基础记录
+        mock_get_info.side_effect = Exception("行情获取失败")
 
         with patch('sys.stdout', new=StringIO()) as fake_out:
             cmd_search("腾讯")

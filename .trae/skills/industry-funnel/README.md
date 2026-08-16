@@ -165,9 +165,7 @@
 | `tools/a_share/stock_info.py` | A股信息查询 | `python tools/a_share/stock_info.py --search {公司名}` |
 | `tools/a_share/stock_financial.py` | A股财务指标 | `python tools/a_share/stock_financial.py --code {股票代码}` |
 | `tools/a_share/stock_quote.py` | A股行情数据 | `python tools/a_share/stock_quote.py --code {股票代码}` |
-| `tools/common/report_hub.py` | A股财报下载与提取统一入口（带缓存） | `python tools/common/report_hub.py ensure --code 601899 --report-type annual` |
-| `tools/a_share/stock_equity.py` | A股股权结构数据 | `python tools/a_share/stock_equity.py --code {股票代码}` |
-报告获取与提取统一使用 report_hub.py（带下载与提取缓存），详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)。
+| `tools/a_share/stock_equity.py` | A股股权结构与财报下载 | `python tools/a_share/stock_equity.py --code {股票代码}` |
 
 ### 港股数据
 

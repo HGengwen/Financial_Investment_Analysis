@@ -118,7 +118,7 @@ disable-model-invocation: true
 A股/港股/美股的行情、财务、信息查询工具的完整命令示例详见上述公共技能文件，此处不重复列举。以下仅强调去劣筛选中的关键约束：
 
 - **财务计算验算**：使用 `tools/common/financial_rigor.py`，**禁止 LLM 心算** PE/ROE/市值等
-- **年报一手数据**：使用 `report_hub.py ensure` 获取年报，统一用 `report_hub.py extract` 提取（内部首选 pdf_extract.py，详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)；再按 [pdf-extraction](../tools-scripts/pdf-extraction.md) 流程补充处理），关键财务数据须从一手数据源交叉验证
+- **年报一手数据**：使用 `stock_equity.py --download-report` 下载年报，再按 [pdf-extraction](../tools-scripts/pdf-extraction.md) 流程提取（关键财务数据须从一手数据源交叉验证）
 - **网络信息搜索**：禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合，完整选型矩阵见 [web-search-tools](../tools-scripts/web-search-tools.md)。去劣筛选场景选型：A股财报/研报 → `anysearch --tag finance` 主 + `doubao --finance` 辅；港股披露易/公告 → `doubao --sites hkexnews.hk` 主 + `tavily` 辅；美股 SEC filings → `exa --type deep` 主 + `doubao` 辅。美股深度数据须 exa + doubao 双源验证
 - **网络搜索必须优先获取最新数据**：搜索时须使用 `--time-range month` 或 `--time-range week` 限制时间范围，确保获取的信息和数据为最新。禁止采用过时数据（如使用2024年数据描述2026年行业现状），避免分析偏差。搜索结果须标注数据来源日期，过时数据须明确标注并说明时效性
 
@@ -150,7 +150,7 @@ A股/港股/美股的行情、财务、信息查询工具的完整命令示例�
 | **非A股公司信息** | 豆包搜索 `tools/common/doubao_search.py` | 用户手动提供 |
 | **行业动态/新闻** | 豆包搜索 `tools/common/doubao_search.py` | 用户手动提供 |
 | **最新市值/股价** | 本地工具（A股/港股/美股） | 豆包搜索 |
-| **年报一手数据** | `report_hub.py ensure`（A股）+ [report-hub](../tools-scripts/report-hub.md) | 巨潮/HKEX披露易/SEC EDGAR |
+| **年报一手数据** | `stock_equity.py --download-report` + [pdf-extraction](../tools-scripts/pdf-extraction.md) | 巨潮/HKEX披露易/SEC EDGAR |
 | **大宗商品价格**（周期性行业辅助） | `tools/common/commodity_price.py` | 豆包搜索 |
 
 > **跨市场市值统一口径**：恒生/沪深300/纳斯达克等跨市场筛选与市值对比时，用 `tools/common/fx_rate.py` 获取实时汇率（如 `--code HKDCNY`（1港币=x人民币）、`--code USDCNY`），将市值折算到统一货币口径（人民币），避免不同币种市值直接对比失真。

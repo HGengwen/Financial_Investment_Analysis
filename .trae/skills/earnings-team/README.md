@@ -63,7 +63,7 @@
 ```
 /earnings-team 茅台 2024年报
 ```
- 使用 `report_hub.py ensure` 获取年报PDF，启动六Agent流程
+ 使用 `stock_equity.py` 下载年报PDF，启动六Agent流程
 
 ### 示例3：快速精读最新一期财报
 ```
@@ -147,8 +147,7 @@ reports/{公司名}/
 | A股 | `tools/a_share/stock_info.py` | 股票信息查询 | `python tools/a_share/stock_info.py --search 紫金矿业` |
 | A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
 | A股 | `tools/a_share/stock_quote.py` | 历史股价与实时行情 | `python tools/a_share/stock_quote.py --code 601899` |
-| A股 | `tools/common/report_hub.py` | A股财报下载与提取统一入口（带缓存） | `python tools/common/report_hub.py ensure --code 601899 --report-type annual` |
-| A股 | `tools/a_share/stock_equity.py` | 股权结构 + 导出Excel | `python tools/a_share/stock_equity.py --code 601899` |
+| A股 | `tools/a_share/stock_equity.py` | 股权结构与财报下载 | `python tools/a_share/stock_equity.py --code 601899` |
 | 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
 | 港股 | `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
 | 美股 | `tools/us_stock/stock_info.py` | 美股信息查询 | `python tools/us_stock/stock_info.py --search Apple` |
@@ -165,33 +164,33 @@ reports/{公司名}/
 - **美股工具**：[docs/美股工具使用指南.md](../../docs/美股工具使用指南.md)
 - **国际货币汇率**（跨币种财报数据折算）：`tools/common/fx_rate.py`，详见 A股工具使用指南汇率章节
 
-### 财报下载工具（A股专用，统一入口 report_hub.py）
+### 财报下载工具（A股专用）
 
-财报精读的核心数据来源是一手财报PDF。A股使用 `tools/common/report_hub.py` 统一获取与提取（带下载与提取缓存），详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)：
+财报精读的核心数据来源是一手财报PDF。A股使用 `tools/a_share/stock_equity.py` 下载：
 
 | 功能 | 命令示例 |
 |------|---------|
-| 下载最新年报 | `python tools/common/report_hub.py ensure --code 601899 --report-type annual` |
-| 下载最新半年报 | `python tools/common/report_hub.py ensure --code 601899 --report-type semiannual` |
-| 下载最新季报 | `python tools/common/report_hub.py ensure --code 601899 --report-type quarterly` |
-| 提取年报 Markdown（含表格） | `python tools/common/report_hub.py extract --code 601899 --report-type annual` |
+| 下载年报 | `python tools/a_share/stock_equity.py --code 601899 --download-report --report-type annual` |
+| 下载半年报 | `python tools/a_share/stock_equity.py --code 601899 --download-report --report-type semiannual` |
+| 下载季报 | `python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly` |
 | 股权结构数据 | `python tools/a_share/stock_equity.py --code 601899` |
-| 导出Excel | `python tools/a_share/stock_equity.py --code 601899 --export` |
 
 **文件保存位置**：默认目录 `./cninfo_reports/`，命名格式：`{股票代码}_{年份}{报告类型}.pdf`
 
-**流程检查点**：确认 report_hub ensure 返回 success=true 后，方可启动4个研究Agent。
+**流程检查点**：确认PDF文件下载成功后，方可启动4个研究Agent。
 
-### PDF文档阅读工具（A股财报统一用 report_hub.py extract）
+### PDF文档阅读工具（首选 pdf_extract.py）
 
-A股财报PDF提取文字与表格统一使用 `tools/common/report_hub.py extract`（自动检测 PDF 类型，带提取结果缓存），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
+提取文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，支持自动乱码检测 + OCR 回退），返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集：
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `report_hub.py` | A股财报下载与提取统一入口（首选） | `python tools/common/report_hub.py extract --code 002465 --report-type annual` |
-| Poppler 工具集 | 回退方案（pdftotext / pdfinfo / pdftoppm） | 详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md) |
+| `pdf_extract.py` | PDF文字与表格提取（首选） | `python tools/common/pdf_extract.py markdown cninfo_reports/002465_2025年报.pdf --save-md` |
+| `pdftotext` | 将PDF转换为文本格式（回退） | `pdftotext cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年报.txt` |
+| `pdfinfo` | 查看PDF文件信息（回退） | `pdfinfo cninfo_reports/002465_2025年报.pdf` |
+| `pdftoppm` | 将PDF转换为图像（回退，用于扫描版PDF） | `pdftoppm -png cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年报` |
 
-详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md) 与 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)。
+详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)。
 
 ### 精确计算工具
 
@@ -217,7 +216,7 @@ A股财报PDF提取文字与表格统一使用 `tools/common/report_hub.py extra
 - 搜索结果必须包含数据来源日期；过时数据须标注时效性说明
 
 **重要约束**：
-- A股财报必须优先使用 `report_hub.py ensure` 获取原始PDF（详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)），**确认返回 success=true 后方可启动4个研究Agent**
+- A股财报必须优先使用 `stock_equity.py` 下载原始PDF，**下载完成后方可启动4个研究Agent**
 - 估值数据须使用 `financial_rigor.py` 校验，禁止 LLM 心算
 - 关键财务数据须至少两个来源交叉验证
 
@@ -239,7 +238,7 @@ A股财报PDF提取文字与表格统一使用 `tools/common/report_hub.py extra
 ## 注意事项
 
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
-- A股公司必须首先使用 `report_hub.py ensure` 获取原始财报PDF（详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)），**确认返回 success=true 后方可启动4个研究Agent**
+- A股公司必须首先使用 `stock_equity.py` 下载原始财报PDF，**下载完成后方可启动4个研究Agent**
 - 资料可得性评级（A/B/C级）需告知每个研究Agent，影响其分析深度
 - 所有数据必须标注来源，关键财务数据至少两个独立来源交叉验证
 - 报告发布前必须通过 `tools/common/report_audit.py` 数据抽检

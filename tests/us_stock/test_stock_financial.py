@@ -616,14 +616,10 @@ class TestCommandLineInterface(unittest.TestCase):
 class TestErrorHandling(unittest.TestCase):
     """测试错误处理 —— 无效代码与网络错误。"""
 
-    @patch("tools.us_stock.stock_financial.us_stock_cache.get_financial_statements")
-    def test_get_financial_statements_handles_error(self, mock_cache):
-        """测试财务报表数据不可用（无缓存）时返回 success=False。
-
-        数据已改走 us_stock_cache 缓存层，此处 mock 缓存返回 None，
-        验证 get_stock_financial_statements 降级为 success=False。
-        """
-        mock_cache.return_value = None
+    @patch("tools.us_stock.stock_financial.safe_api_call")
+    def test_get_financial_statements_handles_error(self, mock_safe):
+        """测试获取财务报表时底层异常被捕获并返回 success=False。"""
+        mock_safe.side_effect = Exception("网络连接失败")
         result = get_stock_financial_statements(TEST_SYMBOL)
 
         self.assertFalse(result["success"])

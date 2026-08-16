@@ -12,7 +12,6 @@
 
 | 工具文件                      | 功能                     | 命令示例                                                     |
 | ----------------------------- | ------------------------ | ------------------------------------------------------------ |
-| `report_hub.py`（tools/common/） | A股财报下载与提取统一入口 | `python tools/common/report_hub.py ensure --code 601899 --report-type annual` |
 | `stock_info.py`             | A股信息查询              | `python tools/a_share/stock_info.py --search 新易盛`       |
 | `stock_quote.py`            | A股行情数据              | `python tools/a_share/stock_quote.py --code 300502`        |
 | `stock_financial.py`        | A股财务指标              | `python tools/a_share/stock_financial.py --code 300502`    |
@@ -63,17 +62,7 @@
 
 ### 功能说明
 
-获取A股上市公司的代码、名称、行业、ROE、毛利率、每股收益等基本信息。
-
-**数据缓存机制**（`tools/common/a_stock_cache.py`）：
-- 代码/名称与最新季度行业数据优先从本地缓存 `data/a_share/`（CSV 文件）读取，
-  避免每次查询都调用 akshare 拉取全量数据（约 5500 行），降低限流风险；
-- 缓存有效期默认 7 天（`.env` 的 `STOCK_CACHE_TTL_DAYS` 可配置），到期后任意
-  查询自动刷新（退市股/改名股最迟 7 天自愈）；
-- 本地查不到时触发 miss 刷新：强制刷新一次缓存后再查（新 IPO/改名股自愈）；
-- 输出 meta 的 `cache` 字段标识缓存状态：
-  `hit`（缓存命中，零 API 调用）/ `refresh`（本次拉取刷新）/ `stale`（刷新失败降级使用旧缓存）；
-- 强制刷新缓存：使用 `--refresh` 参数（见下方第 5 节）。
+获取A股上市公司的代码、名称、上市信息等基本信息。
 
 ### 使用方法
 
@@ -97,9 +86,8 @@ python tools/a_share/stock_info.py --list
     "tool": "stock_info",
     "command": "list",
     "market": "a",
-    "count": 5543,
-    "cache": "hit",
-    "timestamp": "2026-08-15T17:00:00"
+    "count": 5462,
+    "timestamp": "2026-07-13T23:00:00"
   }
 }
 ```
@@ -120,18 +108,17 @@ python tools/a_share/stock_info.py --search 新易盛
       "code": "300502",
       "name": "新易盛",
       "market": "a",
-      "industry": "通信设备",
-      "roe": 28.5,
-      "gross_margin": 35.2,
-      "eps": 1.85
+      "price": 85.20,
+      "change_pct": 3.25,
+      "volume": 12345678,
+      ...
     }
   ],
   "meta": {
     "tool": "stock_info",
     "command": "search",
     "keyword": "新易盛",
-    "count": 1,
-    "cache": "hit"
+    "count": 1
   }
 }
 ```
@@ -147,13 +134,15 @@ python tools/a_share/stock_info.py --code 300502
 - `code`: A股代码（6位数字）
 - `name`: 公司名称
 - `market`: 市场标识（"a"）
-- `industry`: 所处行业（来自最新季度业绩报表，未披露时为空）
-- `roe`: 净资产收益率（%）
-- `gross_margin`: 销售毛利率（%）
-- `eps`: 每股收益（元）
-- 注：meta 的 `cache` 字段标识缓存状态；本地查不到时工具会自动强制刷新一次缓存后再查
-
-> 说明：`--code` 返回的是基本信息与最新季度业绩字段，行情类字段（价格、涨跌幅、成交量等）请使用 `stock_quote.py` 获取。
+- `price`: 最新价
+- `change_pct`: 涨跌幅（%）
+- `change`: 涨跌额
+- `volume`: 成交量
+- `amount`: 成交额
+- `high`: 最高价
+- `low`: 最低价
+- `open`: 今开
+- `pre_close`: 昨收
 
 #### 4. 按行业筛选
 
@@ -162,38 +151,6 @@ python tools/a_share/stock_info.py --industry 光模块
 ```
 
 **说明**: 仅支持A股行业筛选，港股暂不支持。
-
-#### 5. 强制刷新缓存
-
-```bash
-python tools/a_share/stock_info.py --refresh
-```
-
-**说明**: 强制从 akshare 拉取全量代码/名称与最新季度行业数据，覆写本地缓存
-`data/a_share/stock_code.csv` 与 `data/a_share/stock_industry.csv`，并输出缓存文件路径与记录数。
-
-**输出示例**:
-
-```json
-{
-  "success": true,
-  "data": {
-    "stock_code": {"count": 5543, "cache_file": "F:/Financial_Investment_Analysis/data/a_share/stock_code.csv"},
-    "stock_industry": {"count": 1123, "cache_file": "F:/Financial_Investment_Analysis/data/a_share/stock_industry.csv"}
-  },
-  "meta": {
-    "tool": "stock_info",
-    "command": "refresh",
-    "market": "a",
-    "elapsed_seconds": 13.2,
-    "timestamp": "2026-08-15T17:30:00"
-  }
-}
-```
-
-**注意**: 行业数据条数可能少于代码列表——`stock_yjbb_em` 仅返回已披露当季业绩的公司
-（如 8 月中旬 2026 半年报未披露完时约 1100 条），属正常现象；缓存目录 `data/` 已被
-`.gitignore` 忽略，不会进入版本库。
 
 ---
 
@@ -284,11 +241,6 @@ python tools/a_share/stock_quote.py --code 300502 --source sina
 ### 功能说明
 
 获取A股上市公司的财务指标数据，包括ROE、毛利率、净利率等关键指标。
-
-**数据缓存**（`tools/common/a_stock_cache.py`）：财务摘要与利润表按股票分文件缓存于
-`data/a_share/financial/`（TTL 默认 7 天，`.env` 的 `A_FINANCIAL_TTL_DAYS` 可配置）；
-IPO 信息缓存 90 天（`A_IPO_TTL_DAYS`，上市后几乎不变）。命中缓存零 API 调用，仅
-缓存缺失/过期才调用 akshare；刷新失败时降级返回旧缓存（`meta.cache = "stale"`）。
 
 ### 使用方法
 
@@ -1900,14 +1852,14 @@ A股代码统一使用**6位数字字符串**:
 - 来源：东方财富
 - 字段：代码、名称
 - 特点：数据全面、覆盖全部A股
-- 用途：`stock_info.py` 获取A股代码和名称（经 `tools/common/a_stock_cache.py` 本地缓存，仅缓存缺失/过期时调用）
+- 用途：`stock_info.py` 获取A股代码和名称
 
 ### stock_yjbb_em()
 
 - 来源：东方财富
-- 字段：代码、名称、所处行业、净资产收益率、销售毛利率、每股收益等
-- 特点：按季度披露，季度内数据稳定
-- 用途：`stock_info.py`, `stock_financial.py`, `stock_screen.py` 获取业绩与行业数据（经 `tools/common/a_stock_cache.py` 本地缓存，按季度缓存，仅缓存缺失/过期时调用）
+- 字段：代码、名称、价格、涨跌幅、成交量等
+- 特点：数据实时、字段丰富
+- 用途：`stock_info.py`, `stock_financial.py`, `stock_screen.py` 获取实时行情和业绩数据
 
 ### stock_zh_a_hist()
 
@@ -2173,98 +2125,19 @@ python tools/common/fx_rate.py --code USDCNY --start 2026-07-20 --end 2026-08-01
 
 ---
 
-## 二十四、report_hub.py - A股财报下载与提取统一入口
+## 二十三、局限性说明
 
-### 功能说明
-
-统一管理年报、半年报、季报的下载与提取，提供两层缓存：
-- **下载层**：披露窗口感知 —— 窗口外零网络直接返回本地 PDF；窗口内才查询巨潮 API
-- **提取层**：结果缓存 —— 同一 PDF 未变时秒回已生成的 Markdown
-
-所有报告集中存储在 `cninfo_reports/` 目录，避免技能间重复下载与重复提取。
-
-### 命令说明
-
-| 命令 | 功能 |
-| --- | --- |
-| `ensure` | 确保最新报告就绪。窗口外只查本地缓存，窗口内最多每 7 天查一次巨潮 |
-| `extract` | PDF 提取为 Markdown，带结果缓存（全量 / 目录页 / 目标章节） |
-| `list` | 列出本地缓存（报告年份、大小、是否已提取） |
-
-### 用法示例
-
-```bash
-# 下载
-python tools/common/report_hub.py ensure --code 601899 --report-type annual
-python tools/common/report_hub.py ensure --code 601899 --report-type semiannual
-python tools/common/report_hub.py ensure --code 601899 --report-type quarterly
-
-# 提取
-python tools/common/report_hub.py extract --code 601899 --report-type annual
-python tools/common/report_hub.py extract --pdf cninfo_reports/601899_2025年报.pdf --pages 0-10
-
-# 强制 OCR（扫描件场景）
-python tools/common/report_hub.py extract --code 601899 --report-type annual --force-ocr
-
-# 列出缓存
-python tools/common/report_hub.py list --code 601899
-```
-
-### 输出字段
-
-| 字段 | 说明 |
-| --- | --- |
-| success | 是否成功 |
-| code | 股票代码 |
-| report_type | 报告类型 |
-| year | 报告年份 |
-| pdf_path | PDF 文件路径 |
-| extract_path | 提取产物路径（extract 命令） |
-| meta.cache | hit / check_hit / refresh / stale / error |
-
-### 缓存语义
-
-- **hit**：本地缓存直接命中（窗口外零网络）
-- **check_hit**：窗口内查巨潮确认无更新后返回本地
-- **refresh**：检测到新版本并重新下载/提取
-- **stale**：巨潮 API 失败，降级返回旧文件
-- **error**：无缓存且获取失败
-
-### 设计要点
-
-- 披露窗口：年报 1-5 月、半年报 7-9 月、季报 4-5 月或 10-11 月（含缓冲期）
-- 目录统一：所有报告保存在 `cninfo_reports/`（禁用 `--report-dir`，避免破坏缓存）
-- 并行安全：`.part` 临时文件 + 原子替换，多 Agent 并行无损坏风险
-- 提取缓存：提取产物输出到 `cninfo_reports/extracted/`，PDF 重新下载后自动失效
-- 股权结构等其它数据仍使用 `stock_equity.py`
-
-### 数据缓存
-
-所有报告 PDF 按股票分文件缓存于 `cninfo_reports/` 目录，通过 `.meta/{code}_{type}.json`
-元数据追溯检查时间与来源。
-
-### 数据来源
-
-- 报告 PDF：巨潮资讯网（通过 stock_equity.py 底层下载）
-- 提取引擎：pdf_extract.py（基于 pdf-inspector 库，底层 Rust）
-
-### 常见问题
-
-Q: 为什么 ensure 说"文件已存在"却不返回？A: 文件 < 1MB 时可能是摘要版，会删除重下完整版。
-
-Q: 如何强制重新下载？A: 使用 `--force` 参数跳过窗口检查。
-
-Q: 提取结果如何缓存？A: 提取的 Markdown 文件保存于 `cninfo_reports/extracted/`，同名 md 存在且 mtime 新于 PDF 时秒回。PDF 重新下载后提取缓存自动失效。
-
-Q: 自定义目录为什么不支持？A: 只有统一目录才能让多个技能、多个 Agent 共享缓存。自定义目录会产生重复下载。
+1. **数据窗口**：部分公司上市时间较短，财务数据可能不足10年
+2. **周期性行业**：周期性行业需用完整周期平均值判断，避免单一年份误导
+3. **数据准确性**：免费接口数据可能存在延迟或误差，重要决策需交叉验证
+4. **财务报表**：部分公司财务报表数据可能缺失特定字段
 
 ---
 
-**文档版本**: v2.6
-**更新日期**: 2026-08-15
+**文档版本**: v2.5
+**更新日期**: 2026-08-10
 **变更记录**:
 
-- v2.6 (2026-08-15): 新增 report_hub.py 工具说明章节（A股财报下载与提取统一入口，ensure/extract/list，披露窗口感知 + 两层缓存）；第五章 stock_equity.py 追加"技能流程推荐使用 report_hub"引导；第十六章 pdf_extract.py 组合流程示例改为 report_hub 方式；工具列表新增 report_hub.py 行
 - v2.5 (2026-08-10): 搜索工具章节按重要性重排（anysearch 升首、doubao 第二、exa 第三、tavily 新增专章、web_search 降级兜底）；第13章选型对比全量重写为 5 工具 × 市场矩阵（含角色定位总览、参数速查、市场 × 场景矩阵、通用规范、实测结论、决策流程图、实战推荐表）；网络搜索工具表格更新角色定位；原 13~22 章节顺延为 14~23
 - v2.4 (2026-08-09): 新增 anysearch.py 工具说明章节（AnySearch 全域结构化搜索，23 大垂直数据库 + tag 定向），更新网络搜索工具表格与搜索工具选型对比；原十一~二十一章节顺延为十二~二十二
 - v2.3 (2026-08-07): 新增 fx_rate.py 汇率工具说明章节（国际主要货币汇率，Akshare优先/yfinance回退），新增常见使用场景9；原十四~二十章节顺延为十五~二十一

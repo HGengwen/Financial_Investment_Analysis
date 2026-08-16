@@ -52,35 +52,34 @@ disable-model-invocation: true
 | -------- | --------------------------------- | ----------------------------------------------------------- | ----------------------- |
 | 1（主）  | **本地工具（akshare）**     | `python tools/a_share/stock_financial.py --code 601899`    | 本地工具，数据源 akshare  |
 | 2（副）  | **东方财富**                | eastmoney.com → 搜股票代码 → 财务报表                       | 浏览器手动访问          |
-| 原始一手 | **巨潮资讯**                | cninfo.com.cn                                               | 通过 `report_hub.py ensure` 下载原始年报/季报PDF |
+| 原始一手 | **巨潮资讯**                | cninfo.com.cn                                               | 通过 `tools/a_share/stock_equity.py --download-report` 下载原始年报/季报PDF |
 
 **原始财报PDF获取与阅读**：
 
 ```bash
-# 使用 report_hub.py ensure 下载年报/半年报/季报 PDF（披露窗口感知下载，统一保存到 cninfo_reports/）
-python tools/common/report_hub.py ensure --code 601899 --report-type annual      # 年报
-python tools/common/report_hub.py ensure --code 601899 --report-type semiannual   # 半年报
-python tools/common/report_hub.py ensure --code 601899 --report-type quarterly    # 季报
+# 使用 stock_equity.py 下载年报/半年报/季报 PDF
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type annual      # 年报
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type semiannual   # 半年报
+python tools/a_share/stock_equity.py --code 601899 --download-report --report-type quarterly    # 季报
 ```
 
 下载的PDF保存于 `cninfo_reports/` 目录，命名格式：`{股票代码}_{年份}年报.pdf`、`{股票代码}_{年份}半年报.pdf`、`{股票代码}_{年份}{季度}季报.pdf`。
 
-**PDF文档阅读工具（A股统一用 report_hub.py extract）**：
+**PDF文档阅读工具（首选 pdf_extract.py）**：
 
-A股年报/季报PDF提取文字与表格**统一用** `tools/common/report_hub.py extract`（内部首选 `pdf_extract.py`，基于 pdf-inspector 库，能自动还原财务附表），支持自动乱码检测 + OCR 回退；仅当返回失败（退出码非0 / success=false / 扫描件）时回退 Poppler 工具集。报告获取与提取统一使用 report_hub.py（带下载与提取缓存），详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)。
+提取 PDF 文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，能自动还原财务附表），支持自动乱码检测 + OCR 回退；仅当返回失败（退出码非0 / success=false / 扫描件）时回退 Poppler 工具集。
 
 | 工具 | 功能 | 命令示例 |
 | ---- | ---- | -------- |
-| `report_hub.py extract` | A股年报/季报PDF提取（首选，内部调用 pdf_extract.py） | `python tools/common/report_hub.py extract --code 601899 --report-type annual` |
-| `report_hub.py extract --force-ocr` | 强制 OCR 提取（繁体中文/Adobe-CNS1 乱码时） | `python tools/common/report_hub.py extract --code 688235 --report-type annual --force-ocr --ocr-langs chi_tra+eng` |
-| `pdf_extract.py` | 非A股PDF文字与表格提取（首选） | `python tools/common/pdf_extract.py markdown xxx.pdf --save-md` |
+| `pdf_extract.py` | PDF文字与表格提取（首选） | `python tools/common/pdf_extract.py markdown cninfo_reports/601899_2025年报.pdf --save-md` |
+| `pdf_extract.py --force-ocr` | 强制 OCR 提取（Adobe-CNS1 乱码时） | `python tools/common/pdf_extract.py text cninfo_reports/688235_2025年报.pdf --force-ocr --ocr-langs chi_tra+eng` |
 | `pdftotext` | 将PDF转换为纯文本（回退） | `pdftotext -layout cninfo_reports/601899_2025年报.pdf 601899_2025年报.txt` |
 | `pdfinfo` | 获取PDF文档信息（回退） | `pdfinfo cninfo_reports/601899_2025年报.pdf` |
 | `pdftoppm` | 将PDF渲染为图像（回退） | `pdftoppm -png -r 300 cninfo_reports/601899_2025年报.pdf output/page` |
 
 **注意**：
-- A股统一用 `report_hub.py extract` 提取文字与表格；返回失败时才回退 Poppler 工具集（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
-- `report_hub.py extract`（内部 `pdf_extract.py`）内置自动乱码检测，当 pdf-inspector 提取文本出现乱码（如 Adobe-CNS1 字体编码问题）且 tesseract OCR 可用时，自动触发 OCR 回退
+- 首选 `pdf_extract.py` 提取文字与表格；返回失败时才回退 Poppler 工具集（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
+- `pdf_extract.py` 内置自动乱码检测，当 pdf-inspector 提取文本出现乱码（如 Adobe-CNS1 字体编码问题）且 tesseract OCR 可用时，自动触发 OCR 回退
 - **繁体中文 PDF**（如百济神州）需使用 `--force-ocr --ocr-langs chi_tra+eng` 指定繁体中文语言包
 - 扫描版PDF无法用 pdftotext 提取文本，须用 pdftoppm 渲染为图像后人工核对
 - 详细使用指南见下方"工具使用指南 → PDF文档内容提取"章节
@@ -111,8 +110,7 @@ A股年报/季报PDF提取文字与表格**统一用** `tools/common/report_hub.
 | `tools/a_share/stock_info.py`      | A股信息查询                  | `python tools/a_share/stock_info.py --search 紫金矿业`  |
 | `tools/a_share/stock_financial.py` | A股财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899` |
 | `tools/a_share/stock_quote.py`     | A股历史股价                  | `python tools/a_share/stock_quote.py --code 601899`     |
-| `tools/common/report_hub.py` | A股财报下载与提取统一入口（带缓存） | `python tools/common/report_hub.py ensure --code 601899 --report-type annual` |
-| `tools/a_share/stock_equity.py`    | 股权结构数据           | `python tools/a_share/stock_equity.py --code 601899`    |
+| `tools/a_share/stock_equity.py`    | 股权结构与年报下载           | `python tools/a_share/stock_equity.py --code 601899`    |
 
 **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
 
@@ -232,8 +230,7 @@ A股年报/季报PDF提取文字与表格**统一用** `tools/common/report_hub.
 | A股  | `tools/a_share/stock_info.py`       | 股票信息查询              | `python tools/a_share/stock_info.py --search 紫金矿业`       |
 | A股  | `tools/a_share/stock_financial.py`  | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 601899`      |
 | A股  | `tools/a_share/stock_quote.py`      | 历史股价与实时行情        | `python tools/a_share/stock_quote.py --code 601899`          |
-| A股  | `tools/common/report_hub.py`     | A股财报下载与提取统一入口（带缓存） | `python tools/common/report_hub.py ensure --code 601899 --report-type annual` |
-| A股  | `tools/a_share/stock_equity.py`     | 股权结构数据        | `python tools/a_share/stock_equity.py --code 601899`         |
+| A股  | `tools/a_share/stock_equity.py`     | 股权结构与财报下载        | `python tools/a_share/stock_equity.py --code 601899`         |
 | 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标        | `python tools/hk_stock/stock_financial.py --financial 00700` |
 | 港股 | `tools/hk_stock/stock_quote.py`     | 港股历史K线               | `python tools/hk_stock/stock_quote.py --code 00700`          |
 | 港股 | `tools/hk_stock/stock_screen.py`    | 港股质量筛选              | `python tools/hk_stock/stock_screen.py --code 00700`         |
@@ -251,27 +248,31 @@ A股年报/季报PDF提取文字与表格**统一用** `tools/common/report_hub.
 - **港股工具**：[docs/港股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/港股工具使用指南.md)
 - **美股工具**：[docs/美股工具使用指南.md](file:///f:/Financial_Investment_Analysis/docs/美股工具使用指南.md)
 
-### PDF文档内容提取（统一用 report_hub.py extract）
+### PDF文档内容提取（首选 pdf_extract.py）
 
-A股财报PDF获取与提取统一使用 `tools/common/report_hub.py`（带下载与提取缓存），详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)。提取文字与表格**统一用** `report_hub.py extract`（内部首选 `pdf_extract.py`，基于 pdf-inspector 库，支持自动乱码检测 + OCR 回退），仅当返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集。完整规范见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)。
+下载的财报PDF提取文字与表格**首选** `tools/common/pdf_extract.py`（基于 pdf-inspector 库，支持自动乱码检测 + OCR 回退），仅当返回失败（退出码非0 / success=false / 扫描件）时才回退 Poppler 工具集。完整规范见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)。
 
 #### 年报数据提取工作流
 
 ```bash
-# 步骤1：获取年报PDF（披露窗口感知下载 + 缓存，统一保存到 cninfo_reports/）
-python tools/common/report_hub.py ensure --code 601899 --report-type annual
+# 步骤1：下载年报PDF
+python tools/a_share/stock_equity.py --code 601899 --download-report
 
-# 步骤2（首选）：提取含财务附表的 Markdown 并写盘（内部 pdf_extract.py 自动检测 PDF 类型 + 乱码回退）
-python tools/common/report_hub.py extract --code 601899 --report-type annual
+# 步骤2（首选）：用 pdf_extract.py 分类检测 PDF 类型
+python tools/common/pdf_extract.py detect 601899_2025年报.pdf
+# text_based → 文本版PDF；scanned/mixed 或 scanned=true → 扫描版PDF
 
-# 步骤3（OCR 回退）：若提取乱码，自动触发 OCR 回退
+# 步骤3（首选）：提取含财务附表的 Markdown 并写盘
+python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --save-md --out-dir reports/pdf
+
+# 步骤3（OCR 回退）：若 pdf-inspector 提取乱码，自动触发 OCR 回退
 # 也可手动强制 OCR（适用于繁体中文 PDF 如百济神州）
-python tools/common/report_hub.py extract --code 688235 --report-type annual --force-ocr --ocr-langs chi_tra+eng
+python tools/common/pdf_extract.py text 688235_2025年报.pdf --force-ocr --ocr-langs chi_tra+eng
 
-# 步骤3回退：若 report_hub.py extract 返回失败，回退 Poppler
-pdftotext -layout cninfo_reports/601899_2025年报.pdf 601899_2025年报.txt   # 文本版
-grep -n "净利润\|营业收入\|毛利率\|ROE" cninfo_reports/extracted/601899_2025年报.md
-pdftoppm -png -r 300 cninfo_reports/601899_2025年报.pdf output/page          # 扫描版
+# 步骤3回退：若 pdf_extract.py 返回失败，回退 Poppler
+pdftotext -layout 601899_2025年报.pdf 601899_2025年报.txt   # 文本版
+grep -n "净利润\|营业收入\|毛利率\|ROE" 601899_2025年报.txt
+pdftoppm -png -r 300 601899_2025年报.pdf output/page          # 扫描版
 
 # 步骤4：与其他来源（东方财富、巨潮资讯）交叉验证
 ```

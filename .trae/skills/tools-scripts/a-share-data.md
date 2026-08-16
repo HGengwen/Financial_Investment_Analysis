@@ -21,7 +21,6 @@ disable-model-invocation: true
 
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
-| `report_hub.py`（tools/common/） | A股财报下载与提取统一入口 | `python tools/common/report_hub.py ensure --code {股票代码} --report-type annual` |
 | `tools/a_share/stock_info.py` | A股信息查询 | `python tools/a_share/stock_info.py --search {公司名}` |
 | `tools/a_share/stock_financial.py` | A股财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code {股票代码}` |
 | `tools/a_share/stock_quote.py` | A股行情数据 | `python tools/a_share/stock_quote.py --code {股票代码}` |
@@ -33,16 +32,14 @@ disable-model-invocation: true
 ## 财报PDF下载
 
 ```bash
-# 统一使用 report_hub（优先，带缓存与披露窗口感知）
-python tools/common/report_hub.py ensure --code {股票代码} --report-type annual
-
-# 直调 stock_equity 下载（底层工具，仅回退用）
+# 下载年报/半年报/季报（从巨潮资讯网）
 python tools/a_share/stock_equity.py --code {股票代码} --download-report
+
+# 下载的文件默认保存在 ./cninfo_reports/ 目录
+# 文件命名：{股票代码}_{年份}年报.pdf，如 601899_2025年报.pdf
 ```
 
-下载的文件默认保存在 ./cninfo_reports/ 目录，文件命名：{股票代码}_{年份}年报.pdf，如 601899_2025年报.pdf。
-
-下载后的 PDF 提取流程详见 [报告下载与提取统一入口](./report-hub.md) 和 [PDF文档提取技能](./pdf-extraction.md)。
+下载后的 PDF 提取流程详见 [PDF文档提取技能](./pdf-extraction.md)。
 
 ---
 

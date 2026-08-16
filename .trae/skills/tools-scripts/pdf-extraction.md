@@ -15,10 +15,6 @@ disable-model-invocation: true
 
 ## 快速开始
 
-> **统一入口**：经 `report_hub.py extract` 调用可自动缓存提取结果（`cninfo_reports/extracted/`）；
-> 直接调用 `pdf_extract.py` 不走缓存，仅适用于临时性/一次性提取。
-> 详见 [报告下载与提取统一入口](./report-hub.md)。
-
 ```
 # 首选：使用 pdf_extract.py 提取（含表格，自动 OCR 回退）
 python tools/common/pdf_extract.py markdown {PDF文件路径} --save-md
@@ -279,7 +275,7 @@ pdftoppm -png -r 300 -f 100 -l 120 601899_2025年报.pdf financial_statements/pa
 
 ```bash
 # 步骤1：下载年报PDF（使用A股工具）
-python tools/common/report_hub.py ensure --code 601899 --report-type annual
+python tools/a_share/stock_equity.py --code 601899 --download-report
 
 # 下载的文件默认保存在 ./cninfo_reports/ 目录
 # 文件命名：{股票代码}_{年份}年报.pdf，如 601899_2025年报.pdf
@@ -542,7 +538,7 @@ done
 
 ```bash
 # 步骤1：下载年报PDF
-python tools/common/report_hub.py ensure --code 601899 --report-type annual
+python tools/a_share/stock_equity.py --code 601899 --download-report
 
 # 步骤2（首选）：用 pdf_extract.py 提取含财务附表的 Markdown
 python tools/common/pdf_extract.py markdown 601899_2025年报.pdf --save-md --out-dir reports/pdf

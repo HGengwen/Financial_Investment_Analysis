@@ -107,8 +107,7 @@
 | `tools/a_share/stock_info.py` | A股信息查询 | `python tools/a_share/stock_info.py --search {公司名}` |
 | `tools/a_share/stock_financial.py` | A股财务指标 | `python tools/a_share/stock_financial.py --code {股票代码}` |
 | `tools/a_share/stock_quote.py` | A股行情数据 | `python tools/a_share/stock_quote.py --code {股票代码}` |
-| `tools/common/report_hub.py` | A股财报下载与提取统一入口（带缓存） | `python tools/common/report_hub.py ensure --code 601899 --report-type annual` |
-| `tools/a_share/stock_equity.py` | A股股权结构数据 | `python tools/a_share/stock_equity.py --code {股票代码}` |
+| `tools/a_share/stock_equity.py` | A股股权结构与财报下载 | `python tools/a_share/stock_equity.py --code {股票代码}` |
 
 #### 港股数据
 
@@ -197,7 +196,7 @@
 
 - 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
 - 所有数据必须标注来源，关键财务数据至少两个独立来源交叉验证
-- **关键财务数据须从年报 PDF 一手数据源交叉验证**：使用 `report_hub.py ensure` 获取年报，**统一用** `report_hub.py extract` 提取（内部首选 `pdf_extract.py`），返回失败时才回退 Poppler 工具集（详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md) 与 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
+- **关键财务数据须从年报 PDF 一手数据源交叉验证**：使用 `stock_equity.py --download-report` 下载年报，**首选** `pdf_extract.py` 提取，返回失败时才回退 Poppler 工具集（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
 - 估计值必须明确标注"估计"
 - 产业链扫描需覆盖 A股/港股/美股/国际市场，不遗漏重要标的
 - 每个产业链环节至少分析 2-3 家头部公司

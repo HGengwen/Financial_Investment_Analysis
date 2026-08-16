@@ -152,8 +152,7 @@ python tools/common/report_audit.py verdict --results '<verified JSON>' --report
 | A股 | `tools/a_share/stock_info.py` | 股票信息查询 | `python tools/a_share/stock_info.py --search 中国移动` |
 | A股 | `tools/a_share/stock_financial.py` | 财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code 600941` |
 | A股 | `tools/a_share/stock_quote.py` | 历史股价与实时行情 | `python tools/a_share/stock_quote.py --code 600941` |
-| A股 | `report_hub.py（tools/common/）` | A股财报下载与提取统一入口（带缓存） | `python tools/common/report_hub.py ensure --code 600941 --report-type annual` |
-| A股 | `tools/a_share/stock_equity.py` | 股权结构数据 | `python tools/a_share/stock_equity.py --code 600941` |
+| A股 | `tools/a_share/stock_equity.py` | 股权结构与财报下载 | `python tools/a_share/stock_equity.py --code 600941` |
 | 港股 | `tools/hk_stock/stock_financial.py` | 港股信息与财务指标 | `python tools/hk_stock/stock_financial.py --financial 00700` |
 | 港股 | `tools/hk_stock/stock_quote.py` | 港股历史K线 | `python tools/hk_stock/stock_quote.py --code 00700` |
 | 美股 | `tools/us_stock/stock_info.py` | 美股信息查询 | `python tools/us_stock/stock_info.py --search Coca-Cola` |

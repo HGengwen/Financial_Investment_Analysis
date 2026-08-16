@@ -147,10 +147,7 @@ python tools/common/report_audit.py verdict \
 | `tools/a_share/stock_info.py` | A股股票信息查询 |
 | `tools/a_share/stock_financial.py` | A股财务指标（ROE、毛利率等） |
 | `tools/a_share/stock_quote.py` | A股历史股价 |
-| `tools/common/report_hub.py` | A股财报下载与提取统一入口（带缓存） |
-| `tools/a_share/stock_equity.py` | A股股权结构数据 |
-
-报告获取与提取统一使用 report_hub.py（带下载与提取缓存），详见 [报告下载与提取统一入口](../tools-scripts/report-hub.md)。
+| `tools/a_share/stock_equity.py` | A股股权结构与年报下载 |
 
 ### 港股数据
 

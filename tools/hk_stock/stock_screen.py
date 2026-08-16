@@ -11,7 +11,6 @@ Usage:
 
 import argparse
 import json
-import os
 import sys
 import traceback
 from datetime import datetime
@@ -26,18 +25,12 @@ except ImportError as e:
     }, ensure_ascii=False))
     sys.exit(1)
 
-# 导入本地缓存模块（tools/common/hk_stock_cache.py）
-# 将项目根目录加入 sys.path，使本工具以独立脚本方式运行时也能导入 tools.common 包
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
-from tools.common import hk_stock_cache  # noqa: E402 - 需在 sys.path 设置之后导入
-
 # ---------------------------------------------------------------------------
 # 数据获取函数
 # ---------------------------------------------------------------------------
 
 def get_hk_financial_indicators(code: str, indicator: str = "年度") -> dict:
-    """获取港股财务指标数据（走本地缓存）。
+    """获取港股财务指标数据。
 
     Args:
         code: 港股代码（5位数字字符串）
@@ -47,8 +40,8 @@ def get_hk_financial_indicators(code: str, indicator: str = "年度") -> dict:
         包含财务指标数据的字典
     """
     try:
-        # 通过缓存获取原始 DataFrame
-        df = hk_stock_cache.get_financial_indicators(code, indicator)
+        # 使用东方财富港股财务分析接口
+        df = ak.stock_financial_hk_analysis_indicator_em(symbol=code, indicator=indicator)
 
         if df.empty:
             return {"success": False, "error": f"未找到港股 {code} 的财务数据"}
@@ -111,7 +104,7 @@ def get_hk_profit_statement(code: str, indicator: str = "年度") -> dict:
         包含利润表数据的字典
     """
     try:
-        df = hk_stock_cache.get_financial_report(code, "利润表", indicator)
+        df = ak.stock_financial_hk_report_em(stock=code, symbol="利润表", indicator=indicator)
 
         if df.empty:
             return {"success": False, "error": f"未找到港股 {code} 的利润表数据"}
@@ -140,7 +133,7 @@ def get_hk_balance_sheet(code: str, indicator: str = "年度") -> dict:
         包含资产负债表数据的字典
     """
     try:
-        df = hk_stock_cache.get_financial_report(code, "资产负债表", indicator)
+        df = ak.stock_financial_hk_report_em(stock=code, symbol="资产负债表", indicator=indicator)
 
         if df.empty:
             return {"success": False, "error": f"未找到港股 {code} 的资产负债表数据"}
@@ -648,7 +641,6 @@ def screen_stock(code: str) -> dict:
             "tool": "stock_screen_hk",
             "code": code,
             "market": "hk",
-            "cache": hk_stock_cache.get_financial_status(),
             "timestamp": datetime.now().isoformat()
         }
     }
