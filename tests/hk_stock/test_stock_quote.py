@@ -19,11 +19,13 @@
     依赖网络的测试使用 try-except + skipTest 处理，网络不可用时不失败。
 """
 
+import io
 import json
 import os
 import subprocess
 import sys
 import unittest
+from contextlib import redirect_stdout
 from datetime import datetime, timedelta, date
 from unittest.mock import patch
 
@@ -636,6 +638,77 @@ class TestErrorHandling(unittest.TestCase):
         mock_ak.stock_hk_index_daily_sina.side_effect = ConnectionError("网络中断")
         with self.assertRaises(Exception):
             get_hk_index("HSI", "20260101", "20260728")
+
+
+# ===========================================================================
+# --momentum 动量与技术面指标测试（纯计算，无网络）
+# ===========================================================================
+
+def _make_hist_data(n=260):
+    """构造 get_hk_hist 返回的伪 data（含 date/close/volume，升序）。"""
+    return [{"date": f"2025{i:04d}", "close": 300.0 + i * 1.0, "volume": 500000} 
+            for i in range(n)]
+
+
+class TestMomentum(unittest.TestCase):
+    """--momentum 计算与命令行分发测试。"""
+
+    def test_parse_peers_valid(self):
+        """--peers 逗号分隔解析为浮点列表；空结果为 None。"""
+        self.assertEqual(stock_quote_module._parse_peers("20.5,-3.2,55"),
+                         [20.5, -3.2, 55.0])
+        self.assertIsNone(stock_quote_module._parse_peers(",,"))
+
+    def test_momentum_uptrend(self):
+        """上涨序列：250日涨幅为正、现价高于双均线。"""
+        closes = [r["close"] for r in _make_hist_data(260)]
+        volumes = [r["volume"] for r in _make_hist_data(260)]
+        res = stock_quote_module._momentum_from_series(closes, volumes, None)
+        self.assertGreater(res["return_250d_pct"], 0)
+        self.assertIs(res["tech"]["close_above_ma50"], True)
+        self.assertIs(res["tech"]["close_above_ma200"], True)
+
+    def test_momentum_with_peers(self):
+        """提供 peers 时 smr_percentile 按板块截面计算。"""
+        closes = [r["close"] for r in _make_hist_data(260)]  # 250日涨幅约 81%
+        res = stock_quote_module._momentum_from_series(closes, None, [10.0, 50.0])
+        self.assertAlmostEqual(res["smr_percentile"], 100.0, places=4)
+
+    def test_cmd_momentum_outputs_json(self):
+        """cmd_momentum 拉取 data 并输出含 data 的 JSON（mock get_hk_hist）。"""
+        with patch.object(stock_quote_module, "get_hk_hist",
+                          return_value={"data": _make_hist_data(), "count": 260}):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                stock_quote_module.cmd_momentum("00700", None)
+        out = json.loads(buf.getvalue())
+        self.assertTrue(out["success"])
+        self.assertEqual(out["meta"]["command"], "momentum")
+        self.assertIsNotNone(out["data"]["return_250d_pct"])
+        self.assertIs(out["data"]["tech"]["close_above_ma200"], True)
+
+    def test_cmd_momentum_auto_peers_unavailable(self):
+        """auto_peers 时港股板块截面返回 unavailable，其余动量指标照常。"""
+        unavailable = {"industry": None, "pcts": None, "status": "unavailable",
+                       "count": 0, "skipped": 0,
+                       "note": "港股板块成分暂无公开数据源（akshare 无恒生行业成分接口），"
+                               "SMR 自动截面不可用，请使用手动 --peers"}
+        with patch.object(stock_quote_module, "get_hk_hist",
+                          return_value={"data": _make_hist_data(), "count": 260}), \
+             patch.object(stock_quote_module, "sector_screen") as mock_ss:
+            mock_ss.compute_peers_for_stock.return_value = unavailable
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                stock_quote_module.cmd_momentum("00700", None, auto_peers=True)
+        out = json.loads(buf.getvalue())
+        self.assertTrue(out["success"])
+        self.assertIsNone(out["data"]["smr_percentile"])  # 无截面时 SMR 为 None
+        self.assertEqual(out["data"]["peers_source"], unavailable["note"])
+        # SMR 因无截面而为 None，但 RSI/MA 正常
+        self.assertIsNotNone(out["data"]["rsi50"])
+        self.assertIsNotNone(out["data"]["ma50"])
+        self.assertIs(out["data"]["tech"]["close_above_ma200"], True)
+        mock_ss.compute_peers_for_stock.assert_called_once_with("00700", market="hk")
 
 
 if __name__ == "__main__":

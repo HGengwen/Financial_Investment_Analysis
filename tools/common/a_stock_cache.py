@@ -36,6 +36,7 @@ Usage:
     status = stock_cache.get_code_name_status()
 """
 
+import json
 import os
 from datetime import datetime
 from pathlib import Path
@@ -109,9 +110,16 @@ _load_dotenv()
 # 缓存有效期（天），.env 可配置
 STOCK_CACHE_TTL_DAYS: int = _parse_int_env("STOCK_CACHE_TTL_DAYS", _DEFAULT_TTL_DAYS)
 
+# 财务报告缓存配置（机制与代码/行业缓存一致，TTL 独立配置）
+# per-stock 缓存到 data/a_share/financial/，季度节奏 → 默认 7 天
+FINANCIAL_DIR: Path = CACHE_DIR / "financial"
+A_FINANCIAL_TTL_DAYS: int = _parse_int_env("A_FINANCIAL_TTL_DAYS", 7)
+
 # 最近一次缓存访问状态：hit（缓存命中）/ refresh（拉取刷新）/ stale（旧缓存降级）
 _code_status: str = "unknown"
 _industry_status: str = "unknown"
+# 财务报告缓存状态（按 cache_key 记，如 balance_sheet / income_statement / ...）
+_financial_status: dict[str, str] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -422,3 +430,263 @@ def get_industry_status() -> str:
         "hit"（缓存命中）/ "refresh"（拉取刷新）/ "stale"（旧缓存降级）。
     """
     return _industry_status
+
+
+# ---------------------------------------------------------------------------
+# 财务报告缓存（trend-tech-screen 阶段二新增，沿用 hit→refresh→stale 模式）
+#
+# 数据源：新浪三大报表（stock_financial_report_sina）+ 东财财务分析指标
+# （stock_financial_analysis_indicator）。per-stock 缓存到 data/a_share/financial/。
+# 员工数在 A 股无可靠 akshare 接口（雪球 KeyError、东财封禁），故标注缺口，
+# 留待阶段四年报解析（annual_report_parser）补齐。
+# ---------------------------------------------------------------------------
+
+# 现金流量表/报表中无需缓存的元信息列（仅保留科目列）
+_STATEMENT_DROP_COLS = ("数据来源", "是否审计", "公告日期", "币种", "类型", "更新日期", "报告日")
+
+
+def _norm_financial_value(value):
+    """规范化财务科目值：NaN/None 转 None，数字取 float 保留 4 位。
+
+    Args:
+        value: 原始单格值。
+
+    Returns:
+        float 或 str 或 None。
+    """
+    if value is None:
+        return None
+    if isinstance(value, float) and value != value:  # NaN
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return round(float(value), 4)
+    return str(value).strip()
+
+
+def _norm_report_date(value) -> str:
+    """将报告日/日期列归一化为 'YYYYMMDD' 字符串。
+
+    Args:
+        value: pandas Timestamp / str / int。
+
+    Returns:
+        归一化的字符串日期。
+    """
+    if hasattr(value, "strftime"):  # pandas Timestamp / datetime
+        return value.strftime("%Y%m%d")
+    return str(value)[:10]
+
+
+def _statements_to_map(df: "pd.DataFrame") -> dict[str, dict]:
+    """将三大报表/分析指标 DataFrame 转为 {日期: {科目: 值}}。
+
+    首列视为日期列，其余列视为科目（丢弃元信息列）。
+
+    Args:
+        df: akshare 返回的财务报表 DataFrame。
+
+    Returns:
+        嵌套字典，键为 'YYYYMMDD'，值为科目字典。
+    """
+    if df is None or len(df) == 0:
+        return {}
+    date_col = list(df.columns)[0]
+    result = {}
+    for _, row in df.iterrows():
+        rd = row[date_col]
+        if rd is None or (isinstance(rd, float) and rd != rd):
+            continue
+        key = _norm_report_date(rd)
+        sub = {c: _norm_financial_value(v) for c, v in row.items()
+               if c != date_col and c not in _STATEMENT_DROP_COLS}
+        result[key] = sub
+    return result
+
+
+def _read_financial_json(cache_file: Path) -> dict | None:
+    """读取财务缓存 JSON 文件；缺失或损坏时返回 None。
+
+    Args:
+        cache_file: 缓存文件路径。
+
+    Returns:
+        解析后的 dict；失败返回 None。
+    """
+    if not cache_file.exists():
+        return None
+    try:
+        with open(cache_file, "r", encoding="utf-8") as fh:
+            return json.load(fh)
+    except Exception:
+        return None
+
+
+def _atomic_write_json(obj: dict, cache_file: Path) -> None:
+    """原子写入 JSON 缓存：先写 .tmp 再 os.replace。
+
+    Args:
+        obj: 待写入的 dict。
+        cache_file: 目标缓存文件路径。
+    """
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    tmp_file = cache_file.with_suffix(cache_file.suffix + ".tmp")
+    with open(tmp_file, "w", encoding="utf-8") as fh:
+        json.dump(obj, fh, ensure_ascii=False)
+    os.replace(tmp_file, cache_file)
+
+
+def _get_financial_json(code: str, cache_key: str, fetch_map_fn, ttl_days: int) -> dict:
+    """通用财务缓存访问（hit → refresh → stale）。
+
+    Args:
+        code: 6 位股票代码。
+        cache_key: 缓存文件名后缀（如 balance_sheet）。
+        fetch_map_fn: 无参函数，返回 {日期: {科目: 值}}。
+        ttl_days: 缓存有效期天数。
+
+    Returns:
+        财务科目字典（= fetch_map_fn 结果）。
+
+    Raises:
+        RuntimeError: 无缓存且拉取失败。
+    """
+    global _financial_status
+    fpath = FINANCIAL_DIR / f"{code}_{cache_key}.json"
+
+    if _is_cache_fresh(fpath):
+        data = _read_financial_json(fpath)
+        if data is not None:
+            _financial_status[cache_key] = "hit"
+            return data
+    try:
+        data = fetch_map_fn()
+        _atomic_write_json(data, fpath)
+        _financial_status[cache_key] = "refresh"
+        return data
+    except Exception:
+        data = _read_financial_json(fpath)
+        if data is not None:
+            _financial_status[cache_key] = "stale"
+            return data
+        raise
+
+
+def get_balance_sheet(code: str) -> dict:
+    """获取资产负债表科目（合同负债/存货/开发支出/无形资产/应付账款/预付款项等）。
+
+    Args:
+        code: 6 位股票代码。
+
+    Returns:
+        {日期: {科目: 值}}。
+    """
+    if ak is None:
+        raise RuntimeError("akshare 未安装，无法获取资产负债表")
+
+    def _fetch():
+        df = ak.stock_financial_report_sina(stock=code, symbol="资产负债表")
+        return _statements_to_map(df)
+
+    return _get_financial_json(code, "balance_sheet", _fetch, A_FINANCIAL_TTL_DAYS)
+
+
+def get_income_statement_sina(code: str) -> dict:
+    """获取利润表科目（研发费用/营业成本/净利润等）。
+
+    Args:
+        code: 6 位股票代码。
+
+    Returns:
+        {日期: {科目: 值}}。
+    """
+    if ak is None:
+        raise RuntimeError("akshare 未安装，无法获取利润表")
+
+    def _fetch():
+        df = ak.stock_financial_report_sina(stock=code, symbol="利润表")
+        return _statements_to_map(df)
+
+    return _get_financial_json(code, "income_statement", _fetch, A_FINANCIAL_TTL_DAYS)
+
+
+def get_cash_flow(code: str) -> dict:
+    """获取现金流量表科目（支付给职工现金/购建固定资产现金）。
+
+    Args:
+        code: 6 位股票代码。
+
+    Returns:
+        {日期: {科目: 值}}。
+    """
+    if ak is None:
+        raise RuntimeError("akshare 未安装，无法获取现金流量表")
+
+    def _fetch():
+        df = ak.stock_financial_report_sina(stock=code, symbol="现金流量表")
+        return _statements_to_map(df)
+
+    return _get_financial_json(code, "cash_flow", _fetch, A_FINANCIAL_TTL_DAYS)
+
+
+def get_analysis_indicator(code: str) -> dict:
+    """获取东财财务分析指标（存货周转天数等）。
+
+    Args:
+        code: 6 位股票代码。
+
+    Returns:
+        {日期: {指标: 值}}。
+    """
+    if ak is None:
+        raise RuntimeError("akshare 未安装，无法获取财务分析指标")
+
+    def _fetch():
+        now = datetime.now()
+        start_year = str(now.year - 6)
+        df = ak.stock_financial_analysis_indicator(symbol=code, start_year=start_year)
+        return _statements_to_map(df)
+
+    return _get_financial_json(code, "analysis_indicator", _fetch, A_FINANCIAL_TTL_DAYS)
+
+
+def employee_count(code: str) -> dict:
+    """获取员工总数；A 股无可靠 akshare 接口，标注缺口。
+
+    Args:
+        code: 6 位股票代码。
+
+    Returns:
+        {"value": 员工数或 None, "note": 说明}。
+    """
+    if ak is None:
+        return {"value": None, "note": "akshare 未安装"}
+    try:
+        df = ak.stock_individual_basic_info_xq(symbol=code)
+        val = None
+        for _, row in df.iterrows():
+            if str(row.get("item", "")).strip() in ("员工总数", "员工人数"):
+                try:
+                    val = int(float(row.get("value")))
+                except (TypeError, ValueError):
+                    val = None
+                break
+        if val is not None:
+            return {"value": val, "note": "雪球"}
+        return {"value": None, "note": "雪球接口未返回员工字段"}
+    except Exception as e:  # noqa: BLE001 - 接口不稳定，统一标注缺口
+        return {"value": None,
+                "note": f"员工数无可靠接口（{type(e).__name__}），需年报解析(stage4)或搜索补充"}
+
+
+def get_financial_status(cache_key: str) -> str:
+    """返回某类财务数据最近一次访问的缓存状态。
+
+    Args:
+        cache_key: 资产负债表/利润表等的缓存键。
+
+    Returns:
+        "hit" / "refresh" / "stale" / "unknown"。
+    """
+    return _financial_status.get(cache_key, "unknown")

@@ -12,9 +12,9 @@
 
 | 工具文件                      | 功能                     | 命令示例                                                     |
 | ----------------------------- | ------------------------ | ------------------------------------------------------------ |
-| `stock_info.py`             | A股信息查询              | `python tools/a_share/stock_info.py --search 新易盛`       |
-| `stock_quote.py`            | A股行情数据              | `python tools/a_share/stock_quote.py --code 300502`        |
-| `stock_financial.py`        | A股财务指标              | `python tools/a_share/stock_financial.py --code 300502`    |
+| `stock_info.py`             | A股信息查询（含 `--profile` 完整画像）              | `python tools/a_share/stock_info.py --search 新易盛`       |
+| `stock_quote.py`            | A股行情数据（含 `--momentum`/`--auto-peers` 动量）              | `python tools/a_share/stock_quote.py --code 300502`        |
+| `stock_financial.py`        | A股财务指标（含 `--advanced` 高级科目）              | `python tools/a_share/stock_financial.py --code 300502`    |
 | `stock_financial_batch.ps1` | 批量查询多只股票财务指标 | `powershell -File tools/a_share/stock_financial_batch.ps1` |
 | `stock_screen.py`           | 质量筛选7条指标          | `python tools/a_share/stock_screen.py --code 300502`       |
 | `stock_equity.py`           | 股权结构与财报下载       | `python tools/a_share/stock_equity.py --code 601899`       |
@@ -23,8 +23,19 @@
 
 | 工具文件               | 功能                              | 命令示例                                                           |
 | ---------------------- | --------------------------------- | ------------------------------------------------------------------ |
-| `financial_rigor.py` | 精确金融计算（PE、ROE、市值校验） | `python tools/common/financial_rigor.py verify-valuation --help` |
+| `financial_rigor.py` | 精确金融计算（PE、ROE、市值校验；含五维估值 `peg`/`ps-g`/`pe-percentile`/`implied-growth`） | `python tools/common/financial_rigor.py verify-valuation --help` |
 | `report_audit.py`    | 研究报告审核                      | `python tools/common/report_audit.py --help`                     |
+
+### 景气趋势筛选工具链（trend-tech-screen）
+
+| 工具文件               | 功能                              | 命令示例                                                           |
+| ---------------------- | --------------------------------- | ------------------------------------------------------------------ |
+| `annual_report_parser.py` | 年报 markdown 结构化抽取（员工/子公司/研发/收入分部/新品/供应链） | `python tools/common/annual_report_parser.py {年报md} --output-json` |
+| `trend_tech_screen.py` | 景气趋势五维打分引擎（打分+地缘修正+技术面止损+**R8在研评分**+评级+反证清单） | `python tools/specialized/trend_tech_screen.py score --name A --cycle 需求爆发期 --dims '{...}' --r8 '{...}'` |
+| `in_research_scan.py` | 在研项目多渠道扫描（gov/patent/bidding/academic/investor/website/research），供 R8 评分卡 | `python tools/specialized/in_research_scan.py scan "{公司}" --market sz --official-site {官网} --annual-report {年报md}` |
+| `--momentum`/`--auto-peers` | `stock_quote.py` 动量与同板块 SMR 截面 | `python tools/a_share/stock_quote.py --code 300502 --momentum --auto-peers` |
+| `--advanced` | `stock_financial.py` 高级财务科目 | `python tools/a_share/stock_financial.py --code 300502 --advanced 合同负债,存货,研发费用,员工总数` |
+| `--profile` | `stock_info.py` 完整画像（总市值/流通市值/机构覆盖） | `python tools/a_share/stock_info.py --code 300502 --profile` |
 
 ### 大宗商品数据工具
 
@@ -233,6 +244,18 @@ python tools/a_share/stock_quote.py --code 300502 --source sina
   }
 }
 ```
+
+#### 5. 动量与技术面（--momentum，trend-tech-screen 阶段三）
+
+```bash
+# 计算 250日 SMR 相对强度（同板块百分位）、RSI(50)、MA50/MA200、量能
+python tools/a_share/stock_quote.py --code 300502 --momentum
+
+# 自动获取申万一级行业成分做 SMR 截面排名
+python tools/a_share/stock_quote.py --code 300502 --momentum --auto-peers
+```
+
+**说明**：SMR 百分位按"同板块"口径计算。申万一级行业成分映射（`sw_index_first_info` + `index_component_sw`）一次性构建全市场"代码→行业"映射并缓存至 `data/a_share/sector/sw_industry_map.json`（覆盖 5000+ 只）；成分 250 日涨幅距 `stock_zh_a_daily`（新浪）优先、`stock_zh_a_hist`（东财）回退批量。该输出为景气趋势筛选的动量维度与技术面止损校验数据源。
 
 ---
 
@@ -594,6 +617,24 @@ python tools/common/financial_rigor.py three-scenario \
 python tools/common/financial_rigor.py calc --expr "420.5 / 23.36"
 ```
 
+#### 6. 五维估值命令（trend-tech-screen 阶段一）
+
+```bash
+# PEG 估值（林奇）：PEG <1 低估 / 1~1.5 合理 / >1.5 高估
+python tools/common/financial_rigor.py peg --pe 30 --growth 40
+
+# PSG 市销率增长比（爆发期专用）
+python tools/common/financial_rigor.py ps-g --ps 5 --revenue-growth 80
+
+# PE 历史分位：输出当前PE所处 5 年历史分位
+python tools/common/financial_rigor.py pe-percentile --pe-series '[{"val":12.5}]' --current 30
+
+# 市值隐含业绩倒推验证：与公司指引增速上限对照，红/黄/绿判定
+python tools/common/financial_rigor.py implied-growth \
+  --market-cap 500 --target-pe 25 --net-margin 0.15 \
+  --ttm-revenue 130 --guidance-growth 0.35
+```
+
 ### 应用场景
 
 - 估值数据验证
@@ -601,6 +642,7 @@ python tools/common/financial_rigor.py calc --expr "420.5 / 23.36"
 - 多数据源交叉验证
 - 三情景估值分析
 - 精确算术计算
+- 景气趋势筛选五维估值（PEG/PSG/PE 分位/市值倒推）
 
 ---
 

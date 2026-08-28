@@ -8,6 +8,7 @@ Test suite covering all major functions:
 4. Benford's Law check
 5. Exact calculator
 6. Three-scenario valuation
+7. PEG / PSG / PE-percentile / Implied-growth (trend-tech-screen 阶段一新增)
 """
 
 import sys
@@ -29,7 +30,11 @@ from tools.common.financial_rigor import (
     cross_validate,
     benford_check,
     exact_calc,
-    three_scenario_valuation
+    three_scenario_valuation,
+    peg_ratio,
+    psg_ratio,
+    pe_percentile,
+    implied_growth
 )
 
 
@@ -197,11 +202,12 @@ class TestBenfordCheck(unittest.TestCase):
     @patch('sys.stdout', new_callable=StringIO)
     def test_benford_check_natural_numbers(self, mock_stdout):
         """Test Benford check with naturally distributed numbers."""
-        # Generate numbers following Benford's law
+        # Generate numbers following Benford's law (固定种子 + 大样本，MAD 稳定收敛)
         import random
         import math
+        random.seed(42)
         values = []
-        for _ in range(200):
+        for _ in range(500):
             # Generate log-uniform distribution
             log_value = random.uniform(0, 5)
             value = 10 ** log_value
@@ -318,6 +324,118 @@ class TestThreeScenarioValuation(unittest.TestCase):
         self.assertIn('悲观', output)
 
 
+class TestPegRatio(unittest.TestCase):
+    """Test PEG calculation (林奇核心指标, trend-tech-screen 阶段一新增)."""
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_peg_under_valued(self, mock_stdout):
+        """Test PEG < 1 → 低估."""
+        result = peg_ratio(30, 40)
+        self.assertIsNotNone(result['peg'])
+        self.assertAlmostEqual(result['peg'], 0.75, places=2)
+        self.assertIn('低估', result['rating'])
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_peg_fair(self, mock_stdout):
+        """Test PEG 1~1.5 → 合理."""
+        result = peg_ratio(50, 40)
+        self.assertAlmostEqual(result['peg'], 1.25, places=2)
+        self.assertIn('合理', result['rating'])
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_peg_over_valued(self, mock_stdout):
+        """Test PEG > 1.5 → 高估."""
+        result = peg_ratio(80, 40)
+        self.assertAlmostEqual(result['peg'], 2.0, places=2)
+        self.assertIn('高估', result['rating'])
+
+
+class TestPsgRatio(unittest.TestCase):
+    """Test PSG calculation (市销率增长比, 爆发期专用, trend-tech-screen 阶段一新增)."""
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_psg_excellent(self, mock_stdout):
+        """Test PSG < 0.5 → 优秀."""
+        result = psg_ratio(5, 80)
+        self.assertAlmostEqual(result['psg'], 0.0625, places=4)
+        self.assertIn('优秀', result['rating'])
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_psg_reasonable(self, mock_stdout):
+        """Test PSG 0.5~1.0 → 合理."""
+        result = psg_ratio(60, 80)
+        self.assertAlmostEqual(result['psg'], 0.75, places=2)
+        self.assertIn('合理', result['rating'])
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_psg_over_valued(self, mock_stdout):
+        """Test PSG > 1.0 → 高估."""
+        result = psg_ratio(200, 100)
+        self.assertAlmostEqual(result['psg'], 2.0, places=2)
+        self.assertIn('高估', result['rating'])
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_psg_negative_growth(self, mock_stdout):
+        """Test 营收负增长 → PSG 无意义."""
+        result = psg_ratio(5, -10)
+        self.assertIsNone(result['psg'])
+        self.assertEqual(result['note'], 'negative_growth')
+
+
+class TestPePercentile(unittest.TestCase):
+    """Test PE historical percentile (trend-tech-screen 阶段一新增)."""
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_pe_percentile_high(self, mock_stdout):
+        """Test 当前 PE 处于历史高位 → >60%."""
+        result = pe_percentile([20, 25, 30, 28, 26], 30)
+        self.assertAlmostEqual(result['percentile'], 100.0, places=1)
+        self.assertIn('偏高', result['rating'])
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_pe_percentile_low(self, mock_stdout):
+        """Test 当前 PE 处于历史低位 → <40%."""
+        result = pe_percentile([20, 30, 40, 50, 60], 25)
+        self.assertAlmostEqual(result['percentile'], 20.0, places=1)
+        self.assertIn('低估', result['rating'])
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_pe_percentile_default_current(self, mock_stdout):
+        """Test 缺省 current 时取序列最后一位."""
+        result = pe_percentile([10, 20, 30])
+        self.assertEqual(result['current_pe'], 30)
+        self.assertAlmostEqual(result['percentile'], 100.0, places=1)
+
+
+class TestImpliedGrowth(unittest.TestCase):
+    """Test 市值隐含业绩倒推验证 (红/黄/绿, trend-tech-screen 阶段一新增)."""
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_implied_growth_green(self, mock_stdout):
+        """Test 隐含增速 < 指引 → 绿灯."""
+        result = implied_growth(1e12, 30, 0.15, 5e11, 0.35)
+        self.assertEqual(result['verdict'], 'green')
+        self.assertLess(result['implied_growth'], 0.35)
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_implied_growth_yellow(self, mock_stdout):
+        """Test 隐含增速 介于指引与 1.5 倍之间 → 黄灯."""
+        result = implied_growth(3.2e12, 30, 0.15, 5e11, 0.35)
+        self.assertEqual(result['verdict'], 'yellow')
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_implied_growth_red(self, mock_stdout):
+        """Test 隐含增速 > 指引×1.5 → 红灯."""
+        result = implied_growth(5e12, 30, 0.15, 5e11, 0.35)
+        self.assertEqual(result['verdict'], 'red')
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_implied_growth_invalid_margin(self, mock_stdout):
+        """Test 净利率 ≤ 0 → 返回 None 无法倒推."""
+        result = implied_growth(1e12, 30, 0, 5e11, 0.35)
+        self.assertIsNone(result)
+
+
 class TestEdgeCases(unittest.TestCase):
     """Test edge cases and boundary conditions."""
 
@@ -355,6 +473,7 @@ class TestCLI(unittest.TestCase):
              '--currency', 'HKD'],
             capture_output=True,
             text=True,
+            encoding='utf-8',
             cwd=str(_PROJECT_ROOT)
         )
         self.assertEqual(result.returncode, 0)
@@ -368,6 +487,7 @@ class TestCLI(unittest.TestCase):
              '--price', '510', '--eps', '23.5'],
             capture_output=True,
             text=True,
+            encoding='utf-8',
             cwd=str(_PROJECT_ROOT)
         )
         self.assertEqual(result.returncode, 0)
@@ -381,6 +501,7 @@ class TestCLI(unittest.TestCase):
              '--expr', '510 * 9.11e9'],
             capture_output=True,
             text=True,
+            encoding='utf-8',
             cwd=str(_PROJECT_ROOT)
         )
         self.assertEqual(result.returncode, 0)
@@ -401,6 +522,10 @@ def run_tests():
     suite.addTests(loader.loadTestsFromTestCase(TestBenfordCheck))
     suite.addTests(loader.loadTestsFromTestCase(TestExactCalculator))
     suite.addTests(loader.loadTestsFromTestCase(TestThreeScenarioValuation))
+    suite.addTests(loader.loadTestsFromTestCase(TestPegRatio))
+    suite.addTests(loader.loadTestsFromTestCase(TestPsgRatio))
+    suite.addTests(loader.loadTestsFromTestCase(TestPePercentile))
+    suite.addTests(loader.loadTestsFromTestCase(TestImpliedGrowth))
     suite.addTests(loader.loadTestsFromTestCase(TestEdgeCases))
     suite.addTests(loader.loadTestsFromTestCase(TestCLI))
 

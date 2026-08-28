@@ -15,8 +15,12 @@ disable-model-invocation: true
 | 工具 | 功能 | 命令示例 |
 |------|------|---------|
 | `tools/hk_stock/stock_financial.py` | 港股信息查询与财务指标 | `python tools/hk_stock/stock_financial.py --financial {股票代码}` |
+| `tools/hk_stock/stock_financial.py` | 高级财务科目（合约负债/存货/应付账款/预付款项） | `python tools/hk_stock/stock_financial.py --advanced {科目1,科目2}` |
 | `tools/hk_stock/stock_quote.py` | 港股历史K线与指数数据 | `python tools/hk_stock/stock_quote.py --code {股票代码}` |
+| `tools/hk_stock/stock_quote.py` | 动量与技术面（RSI/MA，SMR 截面对港股不可用） | `python tools/hk_stock/stock_quote.py --code {代码} --momentum --auto-peers` |
 | `tools/hk_stock/stock_screen.py` | 港股质量筛选7条指标 | `python tools/hk_stock/stock_screen.py --code {股票代码}` |
+
+> **注**：港股 `--momentum --auto-peers` 会输出 SMR 结论"不可用"提示（港股板块成分无可靠公共数据源），同时仍计算 RSI(50)/MA/止损位并将 SMR 百分位置 None。SMR 需手动指定 `--peers` 或使用搜索补充。
 
 ---
 

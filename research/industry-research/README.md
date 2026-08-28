@@ -1,0 +1,241 @@
+# 行业投资研究 (Industry Research)
+
+产业链全景扫描 + 四大师个股分析框架，系统化研究行业投资机会
+
+---
+
+## 快速开始
+
+### 基本调用方式
+
+```
+/industry-research {行业名}
+```
+
+例如：
+- `/industry-research 核电`
+- `/industry-research 新能源汽车`
+- `/industry-research 半导体`
+
+---
+
+## 核心功能
+
+对指定行业进行系统化产业链投资研究，从一个投资主题/逻辑链出发，完成从逻辑验证到投资组合配置的完整闭环。
+
+### 八步研究框架
+
+1. **投资逻辑链构建与验证** — 验证底层逻辑的每一个环节是否成立
+2. **产业链全景图绘制** — 看清上游→中游→下游→辅助环节的产业格局
+3. **全球上市公司扫描** — A股/港股/美股/国际市场全覆盖
+4. **四大师个股分析** — 对每个环节头部公司执行段永平/巴菲特/芒格/李录框架
+5. **行业级风险评估** — 芒格"检查清单"式系统性风险扫描
+6. **文明趋势判断** — 李录框架判断是"范式转移"还是"阶段性热潮"
+7. **投资组合配置建议** — 核心/卫星/期权/ETF的明确仓位指引
+8. **综合决策备忘录** — 四位大师模拟点评，一锤定音
+
+---
+
+## 使用示例
+
+### 示例1：研究核电行业
+```
+/industry-research 核电
+```
+ 验证碳中和→清洁能源→核电刚需→产业链受益的逻辑链，扫描全球核电上市公司，输出投资组合建议
+
+### 示例2：研究新能源汽车行业
+```
+/industry-research 新能源汽车
+```
+ 绘制从锂矿→电池→整车→充电桩的完整产业链，对各环节龙头执行四大师分析
+
+---
+
+## 输出报告
+
+报告将保存在以下位置：
+
+| 报告类型 | 文件路径 |
+|---------|---------|
+| 行业研究报告 | `reports/{行业名}-industry-{YYYYMMDD}.md` |
+
+行业报告统一放在 `reports/` 根目录，文件名包含行业名、报告类型标识和日期。
+
+---
+
+## 研究标准
+
+### 与 `industry-funnel` 的差异化定位
+
+| Skill | 定位 | 何时用 |
+|-------|------|--------|
+| **`/industry-research`（本Skill）** | 产业链全景扫描与四大师分析 | 首次研究一个行业，需要看清产业格局 |
+| `/industry-funnel` | 行业漏斗筛选，从全市场到3家 | 产业研究后精选标的 |
+
+两者可互补：先用 `industry-research` 看清产业链格局，再用 `industry-funnel` 精选标的。
+
+### 四大师分析框架
+
+对每个产业链环节的 Tier 1 和 Tier 2 公司，执行以下分析：
+
+| 大师 | 分析维度 | 核心追问 |
+|------|---------|---------|
+| 段永平 | 生意本质 | 这是一门好生意吗？为什么？ |
+| 巴菲特 | 护城河（五类评分） | 10年后护城河还在吗？ |
+| 芒格 | 风险与失败场景 | 这家公司最可能怎么失败？ |
+| 李录 | 文明趋势定位 | 是范式转移还是阶段性热潮？ |
+
+### 推荐度评级
+
+- ★★★★★ = 核心仓位候选
+- ★★★★☆ = 卫星仓位候选
+- ★★★☆☆ = 观察名单
+- ★★☆☆☆ = 高风险期权
+- ★☆☆☆☆ = 不推荐
+
+---
+
+## 工具依赖
+
+### 财务数据获取工具
+
+#### A股数据
+
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `tools/a_share/stock_info.py` | A股信息查询 | `python tools/a_share/stock_info.py --search {公司名}` |
+| `tools/a_share/stock_financial.py` | A股财务指标 | `python tools/a_share/stock_financial.py --code {股票代码}` |
+| `tools/a_share/stock_quote.py` | A股行情数据 | `python tools/a_share/stock_quote.py --code {股票代码}` |
+| `tools/a_share/stock_equity.py` | A股股权结构与财报下载 | `python tools/a_share/stock_equity.py --code {股票代码}` |
+
+#### 港股数据
+
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `tools/hk_stock/stock_financial.py` | 港股信息查询与财务指标 | `python tools/hk_stock/stock_financial.py --financial {股票代码}` |
+| `tools/hk_stock/stock_quote.py` | 港股历史K线、指数数据 | `python tools/hk_stock/stock_quote.py --code {股票代码}` |
+
+#### 美股数据
+
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `tools/us_stock/stock_info.py` | 美股实时行情与估值指标 | `python tools/us_stock/stock_info.py --realtime AAPL` |
+| `tools/us_stock/stock_quote.py` | 美股历史K线、三大指数 | `python tools/us_stock/stock_quote.py --daily AAPL` |
+| `tools/us_stock/stock_financial.py` | 美股财务报表、分红、机构持仓 | `python tools/us_stock/stock_financial.py --financials AAPL` |
+
+#### 大宗商品数据
+
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `tools/common/commodity_price.py` | 大宗商品价格（Akshare 优先，yfinance 回退，覆盖18个品种） | `python tools/common/commodity_price.py --code cu,GC,CL` |
+
+**适用场景**：涉及大宗商品产业链的行业（如新能源汽车上游锂矿、光伏上游工业硅、有色金属、石油石化等），须获取相关品种价格辅助判断产业链上游成本压力与下游需求景气度。
+
+#### 国际货币汇率
+
+| 工具 | 功能 | 命令示例 |
+|------|------|---------|
+| `tools/common/fx_rate.py` | 国际主要货币汇率（Akshare 优先 + yfinance 回退，19 个货币对） | `python tools/common/fx_rate.py --code USDCNY` |
+
+**适用场景**：A股/港股/美股标的估值对比、市值统一口径、财务数据折算时，用当日实时汇率折算到同一货币口径（如港股→人民币用 `HKDCNY`，美元→人民币用 `USDCNY`），不得使用训练数据中的固定汇率，避免换算误差。
+
+### 财务计算与验证工具
+
+| 工具 | 功能 |
+|------|------|
+| `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值校验等） |
+| `tools/common/report_audit.py` | 报告审核与数据抽检 |
+
+### 网络信息获取
+
+禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
+
+**行业投资研究场景下的搜索选型**：
+- A股产业链/财报/研报/公告：anysearch 主 + doubao 辅
+- 港股披露易/公告/回购：doubao --sites hkexnews.hk 主 + tavily 辅
+- 港股管理层讨论/分析师点评：tavily 主 + doubao 辅
+- 美股 SEC filings/财报/MD&A：exa --type deep 主 + tavily 辅
+- 美股新闻/舆情/跨市场对比：doubao 主 + anysearch --zone intl 辅
+
+**搜索规范**（行业投资研究特有）：
+- 时效性优先：使用 `--time-range month/week` 限制时间范围，禁止采用过时数据（如使用2024年数据描述2026年行业现状），搜索结果须标注数据来源日期
+- 双源验证：港股 doubao + tavily；美股 exa + doubao；A股 anysearch + doubao
+- 产业链扫描须覆盖 A股/港股/美股/国际市场，不遗漏重要标的
+- 对每家公司标注"信息充分度"（A/B/C级），让读者知道分析可靠程度
+- 关键信息缺失时标注"信息不足"，不得用推测填充
+
+### PDF文档提取
+
+| 工具 | 功能 |
+|------|------|
+| `tools/common/pdf_extract.py`（首选） | 从年报 PDF 提取财务数据作为一手数据源（文字与表格） |
+| Poppler 工具集（`pdftotext`/`pdfinfo`/`pdftoppm`） | 回退方案：`pdf_extract.py` 返回失败（退出码非0 / success=false / 扫描件）时使用 |
+
+详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)。
+
+### 公共工具规范
+
+详细的工具使用规范详见 `tools-scripts/` 目录下的公共技能文件，完整索引见 [公共工具索引](../tools-scripts/common-tools-guide.md)。
+
+---
+
+## 核心原则
+
+1. **逻辑链验证优先** — 先验证投资逻辑链每个环节，再展开研究
+2. **数据必须标注来源** — 关键数据至少2个来源交叉验证
+3. **不虚构数据** — 搜不到就标注"估计"或"数据不足"
+4. **客观性原则** — 不预设立场，先摆数据→推逻辑→出结论
+5. **呈现两面** — 每个核心判断附反面论据
+6. **AI偏见自觉** — 警惕成熟行业偏好、龙头偏好、英文偏好等偏见
+7. **诚实面对信息缺口** — 宁可标注"数据不足"，也不用推测填充
+
+---
+
+## 注意事项
+
+- 禁止使用 WebSearch 和 WebFetch 工具（中国大陆地区不可用）
+- 所有数据必须标注来源，关键财务数据至少两个独立来源交叉验证
+- **关键财务数据须从年报 PDF 一手数据源交叉验证**：使用 `stock_equity.py --download-report` 下载年报，**首选** `pdf_extract.py` 提取，返回失败时才回退 Poppler 工具集（详见 [PDF文档内容提取技能](../tools-scripts/pdf-extraction.md)）
+- 估计值必须明确标注"估计"
+- 产业链扫描需覆盖 A股/港股/美股/国际市场，不遗漏重要标的
+- 每个产业链环节至少分析 2-3 家头部公司
+- 对每家公司标注"信息充分度"（A/B/C级），让读者知道分析可靠程度
+- 不预设立场：先摆数据 → 推逻辑 → 出结论
+- 报告发布前需通过 `tools/common/report_audit.py` 数据抽检
+
+---
+
+## 局限性说明
+
+- **资料可得性**：新兴行业资料较少，分析深度受限
+- **未上市公司信息**：未上市公司估值和财务信息可能不够准确
+- **国际市场覆盖**：日韩台欧等市场公司可能因语言限制被遗漏
+- **非实时数据**：工具获取的数据可能有延迟，不是实时数据
+- **AI筛选偏见**：可能存在成熟行业偏好、龙头偏好、英文偏好等偏见
+- **护城河判断主观性**：护城河评级依赖定性判断，可能因分析师而异
+- **历史类比局限**：历史类比的参考价值有限，不能简单套用
+- 不构成投资建议，仅供学习研究参考
+
+---
+
+## 相关文档
+
+- [SKILL.md](./SKILL.md) — 技能详细指令文件
+- [行业漏斗筛选](../industry-funnel/README.md) — 行业漏斗精选标的
+- [投研团队](../investment-team/README.md) — 四Agent全面公司研究
+
+---
+
+## 版本信息
+
+- **版本**：1.2.0
+- **创建日期**：2026-07-21
+- **最后更新**：2026-08-03（新增大宗商品价格工具 `commodity_price.py`，覆盖18个品种，辅助大宗商品产业链分析）
+- **维护状态**：活跃维护
+
+---
+
+## 免责声明
+
+本技能仅供学习研究参考，不构成投资建议。投资有风险，入市需谨慎。

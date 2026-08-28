@@ -35,7 +35,13 @@ import time
 import traceback
 import warnings
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict
+
+# 注入项目根目录到 sys.path，使 `from tools.common import ...` 在 CLI 直接运行时可用
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
 # 忽略警告
 warnings.filterwarnings("ignore")
@@ -62,6 +68,11 @@ except ImportError as e:
         "meta": {"tool": "stock_financial", "timestamp": datetime.now().isoformat()}
     }, ensure_ascii=False))
     sys.exit(1)
+
+try:
+    from tools.common import us_stock_cache
+except ImportError:
+    us_stock_cache = None  # 缓存层缺失时降级为不缓存，仅直连接口
 
 
 # ---------------------------------------------------------------------------
@@ -427,6 +438,110 @@ def get_stock_analyst_ratings(symbol: str) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# --indicators 命令：指标化输出（trend-tech-screen 阶段二）
+# ---------------------------------------------------------------------------
+
+#: 目标指标 → (报表键, 匹配关键词列表)
+_METRIC_SOURCES = {
+    "毛利": ("income", ["Gross Profit"]),
+    "研发费用": ("income", ["Research Development"]),
+    "营业收入": ("income",
+               ["Operating Revenue", "Total Revenue", "Total Operating Revenue"]),
+    "营业成本": ("income", ["Cost Of Revenue"]),
+    "存货": ("balance", ["Inventory"]),
+    "合同负债": ("balance", ["Deferred", "Unearned"]),
+}
+
+
+def _find_us_series(stmt: dict, keywords: list) -> dict | None:
+    """从 {报告期: {科目: 值}} 中按大小写不敏感关键词匹配科目，取首个命中。
+
+    Args:
+        stmt: 报表科目字典。
+        keywords: 匹配关键词列表（取首个命中的科目）。
+
+    Returns:
+        {报告期: 值}；未匹配到返回 None。
+    """
+    if not stmt:
+        return None
+    seen: dict = {}
+    for period, sub in stmt.items():
+        for k, v in sub.items():
+            seen.setdefault(k, {})[period] = v
+    for kw in keywords:
+        low = kw.lower()
+        for k, v in seen.items():
+            if low in str(k).lower():
+                return v
+    return None
+
+
+def get_stock_indicators(symbol: str) -> Dict[str, Any]:
+    """从缓存三张报表指标化输出（毛利/研发/存货/合同负债等）。
+
+    使用 yfinance 报表本地缓存（us_stock_cache），第二次命中 0 API 调用。
+
+    Args:
+        symbol: 美股代码，如 "AAPL"。
+
+    Returns:
+        dict: {"indicators": {指标: {日期: 值 或 note}}, "cache": {...}}。
+    """
+    if us_stock_cache is None:
+        return {"success": False, "error": "美股缓存层不可用"}
+    symbol = symbol.upper()
+    stmts = {"income": None, "balance": None}
+    cache_status = {}
+    for key in ("income", "balance"):
+        try:
+            stmts[key] = us_stock_cache.get_statement(symbol, key)
+            cache_status[key] = us_stock_cache.get_financial_status(key)
+        except Exception as e:  # noqa: BLE001
+            stmts[key] = None
+            cache_status[key] = f"error:{type(e).__name__}"
+
+    indicators: dict = {}
+    for name, (stmt_key, keywords) in _METRIC_SOURCES.items():
+        series = _find_us_series(stmts.get(stmt_key), keywords)
+        indicators[name] = series if series is not None else \
+            {"note": f"{stmt_key} 报表中未找到科目（关键词 {keywords}）"}
+
+    # 存货周转天数 = 存货 / 营业成本 * 365（取最新一期）
+    inv = indicators.get("存货")
+    cogs = indicators.get("营业成本")
+    if isinstance(inv, dict) and isinstance(cogs, dict) and "note" not in inv \
+            and "note" not in cogs:
+        dates = sorted(inv.keys(), reverse=True)
+        days = {}
+        for d in dates:
+            if d in cogs and cogs[d] not in (None, 0):
+                try:
+                    days[d] = round(inv[d] / (cogs[d] / 365.0), 2)
+                except (TypeError, ZeroDivisionError):
+                    continue
+        indicators["存货周转天数"] = days if days else \
+            {"note": "存货或营业成本数据不足，无法推算周转天数"}
+    else:
+        indicators["存货周转天数"] = {"note": "存货或营业成本缺失，无法推算"}
+
+    # 员工数：yfinance 无可靠接口，标注缺口
+    indicators["员工总数"] = {"value": None, "note": "美股员工数无可靠接口（yfinance fullTimeEmployees 常空），需搜索补充"}
+
+    return {
+        "success": True,
+        "symbol": symbol,
+        "indicators": indicators,
+        "cache": cache_status,
+        "meta": {
+            "tool": "stock_financial",
+            "command": "indicators",
+            "timestamp": datetime.now().isoformat()
+        }
+    }
+
+
+# ---------------------------------------------------------------------------
 # 主程序
 # ---------------------------------------------------------------------------
 
@@ -453,6 +568,8 @@ def main():
                         help="获取个股机构持仓（美股代码）")
     parser.add_argument("--analyst", type=str,
                         help="获取个股分析师评级（美股代码）")
+    parser.add_argument("--indicators", type=str,
+                        help="获取指标化输出（毛利/研发/存货/合同负债/存货周转，美股代码）")
     parser.add_argument("--all", type=str,
                         help="获取所有财务数据（美股代码）")
     parser.add_argument("--json", action="store_true",
@@ -462,7 +579,7 @@ def main():
 
     # 如果没有提供任何参数，显示帮助信息
     if not any([args.financials, args.dividends, args.holders,
-                args.analyst, args.all]):
+                args.analyst, args.all, args.indicators]):
         parser.print_help()
         sys.exit(0)
 
@@ -531,6 +648,12 @@ def main():
                         print(f"  {name}: {data['note']}")
                     else:
                         print(f"  {name}: ✓ 记录数 {data.get('count', 0)}")
+
+        # 5. 获取指标化输出
+        if args.indicators:
+            symbol = args.indicators
+            result = get_stock_indicators(symbol)
+            print(json.dumps(result, ensure_ascii=False, indent=2, default=str))
 
     except Exception as e:
         error_result = {

@@ -30,14 +30,24 @@ import unittest
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, PROJECT_ROOT)
 
+# 尝试导入 pandas（用于构造测试用 DataFrame）
+try:
+    import pandas as pd
+except ImportError:
+    pd = None
+
 # 导入被测试模块
 try:
     from tools.a_share.stock_info import (
         get_all_a_stocks,
         get_a_stock_industry_info,
+        get_a_valuation,
+        get_a_coverage,
+        _summarize_reports,
         cmd_list,
         cmd_search,
         cmd_code,
+        cmd_profile,
         cmd_industry,
     )
 except ImportError as e:
@@ -424,6 +434,168 @@ class TestCmdIndustry(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
+# 市值与研报覆盖测试（阶段三任务2）
+# ---------------------------------------------------------------------------
+
+@unittest.skipIf(pd is None, "pandas 未安装，跳过 mock 测试")
+class TestGetAValuation(unittest.TestCase):
+    """测试 A 股总市值/流通市值获取。"""
+
+    def _baidu_df(self, value):
+        """构造百度估值接口返回的 DataFrame。"""
+        return pd.DataFrame({"date": ["2026-08-24", "2026-08-25"], "value": [2900.0, value]})
+
+    def _em_df(self, items):
+        """构造东财个股信息接口返回的 item/value DataFrame。"""
+        return pd.DataFrame({"item": list(items.keys()), "value": list(items.values())})
+
+    @patch('tools.a_share.stock_info.ak.stock_zh_valuation_baidu')
+    @patch('tools.a_share.stock_info.ak.stock_individual_info_em')
+    def test_market_cap_from_baidu(self, mock_em, mock_baidu):
+        """百度总市值取最近一日 value。"""
+        mock_baidu.return_value = self._baidu_df(3000.0)
+        mock_em.return_value = self._em_df({"流通市值": "2200.5"})
+        result = get_a_valuation("300502")
+        self.assertEqual(result["market_cap"], 3000.0)
+        self.assertEqual(result["float_market_cap"], 2200.5)
+        self.assertEqual(result["currency"], "CNY")
+        self.assertEqual(result["gap"], {})
+
+    @patch('tools.a_share.stock_info.ak.stock_zh_valuation_baidu')
+    @patch('tools.a_share.stock_info.ak.stock_individual_info_em')
+    def test_baidu_failure_marks_gap(self, mock_em, mock_baidu):
+        """百度接口失败时标注缺口，不阻断整体返回。"""
+        mock_baidu.side_effect = ConnectionError("断连")
+        mock_em.return_value = self._em_df({"流通市值": "2200.5"})
+        result = get_a_valuation("300502")
+        self.assertIsNone(result["market_cap"])
+        self.assertEqual(result["float_market_cap"], 2200.5)
+        self.assertIn("market_cap", result["gap"])
+
+    @patch('tools.a_share.stock_info.ak.stock_zh_valuation_baidu')
+    @patch('tools.a_share.stock_info.ak.stock_individual_info_em')
+    def test_em_float_market_cap_failure(self, mock_em, mock_baidu):
+        """东财流通市值失败时 gap 标注，总市值仍来自百度。"""
+        mock_baidu.return_value = self._baidu_df(3000.0)
+        mock_em.side_effect = ConnectionError("东财断连")
+        result = get_a_valuation("300502")
+        self.assertEqual(result["market_cap"], 3000.0)
+        self.assertIsNone(result["float_market_cap"])
+        self.assertIn("float_market_cap", result["gap"])
+
+    @patch('tools.a_share.stock_info.ak.stock_zh_valuation_baidu')
+    @patch('tools.a_share.stock_info.ak.stock_individual_info_em')
+    def test_em_market_cap_as_fallback(self, mock_em, mock_baidu):
+        """百度为空时用东财总市值兜底。"""
+        mock_baidu.return_value = pd.DataFrame(columns=["date", "value"])
+        mock_em.return_value = self._em_df({"总市值": "3000.0", "流通市值": "2200.5"})
+        result = get_a_valuation("300502")
+        self.assertEqual(result["market_cap"], 3000.0)
+        self.assertEqual(result["float_market_cap"], 2200.5)
+
+
+@unittest.skipIf(pd is None, "pandas 未安装，跳过 mock 测试")
+class TestSummarizeReports(unittest.TestCase):
+    """测试研报列表汇总纯函数。"""
+
+    def _df(self):
+        return pd.DataFrame({
+            "机构": ["中金公司", "中金公司", "华泰证券"],
+            "报告名称": ["深度报告", "事件点评", "业绩点评"],
+            "日期": ["2026-08-25", "2026-07-20", "2026-06-15"],
+            "近一月个股研报数": ["1", "1", "1"],
+        })
+
+    def test_summary_fields(self):
+        """研报数/去重机构/最新日期等字段。"""
+        result = _summarize_reports(self._df())
+        self.assertEqual(result["total_reports"], 3)
+        self.assertEqual(result["unique_orgs"], 2)
+        self.assertEqual(result["orgs"], ["中金公司", "华泰证券"])
+        self.assertEqual(result["latest_date"], "2026-08-25")
+        self.assertEqual(result["last_month_reports"], 3)
+
+    def test_none_df(self):
+        """空 DataFrame 返回默认统计。"""
+        result = _summarize_reports(None)
+        self.assertEqual(result["total_reports"], 0)
+        self.assertIsNone(result["unique_orgs"])
+        self.assertEqual(result["orgs"], [])
+
+    def test_missing_columns(self):
+        """缺机构列时 unique_orgs 为 None。"""
+        df = pd.DataFrame({"日期": ["2026-08-25"]})
+        result = _summarize_reports(df)
+        self.assertIsNone(result["unique_orgs"])
+        self.assertEqual(result["orgs"], [])
+
+
+@unittest.skipIf(pd is None, "pandas 未安装，跳过 mock 测试")
+class TestGetACoverage(unittest.TestCase):
+    """测试 A 股机构覆盖/研报数获取。"""
+
+    @patch('tools.a_share.stock_info.ak.stock_research_report_em')
+    def test_success(self, mock_reports):
+        """接口返回研报列表时统计。"""
+        mock_reports.return_value = pd.DataFrame({
+            "机构": ["开源证券"], "报告名称": ["深度报告"], "日期": ["2026-08-25"],
+            "近一月个股研报数": ["1"],
+        })
+        result = get_a_coverage("300502")
+        self.assertEqual(result["total_reports"], 1)
+        self.assertEqual(result["unique_orgs"], 1)
+        self.assertNotIn("gap", result)
+
+    @patch('tools.a_share.stock_info.ak.stock_research_report_em')
+    def test_api_failure(self, mock_reports):
+        """接口失败时返回带 gap 的字典。"""
+        mock_reports.side_effect = Exception("网络错误")
+        result = get_a_coverage("300502")
+        self.assertEqual(result["total_reports"], 0)
+        self.assertTrue(result["gap"])
+
+
+class TestCmdProfile(unittest.TestCase):
+    """测试 --profile 命令处理。"""
+
+    def test_empty_code(self):
+        """测试空代码的错误处理。"""
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            with self.assertRaises(SystemExit) as cm:
+                cmd_profile("")
+            self.assertEqual(cm.exception.code, 1)
+            output = parse_json_output(fake_out.getvalue())
+        self.assertFalse(output["success"])
+        self.assertIn("股票代码", output["error"])
+
+    @patch('tools.a_share.stock_info.get_a_coverage')
+    @patch('tools.a_share.stock_info.get_a_valuation')
+    @patch('tools.a_share.stock_info.get_a_stock_industry_info')
+    def test_successful_profile(self, mock_ind, mock_val, mock_cov):
+        """画像组合基本信息/市值/覆盖度。"""
+        mock_ind.return_value = {"300502": {
+            "code": "300502", "name": "新易盛", "market": "a",
+            "industry": "通信设备", "roe": None, "gross_margin": None, "eps": None}}
+        mock_val.return_value = {"market_cap": 3000.0, "float_market_cap": 2200.5,
+                                 "currency": "CNY", "unit": "亿元", "gap": {}}
+        mock_cov.return_value = {"total_reports": 5, "unique_orgs": 3, "orgs": ["A", "B", "C"],
+                                 "latest_date": "2026-08-25", "latest_title": "深度报告",
+                                 "last_month_reports": 2}
+
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            cmd_profile("300502")
+            output = parse_json_output(fake_out.getvalue())
+
+        self.assertTrue(output["success"])
+        self.assertEqual(output["meta"]["command"], "profile")
+        self.assertEqual(output["data"]["code"], "300502")
+        self.assertEqual(output["data"]["market_cap"], 3000.0)
+        self.assertEqual(output["data"]["float_market_cap"], 2200.5)
+        self.assertEqual(output["data"]["valuation_gap"], None)
+        self.assertEqual(output["data"]["coverage"]["unique_orgs"], 3)
+
+
+# ---------------------------------------------------------------------------
 # 命令行接口测试（使用 subprocess 调用）
 # ---------------------------------------------------------------------------
 
@@ -546,9 +718,13 @@ def run_tests(test_type: str = "all") -> bool:
     if test_type == "all":
         suite.addTests(loader.loadTestsFromTestCase(TestGetAllAStocks))
         suite.addTests(loader.loadTestsFromTestCase(TestGetAStockIndustryInfo))
+        suite.addTests(loader.loadTestsFromTestCase(TestGetAValuation))
+        suite.addTests(loader.loadTestsFromTestCase(TestSummarizeReports))
+        suite.addTests(loader.loadTestsFromTestCase(TestGetACoverage))
         suite.addTests(loader.loadTestsFromTestCase(TestCmdList))
         suite.addTests(loader.loadTestsFromTestCase(TestCmdSearch))
         suite.addTests(loader.loadTestsFromTestCase(TestCmdCode))
+        suite.addTests(loader.loadTestsFromTestCase(TestCmdProfile))
         suite.addTests(loader.loadTestsFromTestCase(TestCmdIndustry))
         suite.addTests(loader.loadTestsFromTestCase(TestCommandLineInterface))
     elif test_type == "functions":
@@ -558,6 +734,7 @@ def run_tests(test_type: str = "all") -> bool:
         suite.addTests(loader.loadTestsFromTestCase(TestCmdList))
         suite.addTests(loader.loadTestsFromTestCase(TestCmdSearch))
         suite.addTests(loader.loadTestsFromTestCase(TestCmdCode))
+        suite.addTests(loader.loadTestsFromTestCase(TestCmdProfile))
         suite.addTests(loader.loadTestsFromTestCase(TestCmdIndustry))
     elif test_type == "cli":
         suite.addTests(loader.loadTestsFromTestCase(TestCommandLineInterface))

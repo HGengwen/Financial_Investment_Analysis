@@ -23,6 +23,9 @@ Usage:
 
 import argparse
 import json
+import os
+import re
+import subprocess
 import sys
 import time
 import traceback
@@ -266,6 +269,108 @@ def get_hk_hot_stocks():
 
 
 # ---------------------------------------------------------------------------
+# 市值与研报覆盖（阶段三任务2：总市值 + 研报/机构覆盖）
+# ---------------------------------------------------------------------------
+
+def get_hk_valuation(code):
+    """获取港股总市值（单位：亿港元，百度历史估值接口 `stock_hk_valuation_baidu`）。
+
+    港股流通市值接口（百度）不支持，故仅提供总市值，流通市值按缺口标注。
+
+    Args:
+        code: 5 位港股代码。
+
+    Returns:
+        dict: {"market_cap", "currency", "unit", "gap"}。
+    """
+    code = code.zfill(5)
+    result = {"market_cap": None, "currency": "HKD", "unit": "亿港元", "gap": {}}
+    try:
+        df = ak.stock_hk_valuation_baidu(symbol=code, indicator="总市值")
+        if df is not None and not df.empty and "value" in df.columns:
+            value = df["value"].dropna()
+            if len(value):
+                result["market_cap"] = float(value.iloc[-1])
+    except Exception:
+        result["gap"]["market_cap"] = "百度港股估值接口获取失败"
+    return result
+
+
+def _extract_institutions(texts):
+    """从文本列表中正则抽取机构名（如 某某证券/某某投行），去重保序。
+
+    仅匹配以"证券/投行"结尾的机构名（券商/投行是研报覆盖的核心信号），
+    避免"资本/研究/国际"等财经高频词造成的误匹配。
+
+    Args:
+        texts: 待匹配文本列表（标题/站点/摘要等）。
+
+    Returns:
+        list: 去重后的机构名（按首次出现顺序）。
+    """
+    if not texts:
+        return []
+    pattern = re.compile(r"[\u4e00-\u9fa5]{2,8}(?:证券|投行)")
+    seen = []
+    for text in texts:
+        if not text:
+            continue
+        for match in pattern.findall(text):
+            if match not in seen:
+                seen.append(match)
+    return seen
+
+
+def get_hk_coverage(code, name=""):
+    """港股研报/机构覆盖（半自动，doubao 搜索统计，标注缺口）。
+
+    通过 subprocess 调用 `tools/common/doubao_search.py --finance --json`，
+    从结果标题/站点/摘要中正则抽取机构名去重计数，作为机构覆盖的近似。
+
+    Args:
+        code: 5 位港股代码。
+        name: 公司名称（用于更精准的搜索关键词）。
+
+    Returns:
+        dict: {"total_results", "coverage_institutions", "coverage_count", "gap"}。
+    """
+    code = code.zfill(5)
+    proj = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    script = os.path.join(proj, "tools", "common", "doubao_search.py")
+    query = f"{name} 研报 覆盖" if name else f"{code} 港股 研报 覆盖"
+    try:
+        proc = subprocess.run(
+            [sys.executable, script, query, "--finance", "--json", "--count", "20"],
+            capture_output=True,
+            text=True,
+            timeout=90,
+            cwd=proj,
+        )
+    except Exception as e:
+        return {"total_results": 0, "coverage_institutions": [],
+                "coverage_count": 0, "gap": {"coverage": f"doubao 调用失败: {e}"}}
+    if proc.returncode != 0:
+        return {"total_results": 0, "coverage_institutions": [],
+                "coverage_count": 0, "gap": {"coverage": f"doubao 非零退出({proc.returncode})"}}
+    try:
+        data = json.loads(proc.stdout)
+    except Exception:
+        return {"total_results": 0, "coverage_institutions": [],
+                "coverage_count": 0, "gap": {"coverage": "doubao 输出非 JSON"}}
+    web_results = (data.get("Result") or {}).get("WebResults") or []
+    texts = []
+    for item in web_results:
+        texts.append(str(item.get("Title", "")))
+        texts.append(str(item.get("SiteName", "")))
+        texts.append(str(item.get("Summary", "")))
+    institutions = _extract_institutions(texts)
+    return {"total_results": len(web_results),
+            "coverage_institutions": institutions,
+            "coverage_count": len(institutions),
+            "gap": {}}
+
+
+# ---------------------------------------------------------------------------
 # CLI 处理逻辑
 # ---------------------------------------------------------------------------
 
@@ -419,6 +524,50 @@ def cmd_hot():
         sys.exit(1)
 
 
+def cmd_profile(code):
+    """--profile: 查询港股完整画像（实时行情 + 总市值 + 研报/机构覆盖）。"""
+    if not code:
+        print(json.dumps({
+            "success": False,
+            "error": "请提供港股代码，例如: --profile 00700",
+            "meta": {"tool": "stock_info_hk", "command": "profile",
+                     "timestamp": datetime.now().isoformat()}
+        }, ensure_ascii=False))
+        sys.exit(1)
+
+    code = code.zfill(5)
+    try:
+        info = get_hk_stock_info(code) or {}
+        valuation = get_hk_valuation(code)
+        name = info.get("name", "")
+        coverage = get_hk_coverage(code, name)
+        data = dict(info)
+        data["market_cap"] = valuation["market_cap"]
+        data["valuation_gap"] = valuation["gap"] or None
+        data["coverage"] = coverage
+        output = {
+            "success": True,
+            "data": data,
+            "meta": {
+                "tool": "stock_info_hk",
+                "command": "profile",
+                "code": code,
+                "market": "hk",
+                "timestamp": datetime.now().isoformat()
+            }
+        }
+        print(json.dumps(output, ensure_ascii=False))
+    except Exception as e:
+        print(json.dumps({
+            "success": False,
+            "error": f"画像查询失败: {e}",
+            "detail": traceback.format_exc(),
+            "meta": {"tool": "stock_info_hk", "command": "profile",
+                     "timestamp": datetime.now().isoformat()}
+        }, ensure_ascii=False), file=sys.stderr)
+        sys.exit(1)
+
+
 # ---------------------------------------------------------------------------
 # CLI 入口
 # ---------------------------------------------------------------------------
@@ -432,6 +581,7 @@ def main():
   %(prog)s --list                # 列出全部港股
   %(prog)s --search 腾讯          # 按名称搜索港股
   %(prog)s --code 00700          # 查询腾讯控股实时行情
+  %(prog)s --profile 00700       # 查询完整画像(市值+研报覆盖)
   %(prog)s --hot                 # 获取港股人气热度榜
 
 财务指标查询请使用: tools/hk_stock/stock_financial.py
@@ -442,12 +592,15 @@ def main():
                         help="按名称关键词搜索港股")
     parser.add_argument("--code", type=str, default=None, metavar="CODE",
                         help="查询单只港股详细信息（5位代码，如00700）")
+    parser.add_argument("--profile", type=str, default=None, metavar="CODE",
+                        help="查询完整画像（实时行情+总市值+研报/机构覆盖）")
     parser.add_argument("--hot", action="store_true", help="获取港股人气热度榜")
 
     args = parser.parse_args()
 
     # 确保至少一个操作
-    if not args.list and not args.search and not args.code and not args.hot:
+    if not args.list and not args.search and not args.code and not args.hot \
+            and not args.profile:
         parser.print_help()
         print("\n错误: 请指定至少一个操作", file=sys.stderr)
         sys.exit(1)
@@ -458,6 +611,8 @@ def main():
         cmd_search(args.search)
     elif args.code:
         cmd_code(args.code)
+    elif args.profile:
+        cmd_profile(args.profile)
     elif args.hot:
         cmd_hot()
 

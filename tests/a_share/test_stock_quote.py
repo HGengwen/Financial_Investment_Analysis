@@ -19,11 +19,13 @@
     依赖网络的测试使用 try-except + skipTest 处理，网络不可用时不失败。
 """
 
+import io
 import json
 import os
 import subprocess
 import sys
 import unittest
+from contextlib import redirect_stdout
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
@@ -468,6 +470,153 @@ class TestErrorHandling(unittest.TestCase):
         mock_ak.stock_zh_a_daily.side_effect = ConnectionError("网络中断")
         with self.assertRaises(ConnectionError):
             get_quote_sina("300502", "20260101", "20260728", "")
+
+
+# ===========================================================================
+# 9. --momentum 动量与技术面指标测试（纯计算，无网络）
+# ===========================================================================
+
+def _make_uptrend_closes(n=260):
+    """构造缓慢上涨的价格序列（开盘=base，每日 +0.5）。"""
+    base = 100.0
+    return [base + i * 0.5 for i in range(n)]
+
+
+def _make_flat_volumes(n=260):
+    """构造恒定成交量序列。"""
+    return [1_000_000.0] * n
+
+
+def _fake_records(n=260):
+    """构造 get_quote_eastmoney 返回的伪 records（含 date/close/volume）。"""
+    return [{"date": i, "close": 100.0 + i * 0.5, "volume": 1_000_000.0}
+            for i in range(n)]
+
+
+class TestMomentum(unittest.TestCase):
+    """--momentum 计算与命令行分发测试。"""
+
+    def test_parse_peers_valid(self):
+        """--peers 逗号分隔解析为浮点列表。"""
+        self.assertEqual(stock_quote_module._parse_peers("20.5,-3.2,55"),
+                         [20.5, -3.2, 55.0])
+
+    def test_parse_peers_none_and_empty(self):
+        """None 或空串/纯逗号返回 None。"""
+        self.assertIsNone(stock_quote_module._parse_peers(None))
+        self.assertIsNone(stock_quote_module._parse_peers(""))
+        self.assertIsNone(stock_quote_module._parse_peers(",,"))
+
+    def test_momentum_uptrend(self):
+        """上涨序列：250日涨幅为正、现价高于双均线、RSI 偏强。"""
+        closes = _make_uptrend_closes(260)
+        res = stock_quote_module._momentum_from_series(closes, _make_flat_volumes(260), None)
+        self.assertGreater(res["return_250d_pct"], 0)
+        self.assertIsNone(res["smr_percentile"])  # 未提供 peers
+        self.assertIs(res["tech"]["close_above_ma50"], True)
+        self.assertIs(res["tech"]["close_above_ma200"], True)
+        self.assertIn("note", res)
+
+    def test_momentum_with_peers(self):
+        """提供 peers 时 smr_percentile 按板块截面计算（own 为最高涨幅）。"""
+        closes = _make_uptrend_closes(260)
+        peers = [1.0, 5.0, 100.0]  # own 250日涨幅约 129% → 排最高
+        res = stock_quote_module._momentum_from_series(closes, None, peers)
+        self.assertAlmostEqual(res["smr_percentile"], 100.0, places=4)
+
+    def test_momentum_insufficient_data(self):
+        """短序列不抛异常，关键字段为 None。"""
+        res = stock_quote_module._momentum_from_series([1.0, 2.0], None, None)
+        self.assertIsNone(res["return_250d_pct"])
+        self.assertIsNone(res["ma200"])
+        self.assertIsNone(res["rsi50"])
+
+    def test_cmd_momentum_outputs_json(self):
+        """cmd_momentum 拉取数据并输出含 data 的 JSON，不真连网（mock 数据源）。"""
+        with patch.object(stock_quote_module, "get_quote_eastmoney",
+                          return_value={"records": _fake_records(), "count": 260}):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                stock_quote_module.cmd_momentum("300502", None)
+        out = json.loads(buf.getvalue())
+        self.assertTrue(out["success"])
+        self.assertEqual(out["meta"]["command"], "momentum")
+        self.assertIsNotNone(out["data"]["return_250d_pct"])
+        self.assertIs(out["data"]["tech"]["close_above_ma200"], True)
+
+    def test_cmd_momentum_auto_peers(self):
+        """--auto-peers 经行业缓存自动生成截面，meta 记录来源，SMR 百分位有值。"""
+        with patch.object(stock_quote_module.sector_screen, "compute_peers_for_stock",
+                          return_value={"industry": "通信设备", "pcts": [5.0, 10.0],
+                                        "status": "refresh", "count": 2, "skipped": 0}):
+            with patch.object(stock_quote_module, "get_quote_eastmoney",
+                              return_value={"records": _fake_records(), "count": 260}):
+                buf = io.StringIO()
+                with redirect_stdout(buf):
+                    stock_quote_module.cmd_momentum("300502", None, True)
+        out = json.loads(buf.getvalue())
+        self.assertTrue(out["success"])
+        self.assertIn("sector:refresh", out["meta"]["peers_source"])
+        self.assertEqual(out["meta"]["peers_industry"], "通信设备")
+        self.assertIsNotNone(out["data"]["smr_percentile"])
+
+
+def _make_index_df():
+    """构造 stock_zh_index_daily_em 返回的伪指数 DataFrame（日期乱序）。"""
+    return pd.DataFrame({
+        "date": pd.to_datetime(["2026-07-02", "2026-07-01", "2026-07-03"]),
+        "open": [3500.123, 3490.5, 3510.2],
+        "high": [3510.0, 3500.0, 3520.0],
+        "low": [3495.0, 3480.0, 3505.0],
+        "close": [3505.678, 3495.18, 3515.45],
+        "volume": [100, 90, 110],
+        "amount": [35.6, 34.9, 36.2],
+    })
+
+
+class TestIndex(unittest.TestCase):
+    """--index 指数行情获取测试。"""
+
+    def test_get_index_daily_sorts_and_formats(self):
+        """日期乱序 DataFrame 输出按升序、date 转 YYYY-MM-DD、浮点四舍五入。"""
+        with patch.object(stock_quote_module, "ak") as mock_ak:
+            mock_ak.stock_zh_index_daily_em.return_value = _make_index_df()
+            result = stock_quote_module.get_index_daily("上证指数")
+        self.assertEqual(result["count"], 3)
+        dates = [r["date"] for r in result["records"]]
+        self.assertEqual(dates, ["2026-07-01", "2026-07-02", "2026-07-03"])
+        self.assertEqual(result["records"][2]["close"], 3515.45)
+        self.assertEqual(result["records"][0]["open"], 3490.5)
+
+    def test_get_index_daily_range_filter(self):
+        """按 start/end 过滤日期范围。"""
+        with patch.object(stock_quote_module, "ak") as mock_ak:
+            mock_ak.stock_zh_index_daily_em.return_value = _make_index_df()
+            result = stock_quote_module.get_index_daily("上证指数", "20260702", "20260702")
+        self.assertEqual(result["count"], 1)
+        self.assertEqual(result["records"][0]["date"], "2026-07-02")
+
+    def test_get_index_daily_empty(self):
+        """空 DataFrame 返回空 records。"""
+        with patch.object(stock_quote_module, "ak") as mock_ak:
+            mock_ak.stock_zh_index_daily_em.return_value = pd.DataFrame()
+            result = stock_quote_module.get_index_daily("上证指数")
+        self.assertEqual(result["count"], 0)
+        self.assertEqual(result["records"], [])
+
+    def test_cmd_index_outputs_json(self):
+        """cmd_index 输出含 data 的 JSON（mock get_index_daily）。"""
+        with patch.object(stock_quote_module, "get_index_daily",
+                          return_value={"records": [{"date": "2026-07-01", "close": 3495.18}],
+                                        "count": 1}):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                stock_quote_module.cmd_index("上证指数", "20260701", "20260701")
+        out = json.loads(buf.getvalue())
+        self.assertTrue(out["success"])
+        self.assertEqual(out["meta"]["command"], "index")
+        self.assertEqual(out["meta"]["index"], "上证指数")
+        self.assertEqual(out["data"][0]["close"], 3495.18)
 
 
 if __name__ == "__main__":

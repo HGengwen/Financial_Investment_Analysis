@@ -20,11 +20,13 @@
     依赖网络的测试使用 try-except + skipTest 处理，网络不可用时不失败。
 """
 
+import io
 import json
 import os
 import subprocess
 import sys
 import unittest
+from contextlib import redirect_stdout
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
@@ -714,6 +716,86 @@ class TestDataFormat(unittest.TestCase):
                 self.assertIn(expect, lower_cols)
         except Exception as e:
             self.skipTest(f"网络不可用或数据源异常: {e}")
+
+
+# ===========================================================================
+# --momentum 动量与技术面指标测试（纯计算，无网络）
+# ===========================================================================
+
+def _make_daily_df(n=260):
+    """构造 yfinance 历史K线 DataFrame（含 Close/Volume，升序）。"""
+    idx = pd.date_range("2024-01-01", periods=n, freq="D")
+    return pd.DataFrame({
+        "Close": [100.0 + i * 0.5 for i in range(n)],
+        "Volume": [1_000_000.0] * n,
+    }, index=idx)
+
+
+class TestMomentum(unittest.TestCase):
+    """--momentum 计算与命令行分发测试。"""
+
+    def test_parse_peers_valid(self):
+        """--peers 逗号分隔解析为浮点列表；空结果为 None。"""
+        self.assertEqual(stock_quote_module._parse_peers("20.5,-3.2,55"),
+                         [20.5, -3.2, 55.0])
+        self.assertIsNone(stock_quote_module._parse_peers(",,"))
+
+    def test_extract_series_from_df(self):
+        """从 DataFrame 提取升序收盘价/成交量序列。"""
+        closes, volumes = stock_quote_module._extract_series_from_df(_make_daily_df(260))
+        self.assertEqual(len(closes), 260)
+        self.assertEqual(len(volumes), 260)
+        self.assertEqual(closes[-1], 100.0 + 259 * 0.5)
+        self.assertEqual(volumes[0], 1_000_000.0)
+
+    def test_momentum_uptrend(self):
+        """上涨序列：250日涨幅为正、现价高于双均线。"""
+        closes, volumes = stock_quote_module._extract_series_from_df(_make_daily_df(260))
+        res = stock_quote_module._momentum_from_series(closes, volumes, None)
+        self.assertGreater(res["return_250d_pct"], 0)
+        self.assertIs(res["tech"]["close_above_ma50"], True)
+        self.assertIs(res["tech"]["close_above_ma200"], True)
+
+    def test_momentum_with_peers(self):
+        """提供 peers 时 smr_percentile 按板块截面计算。"""
+        closes, _ = stock_quote_module._extract_series_from_df(_make_daily_df(260))  # 涨幅约120%
+        res = stock_quote_module._momentum_from_series(closes, None, [10.0, 50.0, 90.0])
+        self.assertAlmostEqual(res["smr_percentile"], 100.0, places=4)
+
+    def test_cmd_momentum_outputs_json(self):
+        """cmd_momentum 拉取 data 并输出含 data 的 JSON（mock get_stock_daily_kline）。"""
+        with patch.object(stock_quote_module, "get_stock_daily_kline",
+                          return_value={"success": True, "raw_data": _make_daily_df(260)}):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                stock_quote_module.cmd_momentum("AAPL", None)
+        out = json.loads(buf.getvalue())
+        self.assertTrue(out["success"])
+        self.assertEqual(out["meta"]["command"], "momentum")
+        self.assertIsNotNone(out["data"]["return_250d_pct"])
+        self.assertIs(out["data"]["tech"]["close_above_ma200"], True)
+
+    def test_cmd_momentum_auto_peers_unavailable(self):
+        """auto_peers 时美股板块截面返回 unavailable，其余动量指标照常。"""
+        unavailable = {"industry": None, "pcts": None, "status": "unavailable",
+                       "count": 0, "skipped": 0,
+                       "note": "美股板块成分暂无稳定公开数据源（yfinance 已移除 ETF holdings "
+                               "等成分接口），SMR 自动截面不可用，请使用手动 --peers"}
+        with patch.object(stock_quote_module, "get_stock_daily_kline",
+                          return_value={"success": True, "raw_data": _make_daily_df(260)}), \
+             patch.object(stock_quote_module, "sector_screen") as mock_ss:
+            mock_ss.compute_peers_for_stock.return_value = unavailable
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                stock_quote_module.cmd_momentum("AAPL", None, auto_peers=True)
+        out = json.loads(buf.getvalue())
+        self.assertTrue(out["success"])
+        self.assertIsNone(out["data"]["smr_percentile"])  # 无截面时 SMR 为 None
+        self.assertEqual(out["data"]["peers_source"], unavailable["note"])
+        self.assertIsNotNone(out["data"]["rsi50"])
+        self.assertIsNotNone(out["data"]["ma50"])
+        self.assertIs(out["data"]["tech"]["close_above_ma200"], True)
+        mock_ss.compute_peers_for_stock.assert_called_once_with("AAPL", market="us")
 
 
 if __name__ == "__main__":

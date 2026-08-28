@@ -21,6 +21,14 @@ import math
 import sys
 from decimal import Decimal, Context, ROUND_HALF_EVEN, InvalidOperation
 
+# 处理 Windows GBK 控制台编码，避免 emoji/Unicode 字符产生 UnicodeEncodeError
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception as e:  # 部分环境（如 pytest 内）不支持 reconfigure 时静默降级
+        _ = e
+
 # ---------------------------------------------------------------------------
 # Exact Decimal Engine (no floating-point drift)
 # ---------------------------------------------------------------------------
@@ -361,6 +369,244 @@ def three_scenario_valuation(current_price, current_eps, shares_billion,
 
 
 # ---------------------------------------------------------------------------
+# 7. PEG (林奇核心估值指标)
+# ---------------------------------------------------------------------------
+
+def peg_ratio(pe, growth):
+    """计算 PEG 并给出林奇评级。
+
+    林奇 GARP 核心工具：PEG = PE / 盈利增速。PEG < 1 视为低估成长潜力。
+
+    Args:
+        pe (float): 当前市盈率（TTM）。
+        growth (float): 盈利增速，百分点（如 40 表示 40%）。
+
+    Returns:
+        dict: 含 peg 值、林奇评级与简评。
+    """
+    print("=" * 60)
+    print("PEG 估值 (林奇安全垫)")
+    print("=" * 60)
+    p = exact(pe)
+    g = exact(growth)
+
+    print(f"  市盈率 PE:       {p:.2f}x")
+    print(f"  盈利增速:        {g:.2f}%")
+
+    if g <= 0:
+        print(f"\n  ⚠️  盈利增速 {g}% ≤ 0, PEG 无意义（亏损或负增长公司不适用于本指标）")
+        print("     建议改用 PSG（市销率增长比，`ps-g` 命令）评估爆发期科技股")
+        return {"peg": None, "rating": "N/A", "note": "negative_growth"}
+
+    peg = _CTX.divide(p, g)
+    print(f"  PEG        = PE / 增速 = {float(p):.2f} / {float(g):.2f} = {float(peg):.2f}")
+    print()
+
+    if peg < 1:
+        rating = "低估 (低估潜力)"
+        flag = "✅"
+    elif peg <= 1.5:
+        rating = "合理 (合理区间)"
+        flag = "⚠️"
+    else:
+        rating = "高估 (成长透支)"
+        flag = "🔴"
+    print(f"  {flag} 林奇评级: {rating}")
+
+    if peg >= 3:
+        print("     警告: PEG > 3, 若营收高增可豁免参考, 但需警惕估值透支")
+
+    result = {"peg": float(peg), "rating": rating}
+    print(f"\n  结构化输出: {json.dumps(result, ensure_ascii=False)}")
+    return result
+
+
+# ---------------------------------------------------------------------------
+# 8. PSG (市销率增长比，爆发期专用)
+# ---------------------------------------------------------------------------
+
+def psg_ratio(ps, revenue_growth):
+    """计算 PSG 市销率增长比并给出判定。
+
+    爆发期专用（触发条件：净利率 <5% 或 营收增速 >50%）。当利润滞后释放时，
+    PEG 虚高或为负，PSG = PS / 营收增速 更能反映抢占市场的战略价值。
+
+    Args:
+        ps (float): 当前市销率（TTM）。
+        revenue_growth (float): 营收增速，百分点（如 80 表示 80%）。
+
+    Returns:
+        dict: 含 psg 值、判定与简评。
+    """
+    print("=" * 60)
+    print("PSG 估值 (市销率增长比，爆发期专用)")
+    print("=" * 60)
+    p = exact(ps)
+    g = exact(revenue_growth)
+
+    print(f"  市销率 PS:       {p:.2f}x")
+    print(f"  营收增速:        {g:.2f}%")
+    print(f"  适用前提:        净利率<5% 或 营收增速>50% （由调用方判断）")
+
+    if g <= 0:
+        print(f"\n  ⚠️  营收增速 {g}% ≤ 0, PSG 无意义（营收负增长公司不适用）")
+        return {"psg": None, "rating": "N/A", "note": "negative_growth"}
+
+    psg = _CTX.divide(p, g)
+    print(f"  PSG        = PS / 营收增速 = {float(p):.2f} / {float(g):.2f} = {float(psg):.2f}")
+    print()
+
+    if psg < 0.5:
+        rating = "优秀 (抢占市场价值被低估)"
+        flag = "✅"
+    elif psg <= 1.0:
+        rating = "合理 (0.5-1.0)"
+        flag = "⚠️"
+    else:
+        rating = "高估 (>1.0)"
+        flag = "🔴"
+    print(f"  {flag} PSG 判定: {rating}")
+
+    result = {"psg": float(psg), "rating": rating}
+    print(f"\n  结构化输出: {json.dumps(result, ensure_ascii=False)}")
+    return result
+
+
+# ---------------------------------------------------------------------------
+# 9. PE Historical Percentile (PE 历史分位)
+# ---------------------------------------------------------------------------
+
+def pe_percentile(pe_series, current_pe=None):
+    """计算当前 PE 在历史序列中所处分位并与技能阈值对照。
+
+    Args:
+        pe_series (list): 历史 PE 序列（数值列表）。
+        current_pe (float, optional): 当前 PE；缺省取序列最后一个作为当前值。
+
+    Returns:
+        dict: 含当前 pe、历史分位百分数与评级。
+    """
+    print("=" * 60)
+    print("PE 历史分位 (估值安全垫)")
+    print("=" * 60)
+
+    if not pe_series:
+        print("  ❌ PE 序列为空，无法计算分位")
+        return None
+
+    hist = [exact(v) for v in pe_series]
+    if current_pe is None:
+        current_pe_val = hist.pop()
+    else:
+        current_pe_val = exact(current_pe)
+
+    n = len(hist)
+    if n == 0:
+        print("  ❌ 历史序列不足，无法计算分位")
+        return None
+
+    # 分位 = 历史中 ≤ 当前PE 的比例 (0-100)
+    below = sum(1 for v in hist if v <= current_pe_val)
+    pct = below / n * 100
+
+    print(f"  当前 PE:        {float(current_pe_val):.2f}x")
+    print(f"  历史样本数:     {n}")
+    print(f"  历史范围:       {float(min(hist)):.2f} ~ {float(max(hist)):.2f}x")
+    print(f"  历史分位:       {float(pct):.1f}% (当前估值高于 {float(pct):.0f}% 的历史时段)")
+    print()
+
+    if pct < 40:
+        rating = "低估 (<40%，安全垫充足)"
+        flag = "✅"
+    elif pct <= 60:
+        rating = "合理 (40-60%)"
+        flag = "⚠️"
+    else:
+        rating = "偏高 (>60%)"
+        flag = "🔴"
+    print(f"  {flag} 分位评级: {rating}")
+
+    result = {"current_pe": float(current_pe_val), "percentile": float(pct), "rating": rating}
+    print(f"\n  结构化输出: {json.dumps(result, ensure_ascii=False)}")
+    return result
+
+
+# ---------------------------------------------------------------------------
+# 10. Implied Growth (市值隐含业绩倒推验证，红/黄/绿)
+# ---------------------------------------------------------------------------
+
+def implied_growth(market_cap, target_pe, net_margin, ttm_revenue, guidance_growth):
+    """从当前市值倒推市场隐含的营收增速要求，并与公司指引对照。
+
+    林奇式估值校验：倒推出市场定价所隐含的增速，若远超公司指引则估值透支。
+    校验不占分，但触发红灯时下调一个评级。
+
+    Args:
+        market_cap (float): 当前市值（与营收同币种）。
+        target_pe (float): 目标 PE（行业均值或公司历史中位）。
+        net_margin (float): 年化净利率（如 0.15 表示 15%）。
+        ttm_revenue (float): 当前 TTM 营收（与市值同币种同单位）。
+        guidance_growth (float): 公司指引营收增速上限（如 0.35 表示 35%）。
+
+    Returns:
+        dict: 含隐含净利润、隐含营收、隐含增速及红/黄/绿判定。
+    """
+    print("=" * 60)
+    print("市值隐含业绩倒推验证 (林奇式, 不占分, 红灯降级)")
+    print("=" * 60)
+    cap = exact(market_cap)
+    tpe = exact(target_pe)
+    margin = exact(net_margin)
+    rev = exact(ttm_revenue)
+    guide = exact(guidance_growth)
+
+    print(f"  当前市值:        {fmt_number(cap)}")
+    print(f"  目标 PE:         {float(tpe):.2f}x")
+    print(f"  年化净利率:      {float(margin)*100:.2f}%")
+    print(f"  TTM 营收:        {fmt_number(rev)}")
+    print(f"  公司指引增速上限: {float(guide)*100:.1f}%")
+    print()
+
+    if margin <= 0 or rev <= 0 or tpe <= 0:
+        print("  ❌ 输入无效（净利率/营收/目标PE 需为正数），无法倒推")
+        return None
+
+    implied_net = _CTX.divide(cap, tpe)          # 市场隐含全年净利润
+    implied_rev = _CTX.divide(implied_net, margin)  # 隐含年化营收
+    implied = _CTX.divide(implied_rev, rev) - 1    # 隐含营收增速要求
+
+    g = float(guide)
+    x = float(implied)
+
+    print(f"  隐含净利润:      {fmt_number(implied_net)}")
+    print(f"  隐含年化营收:    {fmt_number(implied_rev)}")
+    print(f"  隐含营收增速要求: {x*100:.1f}%")
+    print()
+
+    # 判定：红 > 指引×1.5；黄 指引~指引×1.5；绿 < 指引
+    if x > g * 1.5:
+        verdict = "🔴 红灯: 隐含增速远超公司指引上限×1.5, 估值严重透支, 下调一个评级"
+        level = "red"
+    elif x >= g:
+        verdict = "⚠️ 黄灯: 隐含增速已触及或略高于指引上限, 估值偏贵"
+        level = "yellow"
+    else:
+        verdict = "✅ 绿灯: 隐含增速低于公司指引上限, 估值未透支"
+        level = "green"
+    print(f"  {verdict}")
+
+    ref = [{"level": "green", "threshold": f"x < 指引({g*100:.0f}%)", "action": "估值合理"},
+           {"level": "yellow", "threshold": f"指引 ≤ x ≤ 指引×1.5", "action": "估值偏贵"},
+           {"level": "red", "threshold": f"x > 指引×1.5 ({g*1.5*100:.0f}%)", "action": "下调评级"}]
+    print(f"  判定基准: {json.dumps(ref, ensure_ascii=False)}")
+
+    result = {"implied_net_profit": float(implied_net), "implied_revenue": float(implied_rev),
+              "implied_growth": x, "guidance_growth": g, "verdict": level}
+    print(f"\n  结构化输出: {json.dumps(result, ensure_ascii=False)}")
+    return result
+
+
+# ---------------------------------------------------------------------------
 # CLI Entry Point
 # ---------------------------------------------------------------------------
 
@@ -375,6 +621,10 @@ Examples:
   %(prog)s cross-validate --field revenue --values '{"年报": 7518, "Yahoo": 7500}' --unit 亿
   %(prog)s benford --values '[1234, 2345, 3456, ...]'
   %(prog)s calc --expr '510 * 9.11e9'
+  %(prog)s peg --pe 30 --growth 40
+  %(prog)s ps-g --ps 5 --revenue-growth 80
+  %(prog)s pe-percentile --pe-series '[20, 25, 30, 28, 26]' --current 30
+  %(prog)s implied-growth --market-cap 1e12 --target-pe 30 --net-margin 0.15 --ttm-revenue 5e11 --guidance-growth 0.35
         """)
 
     sub = parser.add_subparsers(dest="command")
@@ -422,6 +672,29 @@ Examples:
     ts.add_argument("--years", type=int, default=3)
     ts.add_argument("--currency", default="")
 
+    # peg
+    pg = sub.add_parser("peg", help="PEG 估值（林奇）")
+    pg.add_argument("--pe", type=float, required=True, help="市盈率 TTM")
+    pg.add_argument("--growth", type=float, required=True, help="盈利增速，百分点（如 40）")
+
+    # ps-g
+    psg = sub.add_parser("ps-g", help="PSG 市销率增长比（爆发期专用）")
+    psg.add_argument("--ps", type=float, required=True, help="市销率 TTM")
+    psg.add_argument("--revenue-growth", type=float, required=True, help="营收增速，百分点（如 80）")
+
+    # pe-percentile
+    pep = sub.add_parser("pe-percentile", help="PE 历史分位")
+    pep.add_argument("--pe-series", required=True, help="JSON 数组: 历史PE序列")
+    pep.add_argument("--current", type=float, default=None, help="当前 PE（缺省取序列最后一位）")
+
+    # implied-growth
+    ig = sub.add_parser("implied-growth", help="市值隐含业绩倒推验证（红/黄/绿）")
+    ig.add_argument("--market-cap", type=float, required=True, help="当前市值")
+    ig.add_argument("--target-pe", type=float, required=True, help="目标 PE")
+    ig.add_argument("--net-margin", type=float, required=True, help="年化净利率（如 0.15）")
+    ig.add_argument("--ttm-revenue", type=float, required=True, help="TTM 营收")
+    ig.add_argument("--guidance-growth", type=float, required=True, help="公司指引营收增速上限（如 0.35）")
+
     args = parser.parse_args()
 
     if args.command == "verify-market-cap":
@@ -443,6 +716,15 @@ Examples:
             args.growth[0], args.growth[1], args.growth[2],
             args.pe[0], args.pe[1], args.pe[2],
             args.years, args.currency)
+    elif args.command == "peg":
+        peg_ratio(args.pe, args.growth)
+    elif args.command == "ps-g":
+        psg_ratio(args.ps, args.revenue_growth)
+    elif args.command == "pe-percentile":
+        pe_percentile(json.loads(args.pe_series), args.current)
+    elif args.command == "implied-growth":
+        implied_growth(args.market_cap, args.target_pe, args.net_margin,
+                       args.ttm_revenue, args.guidance_growth)
     else:
         parser.print_help()
 

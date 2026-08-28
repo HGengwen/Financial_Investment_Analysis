@@ -23,7 +23,23 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Optional
+
+# 注入项目根目录到 sys.path，使 `from tools.common import momentum` 在 CLI 直接运行时可用
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+try:
+    from tools.common import momentum as _momentum
+except ImportError:  # momentum 模块缺失时降级（--momentum 命令不可用，其余命令不受影响）
+    _momentum = None
+
+try:
+    from tools.common import sector_screen
+except ImportError:  # sector_screen 缺失时 --auto-peers 不可用，其余不受影响
+    sector_screen = None
 
 # ---------------------------------------------------------------------------
 # 导入 akshare
@@ -213,6 +229,116 @@ def get_hk_index(symbol: str, start_date: str = None, end_date: str = None):
 
 
 # ---------------------------------------------------------------------------
+# 动量与技术面指标（--momentum）
+# ---------------------------------------------------------------------------
+
+#: 动量计算所需回溯（自然日）。250日涨幅 + MA200 需 ~260 个交易日，约折合 400 自然日。
+_MOMENTUM_LOOKBACK_DAYS = 400
+
+
+def _momentum_from_series(closes, volumes, peers):
+    """由收盘价/成交量序列计算动量与技术面指标（纯计算，便于单测）。
+
+    Args:
+        closes: 收盘价序列（按时间升序，最新在末尾）。
+        volumes: 成交量序列（与 closes 对齐，可为空/缺失）。
+        peers: 同板块成分 250 日涨幅百分比列表（SMR 截面；None 表示不提供）。
+
+    Returns:
+        可 JSON 序列化的动量指标字典；数据不足字段为 None，不抛异常。
+    """
+    if _momentum is None:
+        return {"error": "momentum 模块未安装，无法计算动量指标"}
+    m = _momentum.compute_momentum(
+        closes, volumes or None, uplift_period=250, rsi_period=50, peer_pcts=peers)
+    ret = {
+        "close": m["close"],
+        "return_250d_pct": round(m["return_250d_pct"], 2) if m["return_250d_pct"] is not None else None,
+        "smr_percentile": round(m["smr_percentile"], 2) if m["smr_percentile"] is not None else None,
+        "rsi50": round(m["rsi50"], 2) if m["rsi50"] is not None else None,
+        "ma50": round(m["ma50"], 4) if m["ma50"] is not None else None,
+        "ma200": round(m["ma200"], 4) if m["ma200"] is not None else None,
+        "tech": m["tech"],
+        "data_points": len(closes),
+    }
+    if not peers:
+        ret["note"] = "未提供板块截面(--peers)，smr_percentile 为 None"
+    return ret
+
+
+def _parse_peers(raw):
+    """解析 --peers 参数（逗号分隔的百分数列表）。
+
+    Args:
+        raw: 原始字符串，如 "20.5,-3.2,55"；None 或空串返回 None。
+
+    Returns:
+        浮点列表或 None。
+    """
+    if not raw:
+        return None
+    parsed = [float(x) for x in raw.split(",") if x.strip()]
+    return parsed or None
+
+
+def cmd_momentum(code, peers, auto_peers=False):
+    """--momentum: 计算个股动量与技术面指标。
+
+    Args:
+        code: 港股代码（5 位数字）。
+        peers: 板块成分 250 日涨幅百分比列表（或 None）。
+        auto_peers: 为 True 且 peers 为空时尝试自动生成板块截面（港股暂无数据源，
+            返回 unavailable 提示，仍需手动 --peers）。
+    """
+    start = (datetime.now() - timedelta(days=_MOMENTUM_LOOKBACK_DAYS)).strftime("%Y%m%d")
+    end = datetime.now().strftime("%Y%m%d")
+    peers_source = None
+    if auto_peers:
+        if sector_screen is None:
+            peers_source = "sector_unavailable"
+        else:
+            try:
+                info = sector_screen.compute_peers_for_stock(code, market="hk")
+                if info.get("status") == "unavailable":
+                    peers_source = info.get("note", "港股板块截面不可用")
+                    peers = None
+            except Exception as e:
+                peers_source = f"sector_error:{e}"
+    try:
+        raw = get_hk_hist(code, start, end, "qfq", "daily")
+        rows = sorted(raw["data"], key=lambda r: r.get("date"))
+        closes = [float(r["close"]) for r in rows if r.get("close") is not None]
+        volumes = [float(r["volume"]) if r.get("volume") is not None else 0.0 for r in rows]
+        out = _momentum_from_series(closes, volumes, peers)
+        if peers_source is not None:
+            out["peers_source"] = peers_source
+        output = {
+            "success": True,
+            "data": out,
+            "meta": {
+                "tool": "stock_quote_hk",
+                "command": "momentum",
+                "code": code,
+                "market": "hk",
+                "start_date": start,
+                "end_date": end,
+                "adjust": "qfq",
+                "timestamp": datetime.now().isoformat(),
+            },
+        }
+        print(json.dumps(output, ensure_ascii=False, default=str))
+    except Exception as e:
+        print(json.dumps({
+            "success": False,
+            "error": f"获取动量指标失败: {e}",
+            "detail": traceback.format_exc(),
+            "meta": {"tool": "stock_quote_hk", "command": "momentum", "code": code,
+                     "timestamp": datetime.now().isoformat()},
+        }, ensure_ascii=False), file=sys.stderr)
+        sys.exit(1)
+
+
+# ---------------------------------------------------------------------------
 # CLI 处理逻辑
 # ---------------------------------------------------------------------------
 
@@ -326,8 +452,25 @@ def main():
     parser.add_argument("--period", type=str, default="daily",
                         choices=["daily", "weekly", "monthly"],
                         help="周期类型: daily=日线(默认), weekly=周线, monthly=月线")
+    parser.add_argument("--momentum", action="store_true",
+                        help="计算动量与技术面指标（250日涨幅/SMR百分位/RSI50/MA50/MA200）")
+    parser.add_argument("--peers", type=str, default=None, metavar="PCTS",
+                        help="同板块成分250日涨幅百分比列表（逗号分隔，如 20.5,-3.2,55），"
+                             "用于计算 SMR 同板块百分位")
+    parser.add_argument("--auto-peers", action="store_true",
+                        help="尝试自动生成板块截面（A股经申万成分；港股暂无数据源，"
+                             "需手动 --peers）")
 
     args = parser.parse_args()
+
+    # --momentum 需配合 --code 使用
+    if args.momentum:
+        if not args.code:
+            parser.print_help()
+            print("\n错误: --momentum 需配合 --code 使用", file=sys.stderr)
+            sys.exit(1)
+        cmd_momentum(args.code, _parse_peers(args.peers), args.auto_peers)
+        return
 
     # 确保至少一个操作
     if not args.code and not args.index:

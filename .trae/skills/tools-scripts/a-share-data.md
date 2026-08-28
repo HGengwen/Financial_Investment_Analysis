@@ -29,6 +29,41 @@ disable-model-invocation: true
 
 ---
 
+## 高级财务科目（trend-tech-screen 阶段二）
+
+```bash
+# 暴露资产负债表/营运指标/员工数等高级科目
+python tools/a_share/stock_financial.py --code {代码} --advanced 合同负债,存货,研发费用,员工总数
+```
+
+可用科目：合同负债、存货、开发支出、无形资产、应付账款、应付票据及应付账款、预付款项、研发费用、营业成本、支付给职工现金、购建固定资产现金、存货周转天数、应收账款周转天数、应付账款周转天数、员工总数。**无直接接口的科目（员工数/应付账款周转天数等）统一标注缺口，不静默使用错误数据**。
+
+---
+
+## 动量与技术面（trend-tech-screen 阶段三）
+
+```bash
+# 计算 250日 SMR 相对强度（同板块百分位）、RSI(50)、MA50/MA200、量能
+python tools/a_share/stock_quote.py --code {代码} --momentum
+
+# 自动获取申万一级行业成分做 SMR 截面排名
+python tools/a_share/stock_quote.py --code {代码} --momentum --auto-peers
+```
+
+申万一级行业映射（`sw_index_first_info` + `index_component_sw`）一次性构建全市场"代码→行业"映射并缓存至 `data/a_share/sector/sw_industry_map.json`（覆盖 5000+ 只，远优于东财行业缓存的当季披露口径）。成分 250 日涨幅距 `stock_zh_a_daily`（新浪）优先、`stock_zh_a_hist`（东财）回退批量。
+
+## 完整画像（trend-tech-screen 阶段三）
+
+```bash
+# 输出总市值/流通市值 + 机构覆盖度/研报数
+python tools/a_share/stock_info.py --code {代码} --profile
+```
+
+- 总市值：百度 `stock_zh_valuation_baidu`（主源）；流通市值：东财 `stock_individual_info_em`（东财不稳时置 None 并标缺口）
+- 机构覆盖：东财 `stock_research_report_em`，含研报总数/去重机构/最新日期/近一月研报数
+
+---
+
 ## 财报PDF下载
 
 ```bash

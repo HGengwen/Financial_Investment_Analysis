@@ -24,7 +24,7 @@ import os
 import subprocess
 import sys
 from io import StringIO
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 import unittest
 
 import pandas as pd
@@ -39,6 +39,8 @@ from tools.hk_stock.stock_financial import (
     get_hk_financial_indicators,
     safe_api_call,
     cmd_financial,
+    cmd_report,
+    _find_series,
     _FINANCIAL_FIELD_MAP,
     _KEY_INDICATORS,
 )
@@ -501,7 +503,115 @@ class TestGetHkFinancialIndicators(unittest.TestCase):
 
 
 # ===========================================================================
-# 3. main() 主逻辑测试（mock get_hk_financial_indicators，无网络依赖）
+# 3. --report 三大报表科目测试（trend-tech-screen 阶段二，mock 缓存层）
+# ===========================================================================
+
+class TestReportCommand(unittest.TestCase):
+    """测试 _find_series 与 cmd_report —— mock hk_stock_cache，无网络。"""
+
+    #: 模拟东财港股资产负债表（含异体字"帐"科目）
+    _BALANCE = {
+        "20251231": {"存货": 530000000.0, "应付帐款": 121127000000.0,
+                     "预付款项": 24540000000.0, "无形资产": 205999000000.0,
+                     "递延收入": 110309000000.0},
+        "20241231": {"存货": 440000000.0, "应付帐款": 118712000000.0,
+                     "预付款项": 42828000000.0},
+    }
+
+    def _run_cmd_report(self, report_type: str = "", subjects: str = "",
+                        code: str = "00700") -> dict:
+        """运行 cmd_report 并返回解析后的 JSON 输出。
+
+        Args:
+            report_type: 报表类型参数。
+            subjects: 科目名参数。
+            code: 港股代码。
+
+        Returns:
+            解析后的输出字典。
+        """
+        fake_cache = MagicMock()
+        fake_cache.get_financial_report.return_value = self._BALANCE
+        fake_cache.get_financial_status.return_value = "hit"
+        fake_cache.get_employee_count.return_value = \
+            {"value": None, "note": "员工数无可靠接口"}
+
+        with patch.object(sf_module, "hk_stock_cache", fake_cache):
+            with patch("sys.stdout", new=StringIO()) as fake_out:
+                cmd_report(code, report_type, subjects)
+                return parse_json_output(fake_out.getvalue())
+
+    def test_find_series_exact_match(self) -> None:
+        """_find_series 精确匹配存货各期值。"""
+        series = _find_series(self._BALANCE, "存货")
+        self.assertEqual(series["20251231"], 530000000.0)
+        self.assertEqual(series["20241231"], 440000000.0)
+
+    def test_find_series_normalizes_variant_char(self) -> None:
+        """_find_series 归一化异体字：'应付账款' 命中 '应付帳款'。"""
+        series = _find_series(self._BALANCE, "应付账款")
+        self.assertEqual(series["20251231"], 121127000000.0)
+
+    def test_find_series_fuzzy_match(self) -> None:
+        """_find_series 模糊子串匹配 '无形' → '无形资产'。"""
+        series = _find_series(self._BALANCE, "无形")
+        self.assertEqual(series["20251231"], 205999000000.0)
+
+    def test_find_series_missing_returns_none(self) -> None:
+        """_find_series 未匹配返回 None。"""
+        self.assertIsNone(_find_series(self._BALANCE, "不存在的科目"))
+        self.assertIsNone(_find_series({}, "存货"))
+
+    def test_find_series_standard_name_mapping(self) -> None:
+        """_find_series 标准科目名映射：'净利润'/'营业收入' 命中港股科目名。"""
+        income = {
+            "20251231": {"营业额": 609015000000.0, "毛利": 323573000000.0,
+                         "股东应占溢利": 194065000000.0},
+            "20241231": {"营业额": 554552000000.0, "毛利": 295000000000.0,
+                         "股东应占溢利": 188200000000.0},
+        }
+        self.assertEqual(_find_series(income, "营业收入")["20251231"],
+                         609015000000.0)
+        self.assertEqual(_find_series(income, "毛利润")["20251231"],
+                         323573000000.0)
+        self.assertEqual(_find_series(income, "净利润")["20251231"],
+                         194065000000.0)
+        # 港股标准利润表无独立"研发费用"科目，无映射 → 返回 None
+        self.assertIsNone(_find_series(income, "研发费用"))
+
+    def test_cmd_report_balance_subjects(self) -> None:
+        """cmd_report 输出各科目取值与 cache 状态。"""
+        output = self._run_cmd_report(subjects="存货,应付账款,无形资产")
+        self.assertTrue(output["success"])
+        data = output["data"]["资产负债表"]
+        self.assertEqual(data["存货"]["20251231"], 530000000.0)
+        # 异体字归一化后命中应付帳款
+        self.assertEqual(data["应付账款"]["20251231"], 121127000000.0)
+        self.assertEqual(output["meta"]["cache"]["资产负债表"], "hit")
+
+    def test_cmd_report_employee_gap(self) -> None:
+        """cmd_report 含员工数时返回缺口 note 不阻断。"""
+        output = self._run_cmd_report(subjects="员工总数")
+        self.assertTrue(output["success"])
+        emp = output["data"]["资产负债表"]["员工总数"]
+        self.assertIn("note", emp)
+
+    def test_cmd_report_missing_subject_note(self) -> None:
+        """cmd_report 未匹配科目时输出 note 标注缺口。"""
+        output = self._run_cmd_report(subjects="合约负债")
+        self.assertTrue(output["success"])
+        self.assertIn("note", output["data"]["资产负债表"]["合约负债"])
+
+    def test_cmd_report_no_code_exits(self) -> None:
+        """cmd_report 缺代码时退出。"""
+        with patch("sys.stderr", new=StringIO()):
+            with self.assertRaises(SystemExit) as cm:
+                cmd_report("")
+            self.assertEqual(cm.exception.code, 1)
+
+
+# ===========================================================================
+# 4. main() 主逻辑测试（mock get_hk_financial_indicators，无网络依赖）
 # ===========================================================================
 
 class TestMainLogic(unittest.TestCase):

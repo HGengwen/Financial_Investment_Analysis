@@ -56,6 +56,47 @@ python tools/common/financial_rigor.py three-scenario \
 
 ---
 
+## 五维估值命令（trend-tech-screen 阶段一新增）
+
+以下四命令为估值安全垫维度与"市值倒推验证"的计算命令，均为纯计算、零网络依赖。
+
+### PEG 估值（林奇）
+
+```bash
+python tools/common/financial_rigor.py peg --pe {市盈率TTM} --growth {盈利增速百分点}
+```
+
+**判定**：PEG < 1 低估 / 1~1.5 合理 / >1.5 高估。
+
+### PSG 市销率增长比（爆发期专用）
+
+```bash
+python tools/common/financial_rigor.py ps-g --ps {市销率} --revenue-growth {营收增速百分点}
+```
+
+**用途**：高成长/尚未盈利公司估值校验，触发条件（净利率<5% 或营收增速>50%）由调用方判断。
+
+### PE 历史分位
+
+```bash
+python tools/common/financial_rigor.py pe-percentile \
+  --pe-series '[{"val":12.5,...}]' --current {当前PE}
+```
+
+**用途**：输入历史 PE 序列，输出当前 PE 所处 5 年历史分位。
+
+### 市值隐含业绩倒推验证
+
+```bash
+python tools/common/financial_rigor.py implied-growth \
+  --market-cap {市值} --target-pe {目标PE} --net-margin {年化净利率} \
+  --ttm-revenue {TTM营收} --guidance-growth {公司指引增速上限}
+```
+
+**用途**：倒推当前市值隐含的业绩增速要求，并与公司指引增速上限对照，输出红/黄/绿判定（红灯降级）。
+
+---
+
 ## 误差处理规则
 
 | 误差率 | 处理方式 |
@@ -76,5 +117,6 @@ python tools/common/financial_rigor.py three-scenario \
 
 ## 版本信息
 
-- **版本**：1.0.0
+- **版本**：1.1.0（v1.1 新增五维估值命令：peg / ps-g / pe-percentile / implied-growth，trend-tech-screen 阶段一）
 - **创建日期**：2026-07-31
+- **更新日期**：2026-08-25

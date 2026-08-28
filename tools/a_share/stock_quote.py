@@ -18,6 +18,22 @@ import sys
 import time
 import traceback
 from datetime import datetime, timedelta
+from pathlib import Path
+
+# 注入项目根目录到 sys.path，使 `from tools.common import momentum` 在 CLI 直接运行时可用
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+try:
+    from tools.common import momentum as _momentum
+except ImportError:  # momentum 模块缺失时降级（--momentum 命令不可用，其余命令不受影响）
+    _momentum = None
+
+try:
+    from tools.common import sector_screen
+except ImportError:  # sector_screen 缺失时 --auto-peers 不可用，其余不受影响
+    sector_screen = None
 
 # ---------------------------------------------------------------------------
 # 导入 akshare
@@ -28,6 +44,16 @@ except ImportError as e:
     print(json.dumps({
         "success": False,
         "error": f"无法导入 akshare 库: {e}。请运行: pip install akshare",
+        "meta": {"tool": "stock_quote", "timestamp": datetime.now().isoformat()}
+    }, ensure_ascii=False))
+    sys.exit(1)
+
+try:
+    import pandas as pd
+except ImportError as e:
+    print(json.dumps({
+        "success": False,
+        "error": f"无法导入 pandas 库: {e}。请运行: pip install pandas",
         "meta": {"tool": "stock_quote", "timestamp": datetime.now().isoformat()}
     }, ensure_ascii=False))
     sys.exit(1)
@@ -168,6 +194,208 @@ def get_quote_sina(symbol: str, start_date: str, end_date: str, adjust: str = ""
 
 
 # ---------------------------------------------------------------------------
+# 动量与技术面指标（--momentum）
+# ---------------------------------------------------------------------------
+
+#: 动量计算所需回溯（自然日）。250日涨幅 + MA200 需 ~260 个交易日，约折合 400 自然日。
+_MOMENTUM_LOOKBACK_DAYS = 400
+
+
+def _momentum_from_series(closes, volumes, peers):
+    """由收盘价/成交量序列计算动量与技术面指标（纯计算，便于单测）。
+
+    Args:
+        closes: 收盘价序列（按时间升序，最新在末尾）。
+        volumes: 成交量序列（与 closes 对齐，可为空/缺失）。
+        peers: 同板块成分 250 日涨幅百分比列表（SMR 截面；None 表示不提供）。
+
+    Returns:
+        可 JSON 序列化的动量指标字典；数据不足字段为 None，不抛异常。
+    """
+    if _momentum is None:
+        return {"error": "momentum 模块未安装，无法计算动量指标"}
+    m = _momentum.compute_momentum(
+        closes, volumes or None, uplift_period=250, rsi_period=50, peer_pcts=peers)
+    ret = {
+        "close": m["close"],
+        "return_250d_pct": round(m["return_250d_pct"], 2) if m["return_250d_pct"] is not None else None,
+        "smr_percentile": round(m["smr_percentile"], 2) if m["smr_percentile"] is not None else None,
+        "rsi50": round(m["rsi50"], 2) if m["rsi50"] is not None else None,
+        "ma50": round(m["ma50"], 4) if m["ma50"] is not None else None,
+        "ma200": round(m["ma200"], 4) if m["ma200"] is not None else None,
+        "tech": m["tech"],
+        "data_points": len(closes),
+    }
+    if not peers:
+        ret["note"] = "未提供板块截面(--peers)，smr_percentile 为 None"
+    return ret
+
+
+def _parse_peers(raw):
+    """解析 --peers 参数（逗号分隔的百分数列表）。
+
+    Args:
+        raw: 原始字符串，如 "20.5,-3.2,55"；None 或空串返回 None。
+
+    Returns:
+        浮点列表或 None。
+    """
+    if not raw:
+        return None
+    parsed = [float(x) for x in raw.split(",") if x.strip()]
+    return parsed or None
+
+
+def cmd_momentum(code, peers, auto_peers=False):
+    """--momentum: 计算个股动量与技术面指标。
+
+    Args:
+        code: 6 位 A 股代码。
+        peers: 板块成分 250 日涨幅百分比列表（或 None）。
+        auto_peers: 为 True 且 peers 为空时，经 sector_screen 自动生成同板块截面。
+    """
+    # 优先手动 --peers；否则按需经行业缓存自动生成 SMR 板块截面
+    peers_source = None
+    industry = None
+    if auto_peers:
+        if sector_screen is None:
+            peers_source = "sector_unavailable"
+        else:
+            try:
+                info = sector_screen.compute_peers_for_stock(code)
+                peers = info["pcts"] or None
+                industry = info["industry"]
+                peers_source = (f"sector:{info['status']}"
+                                f"({info['count']}成分,跳过{info.get('skipped', 0)})")
+            except RuntimeError as e:
+                peers_source = f"sector_error:{e}"
+
+    start = (datetime.now() - timedelta(days=_MOMENTUM_LOOKBACK_DAYS)).strftime("%Y%m%d")
+    end = datetime.now().strftime("%Y%m%d")
+    try:
+        # 优先东方财富（默认主力源），失败回退新浪
+        try:
+            result = get_quote_eastmoney(code, start, end, "qfq")
+        except Exception:
+            result = get_quote_sina(code, start, end, "qfq")
+        rows = sorted(result["records"], key=lambda r: r.get("date"))
+        closes = [float(r["close"]) for r in rows if r.get("close") is not None]
+        volumes = [float(r["volume"]) if r.get("volume") is not None else 0.0 for r in rows]
+        out = _momentum_from_series(closes, volumes, peers)
+        meta = {
+            "tool": "stock_quote",
+            "command": "momentum",
+            "code": code,
+            "market": "a_share",
+            "start_date": start,
+            "end_date": end,
+            "adjust": "qfq",
+            "timestamp": datetime.now().isoformat(),
+            "peers_source": peers_source,
+            "peers_industry": industry,
+        }
+        if not peers and peers_source is not None:
+            out["note"] = (out.get("note", "") + f"；{peers_source}").strip("；")
+        output = {"success": True, "data": out, "meta": meta}
+        print(json.dumps(output, ensure_ascii=False, default=str))
+    except Exception as e:
+        print(json.dumps({
+            "success": False,
+            "error": f"获取动量指标失败: {e}",
+            "detail": traceback.format_exc(),
+            "meta": {"tool": "stock_quote", "command": "momentum", "code": code,
+                     "timestamp": datetime.now().isoformat()},
+        }, ensure_ascii=False), file=sys.stderr)
+        sys.exit(1)
+
+
+# ---------------------------------------------------------------------------
+# A 股指数行情（--index）
+# ---------------------------------------------------------------------------
+
+#: 常见 A 股指数名称（供 --index 参考，接口亦接受未列出的名称）
+_INDEX_NAMES = ("上证指数", "深证成指", "创业板指", "科创50", "沪深300")
+
+
+def get_index_daily(symbol, start_date=None, end_date=None):
+    """获取 A 股指数历史日线（东方财富 stock_zh_index_daily_em）。
+
+    Args:
+        symbol: 指数名称，如 "上证指数"、"创业板指"。
+        start_date: 开始日期（YYYYMMDD），默认不限。
+        end_date: 结束日期（YYYYMMDD），默认不限。
+
+    Returns:
+        dict: 含 records（date/open/high/low/close/volume/amount，按日期升序）
+        与 count 的字典；无数据返回空 records。
+    """
+    df = ak.stock_zh_index_daily_em(symbol=symbol)
+    if df is None or df.empty:
+        return {"records": [], "count": 0}
+    df = df.copy()
+    # 日期列统一为字符串并升序
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
+    df = df.sort_values("date").reset_index(drop=True)
+    # 日期范围过滤（YYYY-MM-DD -> YYYYMMDD 比较）
+    if start_date:
+        df = df[df["date"].str.replace("-", "") >= start_date]
+    if end_date:
+        df = df[df["date"].str.replace("-", "") <= end_date]
+
+    records = []
+    for _, row in df.iterrows():
+        rec = {}
+        for col in df.columns:
+            val = row[col]
+            if isinstance(val, float):
+                rec[col] = round(val, 2)
+            else:
+                rec[col] = val
+        records.append(rec)
+    return {"records": records, "count": len(records)}
+
+
+def cmd_index(symbol, start, end):
+    """--index: 获取 A 股指数历史日线行情。
+
+    Args:
+        symbol: 指数名称。
+        start: 开始日期（YYYYMMDD）。
+        end: 结束日期（YYYYMMDD）。
+    """
+    try:
+        result = get_index_daily(symbol, start or _default_start(), end or _default_end())
+        output = {
+            "success": True,
+            "data": result["records"],
+            "meta": {
+                "tool": "stock_quote",
+                "command": "index",
+                "index": symbol,
+                "market": "a_share",
+                "start_date": start,
+                "end_date": end,
+                "count": result["count"],
+                "timestamp": datetime.now().isoformat(),
+            },
+        }
+        print(json.dumps(output, ensure_ascii=False, default=str))
+    except Exception as e:
+        error_msg = f"获取指数行情失败: {e}"
+        if "Connection" in str(e) or "RemoteDisconnected" in str(e):
+            error_msg = "获取指数行情失败: 网络连接失败 (东方财富不可达)"
+        print(json.dumps({
+            "success": False,
+            "error": error_msg,
+            "detail": traceback.format_exc(),
+            "meta": {"tool": "stock_quote", "command": "index", "index": symbol,
+                     "timestamp": datetime.now().isoformat()},
+        }, ensure_ascii=False), file=sys.stderr)
+        sys.exit(1)
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -181,10 +409,13 @@ def main():
   %(prog)s --code 300502 --start 20260101 --end 20260710  # 指定日期范围
   %(prog)s --code 300502 --adjust qfq              # 前复权
   %(prog)s --code 300502 --source sina             # 使用新浪数据源
+  %(prog)s --index 上证指数                        # 上证指数日线行情
         """)
 
-    parser.add_argument("--code", type=str, required=True, metavar="CODE",
-                        help="股票代码 (必填)")
+    parser.add_argument("--code", type=str, default=None, metavar="CODE",
+                        help="股票代码")
+    parser.add_argument("--index", type=str, default=None, metavar="INDEX",
+                        help='指数名称（如 上证指数/创业板指/沪深300）')
     parser.add_argument("--start", type=str, default=None, metavar="YYYYMMDD",
                         help=f"开始日期 (默认 {_DEFAULT_DAYS} 天前)")
     parser.add_argument("--end", type=str, default=None, metavar="YYYYMMDD",
@@ -195,12 +426,39 @@ def main():
     parser.add_argument("--source", type=str, default="eastmoney", metavar="SOURCE",
                         choices=["eastmoney", "sina"],
                         help='数据源: eastmoney-东方财富, sina-新浪 (默认 eastmoney)')
+    parser.add_argument("--momentum", action="store_true",
+                        help="计算动量与技术面指标（250日涨幅/SMR百分位/RSI50/MA50/MA200）")
+    parser.add_argument("--peers", type=str, default=None, metavar="PCTS",
+                        help="同板块成分250日涨幅百分比列表（逗号分隔，如 20.5,-3.2,55），"
+                             "用于计算 SMR 同板块百分位")
+    parser.add_argument("--auto-peers", action="store_true",
+                        help="自动生成 SMR 板块截面：经行业缓存取同行业成分，"
+                             "批量拉取其 250 日涨幅作为 --peers（优于手动传参）")
 
     args = parser.parse_args()
 
-    code = args.code.zfill(6)
+    if args.momentum:
+        if not args.code:
+            parser.print_help()
+            print("\n错误: --momentum 需配合 --code 使用", file=sys.stderr)
+            sys.exit(1)
+        cmd_momentum(args.code.zfill(6), _parse_peers(args.peers), args.auto_peers)
+        return
+
+    # 确保至少指定一个查询目标
+    if not args.code and not args.index:
+        parser.print_help()
+        print("\n错误: 请指定 --code 或 --index", file=sys.stderr)
+        sys.exit(1)
+
     start = args.start or _default_start()
     end = args.end or _default_end()
+
+    if args.index and not args.code:
+        cmd_index(args.index, start, end)
+        return
+
+    code = args.code.zfill(6)
 
     # Helper: try both sources with fallback
     def fetch_with_fallback():

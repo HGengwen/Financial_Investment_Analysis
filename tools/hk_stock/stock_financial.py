@@ -28,6 +28,12 @@ import sys
 import time
 import traceback
 from datetime import datetime
+from pathlib import Path
+
+# 注入项目根目录到 sys.path，使 `from tools.common import ...` 在 CLI 直接运行时可用
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
 try:
     import pandas as pd
@@ -46,6 +52,11 @@ except ImportError as e:
         "meta": {"tool": "stock_financial", "timestamp": datetime.now().isoformat()}
     }, ensure_ascii=False))
     sys.exit(1)
+
+try:
+    from tools.common import hk_stock_cache
+except ImportError:
+    hk_stock_cache = None  # 缓存层缺失时降级为不缓存，仅直连接口
 
 
 # ---------------------------------------------------------------------------
@@ -276,6 +287,136 @@ def cmd_financial(code: str, indicator: str = "年度") -> None:
 
 
 # ---------------------------------------------------------------------------
+# --report 命令：接出港股三大报表科目 + 员工数（trend-tech-screen 阶段二）
+# ---------------------------------------------------------------------------
+
+#: 港股三大报表类型
+_REPORT_TYPES = ["资产负债表", "利润表", "现金流量表"]
+
+#: 用户常用标准科目名 → 港股东财科目名（单向映射）
+#: 港股利润表采用「营业额/毛利/经营溢利/股东应占溢利」等命名，与 A 股/通用习惯
+#: （营收/净利润）不同。此映射让打分引擎可用统一标准名查询港股科目。
+#: 注意：港股标准利润表无独立「研发费用」科目（腾讯等仅在年报单独披露），
+#: 故不为其建立映射，查询时保持缺口标注。
+_STANDARD_TO_HK_SUBJECT = {
+    "净利润": "股东应占溢利",
+    "归母净利润": "股东应占溢利",
+    "营业收入": "营业额",
+    "营业总收入": "营业额",
+    "毛利润": "毛利",
+    "每股收益": "每股基本盈利",
+    "研发及开发开支": "研发及开发开支",  # 部分港股报表列名，仅作直通兜底
+}
+
+
+def _find_series(stmt: dict, col: str) -> dict | None:
+    """从 {报告期(YYYYMMDD): {科目: 金额}} 中按精确/模糊科目名提取各期序列。
+
+    处理两类名称差异：
+    1. 异体字归一化：「帐/账」（东财港股用「帐款」、A股用「账款」）；
+    2. 标准科目名映射：将「净利润/营业收入/毛利」等统一到港股科目名。
+
+    Args:
+        stmt: 透视后的报表科目字典。
+        col: 科目名（精确或模糊子串）。
+
+    Returns:
+        {报告期: 金额}；未匹配到任何科目时返回 None。
+    """
+    if not stmt:
+        return None
+
+    def _norm(s: str) -> str:
+        """归一化异体字：'帐' 统一为 '账'（'帐款'→'账款'）。"""
+        return str(s).replace("帐", "账")
+
+    col = _norm(col)
+    col = _STANDARD_TO_HK_SUBJECT.get(col, col)
+    seen: dict = {}
+    for period, sub in stmt.items():
+        for k, v in sub.items():
+            seen.setdefault(_norm(k), {})[period] = v
+    exact = seen.get(col)
+    if exact:
+        return exact
+    for k, v in seen.items():
+        if col in k:
+            return v
+    return None
+
+
+def cmd_report(code: str, report_types: str = "", subjects: str = "") -> None:
+    """--report: 获取港股三大报表科目与员工数。
+
+    Args:
+        code: 港股代码（5 位数字字符串）。
+        report_types: 逗号分隔的报表类型；为空则默认全部三表。
+        subjects: 逗号分隔的科目名（含"员工"时并入员工数）。
+    """
+    if not code:
+        print(json.dumps({
+            "success": False,
+            "error": "请提供港股代码，例如: --report 00700",
+            "meta": {"tool": "stock_financial", "command": "report",
+                     "timestamp": datetime.now().isoformat()}
+        }, ensure_ascii=False))
+        sys.exit(1)
+
+    code = code.zfill(5)
+    wanted = [x.strip() for x in report_types.split(",") if x.strip()] or _REPORT_TYPES
+    subjects = [x.strip() for x in subjects.split(",") if x.strip()]
+
+    data: dict = {}
+    cache_status: dict = {}
+
+    try:
+        for rtype in wanted:
+            if hk_stock_cache is None:
+                raise RuntimeError("港股缓存层不可用 (hk_stock_cache 未导入)")
+            stmt = hk_stock_cache.get_financial_report(code, rtype)
+            cache_status[rtype] = hk_stock_cache.get_financial_status(rtype)
+            data[rtype] = {}
+            if subjects:
+                for s in subjects:
+                    if s in ("员工总数", "员工人数", "员工", "职工人数"):
+                        data[rtype][s] = hk_stock_cache.get_employee_count(code)
+                    else:
+                        series = _find_series(stmt, s)
+                        data[rtype][s] = series if series is not None else \
+                            {"note": f"{rtype}中未找到科目: {s}"}
+            else:
+                # 未指定科目时输出最新一期全量科目作为参考
+                latest = sorted(stmt.keys(), reverse=True)[:1]
+                data[rtype]["最新报告期"] = latest[0] if latest else None
+                data[rtype]["全量科目"] = stmt.get(latest[0], {}) if latest else {}
+
+        output = {
+            "success": True,
+            "data": data,
+            "meta": {
+                "tool": "stock_financial",
+                "command": "report",
+                "code": code,
+                "report_types": wanted,
+                "subjects": subjects,
+                "cache": cache_status,
+                "market": "hk",
+                "timestamp": datetime.now().isoformat()
+            }
+        }
+        print(json.dumps(output, ensure_ascii=False, default=str))
+    except Exception as e:
+        print(json.dumps({
+            "success": False,
+            "error": str(e),
+            "detail": traceback.format_exc(),
+            "meta": {"tool": "stock_financial", "command": "report",
+                     "timestamp": datetime.now().isoformat()}
+        }, ensure_ascii=False), file=sys.stderr)
+        sys.exit(1)
+
+
+# ---------------------------------------------------------------------------
 # CLI 入口
 # ---------------------------------------------------------------------------
 
@@ -288,22 +429,32 @@ def main() -> None:
 示例:
   %(prog)s --financial 00700     # 获取腾讯控股年度财务指标
   %(prog)s --financial 00700 --indicator 报告期  # 获取报告期财务指标
+  %(prog)s --report 00700 --subject 存货,应付账款,预付款项,无形资产,递延收入,员工总数
         """)
 
     parser.add_argument("--financial", type=str, default=None, metavar="CODE",
                         help="获取港股财务分析指标（5位代码，如00700）")
     parser.add_argument("--indicator", type=str, default="年度", metavar="TYPE",
                         help="指标类型：年度（默认）或 报告期")
+    parser.add_argument("--report", type=str, default=None, metavar="CODE",
+                        help="获取港股三大报表科目（如00700），可配合 --report-type 与 --subject")
+    parser.add_argument("--report-type", type=str, default="", metavar="TYPES",
+                        help="报表类型，逗号分隔：资产负债表/利润表/现金流量表（默认全部）")
+    parser.add_argument("--subject", type=str, default="", metavar="SUBJECTS",
+                        help="科目名，逗号分隔；含'员工'时并入员工数")
 
     args = parser.parse_args()
 
     # 确保至少一个操作
-    if not args.financial:
+    if not args.financial and not args.report:
         parser.print_help()
-        print("\n错误: 请指定至少一个操作（--financial）", file=sys.stderr)
+        print("\n错误: 请指定至少一个操作（--financial 或 --report）", file=sys.stderr)
         sys.exit(1)
 
-    cmd_financial(args.financial, args.indicator)
+    if args.report:
+        cmd_report(args.report, args.report_type, args.subject)
+    if args.financial:
+        cmd_financial(args.financial, args.indicator)
 
 
 if __name__ == "__main__":

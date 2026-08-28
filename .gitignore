@@ -3,8 +3,10 @@
 .env.*
 
 # AI工具本地目录及文件
+.vscode/
 .claude/
 .qoder/
+.dsh/
 memory/
 
 qoder.md

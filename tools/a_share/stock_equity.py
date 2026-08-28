@@ -385,6 +385,45 @@ class StockEquityData:
 
         return output_path
 
+    def _http_get_with_retry(self, url: str, params: Optional[Dict] = None,
+                             headers: Optional[Dict] = None,
+                             timeout: int = 25, retries: int = 3) -> requests.Response:
+        """带重试的 HTTP GET 请求.
+
+        网络异常（连接失败/超时）与 5xx 服务端错误会自动重试（指数退避），
+        4xx 客户端错误不重试（重试无意义）。重试耗尽后抛出最后一次异常.
+
+        Args:
+            url: 请求地址
+            params: 查询参数
+            headers: 请求头
+            timeout: 单次请求超时（秒）
+            retries: 最大尝试次数
+
+        Returns:
+            requests.Response 对象
+
+        Raises:
+            requests.RequestException: 重试耗尽后抛出
+        """
+        last_exc: Optional[requests.RequestException] = None
+        for attempt in range(1, retries + 1):
+            try:
+                resp = requests.get(url, params=params, headers=headers, timeout=timeout)
+                resp.raise_for_status()
+                return resp
+            except requests.RequestException as e:
+                last_exc = e
+                # 4xx 客户端错误不重试，直接抛出
+                if isinstance(e, requests.HTTPError) and e.response is not None \
+                        and e.response.status_code < 500:
+                    raise
+                if attempt < retries:
+                    time.sleep(1.5 * attempt)
+        if last_exc is not None:
+            raise last_exc
+        raise RuntimeError("HTTP 请求失败（未知错误）")
+
     def _fetch_cninfo_announcements(self, search_key: str) -> List[Dict]:
         """从巨潮资讯网获取公告列表.
 
@@ -420,7 +459,7 @@ class StockEquityData:
                 "Referer": "https://www.cninfo.com.cn/new/disclosure"
             }
 
-            resp = requests.get(api_url, params=params, headers=headers, timeout=25)
+            resp = self._http_get_with_retry(api_url, params=params, headers=headers, timeout=25)
             data = resp.json()
             ann_list = data.get("announcements", []) or []
 
@@ -439,42 +478,6 @@ class StockEquityData:
                 'error': str(e)
             })
             return []
-
-    def _filter_target_report(self, ann_list: List[Dict],
-                              report_type: str) -> Optional[Dict[str, str]]:
-        """从公告列表中筛选目标财报.
-
-        根据报告类型从公告列表中筛选出目标财报（年报/半年报/季报），
-        排除摘要、其他类型报告等干扰项.
-
-        **优先级策略**：
-        1. 首选：完整版报告（不含"摘要"、"简版"、"英文版"等字样）
-        2. 备选：仅当找不到完整版时，才考虑"摘要"或"简版"
-
-        Args:
-            ann_list: 公告列表
-            report_type: 报告类型 ('annual'-年报, 'semiannual'-半年报, 'quarterly'-季报)
-
-        Returns:
-            匹配的报告信息字典，格式为：
-            {"year": "2025", "quarter": "", "url": "...", "title": "...", "report_type": "..."}
-            未找到返回 None
-        """
-        # 第一遍：寻找完整版报告（排除摘要、简版、英文版）
-        full_report = self._find_report_by_priority(
-            ann_list, report_type, require_full=True
-        )
-        if full_report:
-            return full_report
-
-        # 第二遍：如果找不到完整版，退而求其次找摘要/简版
-        fallback_report = self._find_report_by_priority(
-            ann_list, report_type, require_full=False
-        )
-        if fallback_report:
-            return fallback_report
-
-        return None
 
     def _is_full_report(self, title_clean: str) -> bool:
         """判断标题是否为完整版报告（非摘要、非简版、非英文版）.
@@ -495,6 +498,43 @@ class StockEquityData:
             if keyword in title_clean:
                 return False
         return True
+
+    def _get_min_full_report_size_kb(self, report_type: str) -> int:
+        """获取指定报告类型"完整版"的最小文件大小阈值（单位：KB）.
+
+        用于两处过滤：
+        1. 搜索阶段：排除 adjunctSize 过小的摘要版/提示性公告
+        2. 下载阶段：判断已缓存文件是否为完整版
+
+        阈值依据（2026-08-17 实测，紫金矿业 601899，adjunctSize 单位 = KB）：
+        - 年报完整版 15410~78054 KB，摘要版 309~784 KB
+        - 半年报完整版 4328~9829 KB，摘要版 191~298 KB
+        - 季报完整版 200~688 KB（季报本身即精简版，无独立摘要版）
+
+        Args:
+            report_type: 报告类型 ('annual'-年报, 'semiannual'-半年报, 'quarterly'-季报)
+
+        Returns:
+            最小完整版文件大小阈值（KB）
+        """
+        thresholds = {
+            'annual': 1024,      # 年报完整版 > 1MB
+            'semiannual': 1024,  # 半年报完整版 > 1MB
+            'quarterly': 100,    # 季报完整版 > 100KB（实测最小约 200KB）
+        }
+        return thresholds.get(report_type, 1024)
+
+    @staticmethod
+    def _sanitize_filename(name: str) -> str:
+        """清理字符串中的文件名非法字符（Windows 保留字符及控制字符）.
+
+        Args:
+            name: 原始名称
+
+        Returns:
+            清理后的名称（可能为空字符串）
+        """
+        return re.sub(r'[\\/:*?"<>|\x00-\x1f]', '', name.strip())
 
     def _find_report_by_priority(
         self,
@@ -522,7 +562,10 @@ class StockEquityData:
             title_clean = re.sub(r'<[^>]+>', '', title)
 
             # 确保是目标股票的公告
-            if sec_code != self.code:
+            # secCode 可能是逗号分隔的多证券代码（联合公告场景），先拆分再匹配，
+            # 避免硬比较把目标财报误判为"非本股票"而漏掉；空值则跳过（保守，防止误收无关公告）
+            sec_codes = [c.strip() for c in sec_code.split(',') if c.strip()]
+            if not sec_codes or self.code not in sec_codes:
                 continue
 
             # 检查是否为指定类型的报告
@@ -556,10 +599,11 @@ class StockEquityData:
                 # 标题排除：摘要、简版、英文版、提示性等
                 if not self._is_full_report(title_clean):
                     continue
-                # 文件大小排除：API 返回的 adjunctSize 单位为 KB
-                # 完整版年报通常 > 1MB（1024KB），摘要版/提示性公告通常 < 500KB
+                # 文件大小排除：adjunctSize 单位为 KB（1 单位 = 1024 字节，已实测核实）
+                # 阈值按报告类型区分：年报/半年报完整版 > 1MB，季报完整版 > 100KB（实测最小约 200KB）
                 adjunct_size = ann.get("adjunctSize", 0)
-                if isinstance(adjunct_size, (int, float)) and 0 < adjunct_size < 1024:
+                min_full_kb = self._get_min_full_report_size_kb(report_type)
+                if isinstance(adjunct_size, (int, float)) and 0 < adjunct_size < min_full_kb:
                     continue
 
             # 提取年份和季度信息
@@ -583,12 +627,17 @@ class StockEquityData:
                 "url": pdf_link,
                 "title": title_clean,
                 "report_type": report_type,
-                "is_full": self._is_full_report(title_clean)
+                "is_full": self._is_full_report(title_clean),
+                "sec_name": (ann.get("secName", "") or "").strip(),
+                "announcement_time": ann.get("announcementTime", 0) or 0,
             })
 
-        # 返回第一个候选（通常是最新的）
+        # 按公告时间倒序排序，确保返回最新报告（不依赖 API 返回顺序）
         if candidates:
-            return candidates[0]
+            candidates.sort(key=lambda c: c.get("announcement_time", 0), reverse=True)
+            best = candidates[0]
+            best.pop("announcement_time", None)  # 移除内部排序字段，保持返回结构干净
+            return best
 
         return None
 
@@ -632,33 +681,46 @@ class StockEquityData:
             self.code,
         ]
 
-        # 两阶段搜索: 第一轮只找完整版，第二轮才接受摘要/简版
-        for require_full in [True, False]:
-            for search_key in search_keys:
-                ann_list = self._fetch_cninfo_announcements(search_key)
-                if not ann_list:
-                    continue
+        # 两阶段搜索: 第一阶段所有关键词只找完整版；
+        # 第二阶段复用已缓存的公告列表，才接受摘要/简版（避免重复请求与重复完整版搜索）
+        ann_cache: Dict[str, List[Dict]] = {}
 
-                if require_full:
-                    # 第一轮: 只找完整版
-                    result = self._find_report_by_priority(
-                        ann_list, report_type, require_full=True
-                    )
-                else:
-                    # 第二轮: 可接受摘要/简版
-                    result = self._filter_target_report(ann_list, report_type)
+        # 第一阶段: 只找完整版
+        for search_key in search_keys:
+            ann_list = self._fetch_cninfo_announcements(search_key)
+            ann_cache[search_key] = ann_list
+            if not ann_list:
+                continue
+            result = self._find_report_by_priority(
+                ann_list, report_type, require_full=True
+            )
+            if result:
+                self.api_results.append({
+                    'api_name': f"巨潮资讯财报查询(股票代码: {self.code}, "
+                                f"报告类型: {report_type}, 阶段: 完整版, "
+                                f"命中关键词: {search_key})",
+                    'status': '成功',
+                    'rows': 1
+                })
+                return result
 
-                if result:
-                    # 记录成功
-                    stage = "完整版" if require_full else "摘要/简版"
-                    self.api_results.append({
-                        'api_name': f"巨潮资讯财报查询(股票代码: {self.code}, "
-                                    f"报告类型: {report_type}, 阶段: {stage}, "
-                                    f"命中关键词: {search_key})",
-                        'status': '成功',
-                        'rows': 1
-                    })
-                    return result
+        # 第二阶段: 完整版未命中，复用缓存接受摘要/简版
+        for search_key in search_keys:
+            ann_list = ann_cache.get(search_key) or []
+            if not ann_list:
+                continue
+            result = self._find_report_by_priority(
+                ann_list, report_type, require_full=False
+            )
+            if result:
+                self.api_results.append({
+                    'api_name': f"巨潮资讯财报查询(股票代码: {self.code}, "
+                                f"报告类型: {report_type}, 阶段: 摘要/简版, "
+                                f"命中关键词: {search_key})",
+                    'status': '成功',
+                    'rows': 1
+                })
+                return result
 
         # 所有搜索关键词和阶段均未找到目标报告
         error_msg = f'未找到{self._get_report_type_name(report_type)}（已尝试多关键词搜索）'
@@ -735,15 +797,20 @@ class StockEquityData:
         else:
             report_name = '报告'
 
-        pdf_filename = f"{self.code}_{year}{report_name}.pdf"
+        # 文件名包含股票名称便于识别（清理非法字符；名称缺失时回退为仅股票代码）
+        sec_name = self._sanitize_filename(report_info.get('sec_name', '') or '')
+        if sec_name:
+            pdf_filename = f"{self.code}_{sec_name}_{year}{report_name}.pdf"
+        else:
+            pdf_filename = f"{self.code}_{year}{report_name}.pdf"
         pdf_path = os.path.join(save_dir, pdf_filename)
 
         # 检查是否已下载（需验证文件大小，避免摘要版/提示性公告被误认为完整版）
-        # 完整版年报通常 > 1MB，摘要版通常 < 500KB
-        MIN_FULL_REPORT_SIZE = 1024 * 1024  # 1MB
+        # 阈值按报告类型区分：年报/半年报完整版 > 1MB，季报完整版 > 100KB
+        min_full_size = self._get_min_full_report_size_kb(report_type) * 1024
         if os.path.exists(pdf_path):
             file_size = os.path.getsize(pdf_path)
-            if file_size >= MIN_FULL_REPORT_SIZE:
+            if file_size >= min_full_size:
                 self.api_results.append({
                     'api_name': f'财报已存在({pdf_path}, {file_size/1024:.1f}KB)',
                     'status': '成功',
@@ -752,7 +819,7 @@ class StockEquityData:
                 return pdf_path
             else:
                 # 文件过小，可能是摘要版，删除后重新下载
-                print(f"⚠️  检测到文件过小（{file_size/1024:.1f}KB < 1MB），可能是摘要版，将重新下载...")
+                print(f"⚠️  检测到文件过小（{file_size/1024:.1f}KB < {min_full_size/1024:.0f}KB），可能是摘要版，将重新下载...")
                 os.remove(pdf_path)
 
         # 下载PDF
@@ -762,9 +829,19 @@ class StockEquityData:
                 "Referer": "https://www.cninfo.com.cn/new/disclosure"
             }
 
-            resp = requests.get(report_info['url'], headers=headers, timeout=30)
+            resp = self._http_get_with_retry(report_info['url'], headers=headers, timeout=30)
+
+            content = resp.content
+
+            # 校验文件头：合法 PDF 以 %PDF 魔数开头，防止把 HTML 错误页/反爬页面写入 .pdf
+            if not content.startswith(b'%PDF'):
+                raise ValueError(
+                    f"下载内容不是有效的 PDF 文件（Content-Type: "
+                    f"{resp.headers.get('Content-Type', '未知')}，文件头: {content[:16]!r}）"
+                )
+
             with open(pdf_path, "wb") as f:
-                f.write(resp.content)
+                f.write(content)
 
             # 记录成功
             self.api_results.append({
@@ -777,6 +854,12 @@ class StockEquityData:
             return pdf_path
 
         except Exception as e:
+            # 下载失败时清理可能残留的残缺文件
+            if os.path.exists(pdf_path):
+                try:
+                    os.remove(pdf_path)
+                except OSError:
+                    pass
             self.api_results.append({
                 'api_name': f'PDF下载({report_info["url"]})',
                 'status': '失败',

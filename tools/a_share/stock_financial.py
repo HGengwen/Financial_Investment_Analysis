@@ -20,6 +20,8 @@ Usage:
     {py} tools/a_share/stock_financial.py --code 300502 --indicator all
     {py} tools/a_share/stock_financial.py --code 300502 --indicator ROE
     {py} tools/a_share/stock_financial.py --code 300502 --indicator 毛利率,净利率
+    {py} tools/a_share/stock_financial.py --code 300502 --advanced 合同负债
+    {py} tools/a_share/stock_financial.py --code 300502 --advanced 合同负债,存货,研发费用,存货周转天数,员工总数
 """
 
 import argparse
@@ -28,9 +30,15 @@ import re
 import sys
 import traceback
 from datetime import datetime
+from pathlib import Path
+
+# 注入项目根目录到 sys.path，使 `from tools.common import ...` 在 CLI 直接运行时可用
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
 # ---------------------------------------------------------------------------
-# 导入 akshare
+# 导入 akshare 与 A股财务缓存
 # ---------------------------------------------------------------------------
 try:
     import akshare as ak
@@ -41,6 +49,11 @@ except ImportError as e:
         "meta": {"tool": "stock_financial", "timestamp": datetime.now().isoformat()}
     }, ensure_ascii=False))
     sys.exit(1)
+
+try:
+    from tools.common import a_stock_cache
+except ImportError:
+    a_stock_cache = None  # 缓存层缺失时降级为不缓存，仅直连接口
 
 # ---------------------------------------------------------------------------
 # 关键财务指标映射（中文名 -> 英文标识）
@@ -169,6 +182,146 @@ def format_yearly_data(data: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# 高级科目（trend-tech-screen 阶段二新增）
+#
+# 来源映射：每个高级科目 → (报表缓存函数, 精确列名或 None=模糊)
+# 员工数走 employee_count（标注缺口）；应付账款周转天数由资产负债表推算。
+# ---------------------------------------------------------------------------
+
+#: 高级科目 → (缓存访问函数名, 科目精确列名或 None)
+ADVANCED_SOURCES = {
+    "合同负债": ("get_balance_sheet", "合同负债"),
+    "存货": ("get_balance_sheet", "存货"),
+    "开发支出": ("get_balance_sheet", "开发支出"),
+    "无形资产": ("get_balance_sheet", "无形资产"),
+    "应付账款": ("get_balance_sheet", "应付账款"),
+    "应付票据及应付账款": ("get_balance_sheet", "应付票据及应付账款"),
+    "预付款项": ("get_balance_sheet", "预付款项"),
+    "研发费用": ("get_income_statement_sina", "研发费用"),
+    "营业成本": ("get_income_statement_sina", "营业成本"),
+    "支付给职工现金": ("get_cash_flow", "支付给职工以及为职工支付的现金"),
+    "购建固定资产现金": ("get_cash_flow", "购建固定资产"),
+    "存货周转天数": ("get_analysis_indicator", "存货周转天数(天)"),
+    "应收账款周转天数": ("get_analysis_indicator", "应收账款周转天数(天)"),
+}
+
+_ASR_FUNCS = {}
+
+#: 缓存访问函数名 → a_stock_cache 内部缓存键（用于回读缓存状态）
+_FUNC_TO_CACHE_KEY = {
+    "get_balance_sheet": "balance_sheet",
+    "get_income_statement_sina": "income_statement",
+    "get_cash_flow": "cash_flow",
+    "get_analysis_indicator": "analysis_indicator",
+}
+
+
+def _get_asr_func(name: str):
+    """惰性获取缓存层函数（仅在首次调用时解析一次）。
+
+    Args:
+        name: a_stock_cache 中的函数名。
+
+    Returns:
+        可调用对象；不可用时返回 None。
+    """
+    if name not in _ASR_FUNCS:
+        _ASR_FUNCS[name] = getattr(a_stock_cache, name, None) if a_stock_cache else None
+    return _ASR_FUNCS[name]
+
+
+def _find_col(stmt: dict, col: str):
+    """从 {日期: {科目: 值}} 中按精确/模糊列名提取该科目各期序列。
+
+    Args:
+        stmt: 报表科目字典。
+        col: 科目名（精确或模糊子串）。
+
+    Returns:
+        {日期: 值}；未匹配到任何列时返回 None。
+    """
+    if not stmt:
+        return None
+    seen = {}
+    for period, sub in stmt.items():
+        for k, v in sub.items():
+            seen.setdefault(k, {})[period] = v
+    exact = seen.get(col)
+    if exact:
+        return exact
+    for k, v in seen.items():
+        if col in k:
+            return v
+    return None
+
+
+def _get_employee_result(code: str) -> dict:
+    """获取员工数，统一返回带 note 的结构（A 股无可靠接口时标注缺口）。
+
+    Args:
+        code: 6 位股票代码。
+
+    Returns:
+        {"value": 员工数或 None, "note": 来源/缺口说明}。
+    """
+    func = _get_asr_func("employee_count")
+    if func is None:
+        return {"value": None, "note": "财务缓存层不可用"}
+    return func(code)
+
+
+def get_advanced_indicators(code: str, names) -> dict:
+    """从缓存报表层获取高级科目（同报表只拉取一次，复用缓存）。
+
+    员工数/应付账款周转天数等无直接接口的科目统一标注缺口，不静默使用错误数据。
+
+    Args:
+        code: 6 位股票代码。
+        names: 需获取的高级科目名列表。
+
+    Returns:
+        {科目: {日期: 值}}；无直接接口或未匹配到返回 {"note": ...}；
+        并在键 "_cache" 附带各报表缓存状态（hit/refresh/stale）。
+    """
+    result: dict = {}
+    by_src: dict = {}
+    for name in names:
+        if name in ADVANCED_SOURCES:
+            fn, col = ADVANCED_SOURCES[name]
+            by_src.setdefault(fn, []).append((name, col))
+        elif name in ("员工总数", "员工人数", "员工"):
+            result[name] = _get_employee_result(code)
+        elif name == "应付账款周转天数":
+            result[name] = {"note": "应付账款周转天数无直接接口，可用应付账款/营业成本自行推算"}
+        else:
+            result[name] = {"note": f"未知高级科目: {name}"}
+
+    for fn, items in by_src.items():
+        func = _get_asr_func(fn)
+        if func is None:
+            for n, _ in items:
+                result[n] = {"note": "财务缓存层不可用 (a_stock_cache 未导入)"}
+            continue
+        try:
+            stmt = func(code)
+        except Exception as e:  # noqa: BLE001
+            for n, _ in items:
+                result[n] = {"note": f"获取失败: {type(e).__name__}"}
+            continue
+        for n, col in items:
+            series = _find_col(stmt, col)
+            result[n] = series if series is not None else {"note": f"报表中未找到科目: {col}"}
+
+    # 附带各报表缓存状态（hit/refresh/stale）
+    status_fn = getattr(a_stock_cache, "get_financial_status", None) if a_stock_cache else None
+    if status_fn:
+        result["_cache"] = {_FUNC_TO_CACHE_KEY.get(fn, fn):
+                            status_fn(_FUNC_TO_CACHE_KEY.get(fn, fn))
+                            for fn in by_src}
+    return result
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -182,19 +335,43 @@ def main():
   %(prog)s --code 300502 --indicator ROE     # 仅 ROE
   %(prog)s --code 300502 --indicator 毛利率,净利率  # 多个指标
   %(prog)s --code 300502 --indicator all     # 全部原始指标
+  %(prog)s --code 300502 --advanced 合同负债,存货,研发费用,员工总数
 
 可用指标: ROE, 毛利率, 净利率, 经营现金流, 净利润, 资产负债率,
           基本每股收益, 每股经营现金流, 每股净资产, 期间费用率
           all - 显示全部原始指标
+          --advanced 高级科目（详见 --help）
         """)
 
     parser.add_argument("--code", type=str, required=True, metavar="CODE",
                         help="股票代码 (必填)")
     parser.add_argument("--indicator", type=str, default=None, metavar="INDICATOR",
                         help='指标名称或 "all" (默认显示关键指标)')
+    parser.add_argument("--advanced", type=str, default=None, metavar="SUBJECT",
+                        help="获取高级科目（trend-tech-screen 阶段二）。可用科目: 合同负债, 存货, "
+                             "开发支出, 无形资产, 应付账款, 应付票据及应付账款, 预付款项, 研发费用, "
+                             "营业成本, 支付给职工现金, 购建固定资产现金, 存货周转天数, "
+                             "应收账款周转天数, 应付账款周转天数, 员工总数。逗号分隔，缺失科目标注缺口不阻断")
 
     args = parser.parse_args()
     code = args.code.zfill(6)
+
+    if args.advanced:
+        requested = [x.strip() for x in args.advanced.split(",") if x.strip()]
+        adv = get_advanced_indicators(code, requested)
+        output = {
+            "success": True,
+            "data": {"advanced": adv},
+            "meta": {
+                "tool": "stock_financial",
+                "code": code,
+                "command": "advanced",
+                "subjects": requested,
+                "timestamp": datetime.now().isoformat()
+            }
+        }
+        print(json.dumps(output, ensure_ascii=False, default=str))
+        return
 
     try:
         df = get_raw_data(code)

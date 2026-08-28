@@ -26,7 +26,7 @@ import os
 import subprocess
 import sys
 from io import StringIO
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 import unittest
 
 import pandas as pd
@@ -43,6 +43,8 @@ from tools.a_share.stock_financial import (
     extract_key_indicators,
     format_yearly_data,
     KEY_INDICATORS,
+    get_advanced_indicators,
+    _find_col,
 )
 from tools.a_share import stock_financial as sf_module
 
@@ -458,6 +460,115 @@ class TestFormatYearlyData(unittest.TestCase):
         self.assertEqual(result["毛利率"]["2022"], 28.8)
         self.assertEqual(result["ROE"]["2023"], 15.5)
         self.assertEqual(result["ROE"]["2022"], 14.3)
+
+
+# ===========================================================================
+# 4b. 高级科目（--advanced）测试（trend-tech-screen 阶段二，mock 缓存层）
+# ===========================================================================
+
+class TestAdvancedIndicators(unittest.TestCase):
+    """测试 get_advanced_indicators 与 _find_col —— mock a_stock_cache，无网络。
+
+    通过替换 sf_module.a_stock_cache 为假缓存对象，并清空 _get_asr_func 缓存。
+    """
+
+    #: 假资产负债表（含完整科目名与带前缀的现金科目）
+    _BALANCE = {
+        "20251231": {"合同负债": 90697430.17, "存货": 7234333468.99,
+                     "开发支出": None, "无形资产": 193164495.39,
+                     "应付账款": 1234567890.0, "预付款项": 987654321.0},
+        "20241231": {"合同负债": 9740381.85, "存货": 4132067244.34,
+                     "开发支出": None, "无形资产": 171517907.14},
+    }
+
+    #: 假现金流量表（科目带头尾，测试模糊匹配）
+    _CASHFLOW = {
+        "20251231": {"购建固定资产、无形资产和其他长期资产所支付的现金": 1319702128.54},
+        "20241231": {"购建固定资产、无形资产和其他长期资产所支付的现金": 1476338009.26},
+    }
+
+    #: 假财务分析指标（存货周转天数）
+    _ANALYSIS = {
+        "20251231": {"存货周转天数(天)": 157.7909},
+        "20241231": {"存货周转天数(天)": 191.867},
+    }
+
+    def _make_fake_cache(self) -> object:
+        """构造模拟 a_stock_cache 的假对象。
+
+        Returns:
+            暴露 get_balance_sheet/get_cash_flow/get_analysis_indicator/
+            get_income_statement_sina/employee_count 的对象。
+        """
+        fake = MagicMock()
+        fake.get_balance_sheet.return_value = self._BALANCE
+        fake.get_cash_flow.return_value = self._CASHFLOW
+        fake.get_analysis_indicator.return_value = self._ANALYSIS
+        fake.get_income_statement_sina.return_value = {}
+        fake.employee_count.return_value = {"value": 8000, "note": "雪球"}
+        return fake
+
+    def _use_fake_cache(self) -> None:
+        """替换模块缓存对象并清空函数级缓存（_get_asr_func 内缓存的函数引用）。"""
+        self.patcher = patch.object(sf_module, "a_stock_cache", self._make_fake_cache())
+        self.patcher.start()
+        self.addCleanup(self.patcher.stop)
+        sf_module._ASR_FUNCS.clear()
+
+    def test_returns_balance_sheet_columns(self) -> None:
+        """从资产负债表精确匹配合同负债/存货/无形资产。"""
+        self._use_fake_cache()
+        result = get_advanced_indicators("300502", ["合同负债", "存货", "无形资产"])
+        self.assertEqual(result["合同负债"]["20251231"], 90697430.17)
+        self.assertEqual(result["存货"]["20251231"], 7234333468.99)
+        self.assertEqual(result["无形资产"]["20251231"], 193164495.39)
+
+    def test_fuzzy_matches_capex_full_name(self) -> None:
+        """模糊匹配：购建固定资产现金 → 完整科目名的各期值。"""
+        self._use_fake_cache()
+        result = get_advanced_indicators("300502", ["购建固定资产现金"])
+        self.assertEqual(result["购建固定资产现金"]["20251231"], 1319702128.54)
+        self.assertEqual(result["购建固定资产现金"]["20241231"], 1476338009.26)
+
+    def test_analysis_indicator_columns(self) -> None:
+        """从财务分析指标匹配存货周转天数。"""
+        self._use_fake_cache()
+        result = get_advanced_indicators("300502", ["存货周转天数"])
+        self.assertEqual(result["存货周转天数"]["20251231"], 157.7909)
+
+    def test_employee_total_gap(self) -> None:
+        """员工总数走 employee_count，返回 value+note。"""
+        self._use_fake_cache()
+        result = get_advanced_indicators("300502", ["员工总数"])
+        self.assertEqual(result["员工总数"]["value"], 8000)
+        self.assertEqual(result["员工总数"]["note"], "雪球")
+
+    def test_accounts_payable_days_gap_note(self) -> None:
+        """应付账款周转天数无直接接口，标注缺口 note。"""
+        self._use_fake_cache()
+        result = get_advanced_indicators("300502", ["应付账款周转天数"])
+        self.assertIn("note", result["应付账款周转天数"])
+
+    def test_unknown_subject_note(self) -> None:
+        """未知科目标注 note，不阻断。"""
+        self._use_fake_cache()
+        result = get_advanced_indicators("300502", ["不存在的科目"])
+        self.assertIn("note", result["不存在的科目"])
+
+    def test_find_col_exact_and_fuzzy(self) -> None:
+        """_find_col 先精确后模糊。"""
+        self._use_fake_cache()
+        self.assertEqual(_find_col(self._BALANCE, "存货")["20251231"], 7234333468.99)
+        # 模糊：'无形' 命中完整科目名 '无形资产'
+        self.assertEqual(_find_col(self._BALANCE, "无形")["20251231"], 193164495.39)
+        self.assertEqual(_find_col(self._CASHFLOW, "购建固定")["20251231"],
+                         1319702128.54)
+
+    def test_find_col_missing_returns_none(self) -> None:
+        """无匹配科目返回 None。"""
+        self._use_fake_cache()
+        self.assertIsNone(_find_col(self._BALANCE, "完全不存在的科目"))
+        self.assertIsNone(_find_col({}, "存货"))
 
 
 # ===========================================================================

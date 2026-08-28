@@ -26,7 +26,7 @@ import os
 import subprocess
 import sys
 from io import StringIO
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 import unittest
 
 import pandas as pd
@@ -42,6 +42,8 @@ from tools.us_stock.stock_financial import (
     get_stock_dividends_splits,
     get_stock_holders,
     get_stock_analyst_ratings,
+    get_stock_indicators,
+    _find_us_series,
     safe_api_call,
 )
 from tools.us_stock import stock_financial as sf_module
@@ -444,6 +446,102 @@ class TestSafeApiCall(unittest.TestCase):
         """测试首次成功时不应触发重试日志（验证返回值即可）。"""
         result = safe_api_call(lambda: 42, "no_retry_api")
         self.assertEqual(result, 42)
+
+
+# ===========================================================================
+# 5b. 指标化输出（--indicators）测试（trend-tech-screen 阶段二，mock 缓存层）
+# ===========================================================================
+
+class TestIndicators(unittest.TestCase):
+    """测试 _find_us_series 与 get_stock_indicators —— mock us_stock_cache，无网络。"""
+
+    #: 模拟 yfinance 三张报表（收入/毛利/研发 + 存货/递延收入）
+    _INCOME = {
+        "2025-09-28": {"Gross Profit": 118007560000.0,
+                       "Research Development": 33622000000.0,
+                       "Total Revenue": 411293000000.0,
+                       "Cost Of Revenue": 293285440000.0},
+        "2024-09-28": {"Gross Profit": 104577417000.0,
+                       "Research Development": 31377000000.0,
+                       "Total Revenue": 391035000000.0,
+                       "Cost Of Revenue": 286457583000.0},
+    }
+    _BALANCE = {
+        "2025-09-28": {"Inventory": 9700000000.0, "Deferred Revenue": 13500000000.0},
+        "2024-09-28": {"Inventory": 6500000000.0, "Deferred Revenue": 13800000000.0},
+    }
+
+    def _make_fake_cache(self) -> MagicMock:
+        """构造模拟 us_stock_cache 的假对象。
+
+        Returns:
+            暴露 get_statement/get_financial_status 的对象。
+        """
+        fake = MagicMock()
+
+        def _statements(*_args, **kwargs):
+            """按末尾报表键参数返回对应报表。"""
+            key = _args[-1]
+            return self._INCOME if key == "income" else self._BALANCE
+
+        fake.get_statement.side_effect = _statements
+        fake.get_financial_status.return_value = "hit"
+        return fake
+
+    def test_find_us_series_case_insensitive(self) -> None:
+        """_find_us_series 大小写不敏感匹配科目。"""
+        series = _find_us_series(self._INCOME, ["research development"])
+        self.assertEqual(series["2025-09-28"], 33622000000.0)
+
+    def test_find_us_series_falls_back_to_next_keyword(self) -> None:
+        """首个关键词未命中时回退到下一个关键词。"""
+        series = _find_us_series(self._INCOME,
+                                 ["Operating Revenue", "Total Revenue"])
+        self.assertEqual(series["2025-09-28"], 411293000000.0)
+
+    def test_find_us_series_missing_returns_none(self) -> None:
+        """_find_us_series 未匹配返回 None。"""
+        self.assertIsNone(_find_us_series(self._INCOME, ["Nonexistent"]))
+        self.assertIsNone(_find_us_series({}, ["Total Revenue"]))
+
+    def test_indicators_extract_from_statements(self) -> None:
+        """get_stock_indicators 从三表提取毛利/研发/存货/合同负债。"""
+        with patch.object(sf_module, "us_stock_cache", self._make_fake_cache()):
+            result = get_stock_indicators("AAPL")
+        self.assertTrue(result["success"])
+        ind = result["indicators"]
+        self.assertEqual(ind["毛利"]["2025-09-28"], 118007560000.0)
+        self.assertEqual(ind["研发费用"]["2024-09-28"], 31377000000.0)
+        self.assertEqual(ind["存货"]["2025-09-28"], 9700000000.0)
+        # Deferred Revenue 命中合同负债
+        self.assertEqual(ind["合同负债"]["2025-09-28"], 13500000000.0)
+        self.assertEqual(result["cache"]["income"], "hit")
+
+    def test_indicators_inventory_turnover_days(self) -> None:
+        """存货周转天数由存货/营业成本推算（取最新一期）。"""
+        with patch.object(sf_module, "us_stock_cache", self._make_fake_cache()):
+            result = get_stock_indicators("AAPL")
+        days = result["indicators"]["存货周转天数"]
+        # 9700000000 / (293285440000/365) ≈ 12.07
+        self.assertAlmostEqual(days["2025-09-28"], 9700000000 / (293285440000 / 365.0),
+                               places=1)
+
+    def test_indicators_employee_gap(self) -> None:
+        """美元员工数标注缺口 note。"""
+        with patch.object(sf_module, "us_stock_cache", self._make_fake_cache()):
+            result = get_stock_indicators("AAPL")
+        self.assertIn("note", result["indicators"]["员工总数"])
+
+    def test_indicators_error_marks_cache_status(self) -> None:
+        """报表获取失败时标注 cache error，科目给 note，不阻断。"""
+        fake = MagicMock()
+        fake.get_statement.side_effect = RuntimeError("yfinance 返回空报表")
+        with patch.object(sf_module, "us_stock_cache", fake):
+            result = get_stock_indicators("AAPL")
+        self.assertTrue(result["success"])
+        self.assertEqual(result["cache"]["income"], "error:RuntimeError")
+        # 获取失败时科目应给出 note
+        self.assertIn("note", result["indicators"]["毛利"])
 
 
 # ===========================================================================

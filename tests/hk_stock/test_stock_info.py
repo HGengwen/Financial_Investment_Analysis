@@ -37,10 +37,14 @@ try:
         get_all_hk_stocks,
         get_hk_stock_info,
         get_hk_hot_stocks,
+        get_hk_valuation,
+        get_hk_coverage,
+        _extract_institutions,
         cmd_list,
         cmd_search,
         cmd_code,
         cmd_hot,
+        cmd_profile,
     )
 except ImportError as e:
     print(f"无法导入 stock_info 模块: {e}")
@@ -544,6 +548,131 @@ class TestCmdHot(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
+# 市值与研报覆盖测试（阶段三任务2）
+# ---------------------------------------------------------------------------
+
+@unittest.skipIf(pd is None, "pandas 未安装，跳过 mock 测试")
+class TestGetHkValuation(unittest.TestCase):
+    """测试港股总市值获取。"""
+
+    @patch('tools.hk_stock.stock_info.ak.stock_hk_valuation_baidu')
+    def test_success(self, mock_val):
+        """百度港股估值取最近一日 value。"""
+        mock_val.return_value = pd.DataFrame(
+            {"date": ["2026-08-24", "2026-08-25"], "value": [55000.0, 56361.17]})
+        result = get_hk_valuation("00700")
+        self.assertEqual(result["market_cap"], 56361.17)
+        self.assertEqual(result["currency"], "HKD")
+        self.assertEqual(result["unit"], "亿港元")
+        self.assertEqual(result["gap"], {})
+
+    @patch('tools.hk_stock.stock_info.ak.stock_hk_valuation_baidu')
+    def test_failure_marks_gap(self, mock_val):
+        """接口失败时标注缺口。"""
+        mock_val.side_effect = ConnectionError("断连")
+        result = get_hk_valuation("00700")
+        self.assertIsNone(result["market_cap"])
+        self.assertIn("market_cap", result["gap"])
+
+
+class TestExtractInstitutions(unittest.TestCase):
+    """测试机构名抽取纯函数。"""
+
+    def test_deduplicate(self):
+        """机构名去重保序。"""
+        texts = ["中信证券发布了研报", "摩根士丹利投行发布了研报", "中信证券再次覆盖"]
+        result = _extract_institutions(texts)
+        self.assertEqual(result, ["中信证券", "摩根士丹利投行"])
+
+    def test_empty(self):
+        """空输入返回空列表。"""
+        self.assertEqual(_extract_institutions([]), [])
+
+    def test_no_match(self):
+        """无机构名时返回空列表。"""
+        self.assertEqual(_extract_institutions(["无机构信息"]), [])
+
+
+class TestGetHkCoverage(unittest.TestCase):
+    """测试港股研报/机构覆盖（doubao 半自动）。"""
+
+    def _completed_process(self, stdout):
+        """构造 subprocess 返回对象。"""
+        return subprocess.CompletedProcess(args=[], returncode=0, stdout=stdout)
+
+    @patch('tools.hk_stock.stock_info.subprocess.run')
+    def test_success(self, mock_run):
+        """解析 doubao JSON 并抽取机构。"""
+        payload = json.dumps({
+            "Result": {"WebResults": [
+                {"Title": "中信证券：腾讯控股研报", "SiteName": "", "Summary": ""},
+                {"Title": "摩根士丹利投行 重申买入", "SiteName": "", "Summary": ""},
+            ]}
+        }, ensure_ascii=False)
+        mock_run.return_value = self._completed_process(payload)
+        result = get_hk_coverage("00700", "腾讯控股")
+        self.assertEqual(result["total_results"], 2)
+        self.assertEqual(result["coverage_count"], 2)
+        self.assertIn("中信证券", result["coverage_institutions"])
+        self.assertEqual(result["gap"], {})
+
+    @patch('tools.hk_stock.stock_info.subprocess.run')
+    def test_nonzero_returncode(self, mock_run):
+        """doubao 非零退出标注缺口。"""
+        mock_run.return_value = subprocess.CompletedProcess(args=[], returncode=1, stdout="")
+        result = get_hk_coverage("00700")
+        self.assertEqual(result["coverage_count"], 0)
+        self.assertIn("coverage", result["gap"])
+
+    @patch('tools.hk_stock.stock_info.subprocess.run')
+    def test_invalid_json(self, mock_run):
+        """输出非 JSON 标注缺口。"""
+        mock_run.return_value = self._completed_process("not-json")
+        result = get_hk_coverage("00700")
+        self.assertEqual(result["coverage_count"], 0)
+        self.assertIn("coverage", result["gap"])
+
+
+class TestCmdProfile(unittest.TestCase):
+    """测试 --profile 命令处理。"""
+
+    def test_empty_code(self):
+        """测试空代码的错误处理。"""
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            with self.assertRaises(SystemExit) as cm:
+                cmd_profile("")
+            self.assertEqual(cm.exception.code, 1)
+            output = parse_json_output(fake_out.getvalue())
+        self.assertFalse(output["success"])
+        self.assertIn("港股代码", output["error"])
+
+    @patch('tools.hk_stock.stock_info.get_hk_coverage')
+    @patch('tools.hk_stock.stock_info.get_hk_valuation')
+    @patch('tools.hk_stock.stock_info.get_hk_stock_info')
+    def test_successful_profile(self, mock_info, mock_val, mock_cov):
+        """画像组合行情/市值/覆盖度。"""
+        mock_info.return_value = {"code": "00700", "name": "腾讯控股", "market": "hk",
+                                  "price": 300.0, "change_pct": None, "change": None,
+                                  "volume": None, "amount": None, "high": None,
+                                  "low": None, "open": None, "pre_close": None}
+        mock_val.return_value = {"market_cap": 56361.17, "currency": "HKD",
+                                 "unit": "亿港元", "gap": {}}
+        mock_cov.return_value = {"total_results": 20, "coverage_institutions": ["中金公司"],
+                                 "coverage_count": 1, "gap": {}}
+
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            cmd_profile("00700")
+            output = parse_json_output(fake_out.getvalue())
+
+        self.assertTrue(output["success"])
+        self.assertEqual(output["meta"]["command"], "profile")
+        self.assertEqual(output["data"]["code"], "00700")
+        self.assertEqual(output["data"]["market_cap"], 56361.17)
+        self.assertEqual(output["data"]["valuation_gap"], None)
+        self.assertEqual(output["data"]["coverage"]["coverage_count"], 1)
+
+
+# ---------------------------------------------------------------------------
 # 命令行接口测试（使用 subprocess 调用）
 # ---------------------------------------------------------------------------
 
@@ -674,10 +803,14 @@ def run_tests(test_type: str = "all") -> bool:
         suite.addTests(loader.loadTestsFromTestCase(TestGetAllHkStocks))
         suite.addTests(loader.loadTestsFromTestCase(TestGetHkStockInfo))
         suite.addTests(loader.loadTestsFromTestCase(TestGetHkHotStocks))
+        suite.addTests(loader.loadTestsFromTestCase(TestGetHkValuation))
+        suite.addTests(loader.loadTestsFromTestCase(TestExtractInstitutions))
+        suite.addTests(loader.loadTestsFromTestCase(TestGetHkCoverage))
         suite.addTests(loader.loadTestsFromTestCase(TestCmdList))
         suite.addTests(loader.loadTestsFromTestCase(TestCmdSearch))
         suite.addTests(loader.loadTestsFromTestCase(TestCmdCode))
         suite.addTests(loader.loadTestsFromTestCase(TestCmdHot))
+        suite.addTests(loader.loadTestsFromTestCase(TestCmdProfile))
         suite.addTests(loader.loadTestsFromTestCase(TestCommandLineInterface))
     elif test_type == "functions":
         suite.addTests(loader.loadTestsFromTestCase(TestGetAllHkStocks))
@@ -688,6 +821,7 @@ def run_tests(test_type: str = "all") -> bool:
         suite.addTests(loader.loadTestsFromTestCase(TestCmdSearch))
         suite.addTests(loader.loadTestsFromTestCase(TestCmdCode))
         suite.addTests(loader.loadTestsFromTestCase(TestCmdHot))
+        suite.addTests(loader.loadTestsFromTestCase(TestCmdProfile))
     elif test_type == "cli":
         suite.addTests(loader.loadTestsFromTestCase(TestCommandLineInterface))
     else:
