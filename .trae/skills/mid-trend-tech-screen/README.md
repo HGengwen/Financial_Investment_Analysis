@@ -1,4 +1,4 @@
-# 景气趋势筛选 (Trend-Tech Screen)
+# 景气趋势筛选 (Mid Trend-Tech Screen)
 
 融合欧奈尔 CAN SLIM、林奇 GARP、郑希全球景气、李进产业验证四大投资思想，从 **1-3年中期回报周期** 识别最具爆发潜力的成长股。
 
@@ -9,22 +9,22 @@
 ### 基本调用方式
 
 ```
-/trend-tech-screen {公司名/行业/指数/主题}
+/mid-trend-tech-screen {公司名/行业/指数/主题}
 ```
 
 支持四种输入格式：
 
 | 输入方式 | 示例 | 说明 |
 |---------|------|------|
-| 个股 | `/trend-tech-screen 腾讯, 美团, 英伟达` | 逐家筛选 |
-| 行业 | `/trend-tech-screen 中国AI算力行业` | 搜索行业主要公司（10-20家）后逐家筛选 |
-| 市场/指数 | `/trend-tech-screen 恒生科技指数成分股` | 拉取成分股列表，逐家筛选 |
-| 主题 | `/trend-tech-screen 全球AI算力链` | 搜索主题相关公司，逐家筛选 |
+| 个股 | `/mid-trend-tech-screen 腾讯, 美团, 英伟达` | 逐家筛选 |
+| 行业 | `/mid-trend-tech-screen 中国AI算力行业` | 搜索行业主要公司（10-20家）后逐家筛选 |
+| 市场/指数 | `/mid-trend-tech-screen 恒生科技指数成分股` | 拉取成分股列表，逐家筛选 |
+| 主题 | `/mid-trend-tech-screen 全球AI算力链` | 搜索主题相关公司，逐家筛选 |
 
 例如：
-- `/trend-tech-screen 中际旭创`
-- `/trend-tech-screen 全球半导体设备`
-- `/trend-tech-screen 科创50`
+- `/mid-trend-tech-screen 中际旭创`
+- `/mid-trend-tech-screen 全球半导体设备`
+- `/mid-trend-tech-screen 科创50`
 
 ---
 
@@ -70,7 +70,7 @@
 ### 示例1：个股筛选
 
 ```
-/trend-tech-screen 中际旭创
+/mid-trend-tech-screen 中际旭创
 ```
 
 输出该公司的五维打分 + 地缘修正 + 技术面校验 + 反证清单。
@@ -78,7 +78,7 @@
 ### 示例2：行业筛选
 
 ```
-/trend-tech-screen 中国AI算力行业
+/mid-trend-tech-screen 中国AI算力行业
 ```
 
 搜索该行业主要上市公司，逐家筛选，额外输出行业通过率、景气一致性判断、板块对比总结。
@@ -86,7 +86,7 @@
 ### 示例3：指数成分股筛选
 
 ```
-/trend-tech-screen 恒生科技指数成分股
+/mid-trend-tech-screen 恒生科技指数成分股
 ```
 
 拉取成分股列表，逐家筛选，输出行业内排名与配置建议。

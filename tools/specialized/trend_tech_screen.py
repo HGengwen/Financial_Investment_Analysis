@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""景气趋势筛选（trend-tech-screen）打分引擎骨架。
+"""景气趋势筛选（mid-trend-tech-screen）打分引擎骨架。
 
 融合四位投资大师思想（欧奈尔 CAN SLIM / 林奇 GARP / 郑希全球景气 / 李进产业验证），
 实现五维加权打分（满分 100 + 奖励分）+ 地缘政治二维修正（乘数系数）+ 技术面止损校验
@@ -514,7 +514,7 @@ def build_markdown(r: CompanyResult, today: str) -> str:
     return f"""# 📈 景气趋势筛选报告（1-3年配置视角）
 
 **筛选日期**：{today}
-**适用框架**：trend-tech-screen（欧奈尔 CAN SLIM + 林奇 GARP + 郑希全球景气 + 李进产业验证）
+**适用框架**：mid-trend-tech-screen（欧奈尔 CAN SLIM + 林奇 GARP + 郑希全球景气 + 李进产业验证）
 **产业链周期定位**：{r.cycle}
 
 ## 公司：{r.name}
@@ -621,7 +621,7 @@ def cmd_batch(args) -> int:
 def main() -> int:
     """CLI 入口."""
     parser = argparse.ArgumentParser(
-        description="景气趋势筛选打分引擎（trend-tech-screen）",
+        description="景气趋势筛选打分引擎（mid-trend-tech-screen）",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__.replace("{py}", "python"),
     )

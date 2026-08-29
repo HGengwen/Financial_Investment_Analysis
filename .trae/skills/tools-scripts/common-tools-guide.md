@@ -21,9 +21,9 @@ disable-model-invocation: true
 | [report-audit.md](./report-audit.md) | 报告审核与抽检 | `report_audit.py`（15%随机抽样、准出/打回判决） |
 | [global-constraints.md](./global-constraints.md) | 全局约束规范 | 误差处理规则、股价复权规范、七条核心约束 |
 | [pdf-extraction.md](./pdf-extraction.md) | PDF文档提取 | `pdf_extract.py`（首选，基于 pdf-inspector，支持自动乱码检测 + OCR 回退）；`pdftotext`、`pdfinfo`、`pdftoppm`（Poppler工具集，失败回退） |
-| [annual-report-parser.md](./annual-report-parser.md) | 年报结构化抽取（trend-tech-screen 阶段四） | `annual_report_parser.py`（从年报 markdown 定向抽员工/子公司/研发/收入分部/新品/供应链 JSON） |
-| [in-research-scan.md](./in-research-scan.md) | 在研重大项目信息获取（trend-tech-screen R8 数据源） | `in_research_scan.py`（gov/patent/bidding/academic/investor/website/research 多渠道一键扫描 + 年报解析，供 `score --r8` 填写） |
-| [trend-tech-screen.md](./trend-tech-screen.md) | 景气趋势筛选打分引擎（trend-tech-screen） | `trend_tech_screen.py`（五维打分 + 地缘修正 + 技术面止损 + **R8在研评分** + 评级 + 反证清单，批量两轮） |
+| [annual-report-parser.md](./annual-report-parser.md) | 年报结构化抽取（mid-trend-tech-screen 阶段四） | `annual_report_parser.py`（从年报 markdown 定向抽员工/子公司/研发/收入分部/新品/供应链 JSON） |
+| [in-research-scan.md](./in-research-scan.md) | 在研重大项目信息获取（mid-trend-tech-screen R8 数据源） | `in_research_scan.py`（gov/patent/bidding/academic/investor/website/research 多渠道一键扫描 + 年报解析，供 `score --r8` 填写） |
+| [trend-tech-screen.md](./trend-tech-screen.md) | 景气趋势筛选打分引擎（mid-trend-tech-screen） | `trend_tech_screen.py`（五维打分 + 地缘修正 + 技术面止损 + **R8在研评分** + 评级 + 反证清单，批量两轮） |
 | 汇率获取（详见 [A股工具使用指南](../A股工具使用指南.md)） | 国际货币汇率获取 | `fx_rate.py`（Akshare 优先，yfinance 回退，19 个货币对，限流保护） |
 
 > **trend-tech-screen 工具链**：本索引中的 `financial-calc`（新命令）、`a-share-data`/`hk-share-data`（扩展科目/动量/画像）、`annual-report-parser`、`in-research-scan`（在研项目 R8 数据源）、`trend-tech-screen` 构成景气趋势筛选技能的全量数据与计算支撑，详见 [trend-tech-screen.md](./trend-tech-screen.md)。

@@ -503,7 +503,7 @@ class TestGetHkFinancialIndicators(unittest.TestCase):
 
 
 # ===========================================================================
-# 3. --report 三大报表科目测试（trend-tech-screen 阶段二，mock 缓存层）
+# 3. --report 三大报表科目测试（mid-trend-tech-screen 阶段二，mock 缓存层）
 # ===========================================================================
 
 class TestReportCommand(unittest.TestCase):

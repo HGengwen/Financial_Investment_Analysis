@@ -182,7 +182,7 @@ def format_yearly_data(data: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# 高级科目（trend-tech-screen 阶段二新增）
+# 高级科目（mid-trend-tech-screen 阶段二新增）
 #
 # 来源映射：每个高级科目 → (报表缓存函数, 精确列名或 None=模糊)
 # 员工数走 employee_count（标注缺口）；应付账款周转天数由资产负债表推算。
@@ -348,7 +348,7 @@ def main():
     parser.add_argument("--indicator", type=str, default=None, metavar="INDICATOR",
                         help='指标名称或 "all" (默认显示关键指标)')
     parser.add_argument("--advanced", type=str, default=None, metavar="SUBJECT",
-                        help="获取高级科目（trend-tech-screen 阶段二）。可用科目: 合同负债, 存货, "
+                        help="获取高级科目（mid-trend-tech-screen 阶段二）。可用科目: 合同负债, 存货, "
                              "开发支出, 无形资产, 应付账款, 应付票据及应付账款, 预付款项, 研发费用, "
                              "营业成本, 支付给职工现金, 购建固定资产现金, 存货周转天数, "
                              "应收账款周转天数, 应付账款周转天数, 员工总数。逗号分隔，缺失科目标注缺口不阻断")

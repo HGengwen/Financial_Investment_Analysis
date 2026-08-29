@@ -56,7 +56,7 @@ python tools/common/financial_rigor.py three-scenario \
 
 ---
 
-## 五维估值命令（trend-tech-screen 阶段一新增）
+## 五维估值命令（mid-trend-tech-screen 阶段一新增）
 
 以下四命令为估值安全垫维度与"市值倒推验证"的计算命令，均为纯计算、零网络依赖。
 

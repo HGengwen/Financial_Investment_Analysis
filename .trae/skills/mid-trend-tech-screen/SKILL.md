@@ -1,5 +1,5 @@
 ---
-name: trend-tech-screen
+name: mid-trend-tech-screen
 description: "景气趋势筛选（1-3年回报周期）：融合欧奈尔CAN SLIM、林奇GARP、郑希全球景气、李进产业验证四大思想，形成五维打分+地缘修正+技术面止损的量化筛选体系。Invoke when user asks for trend screening, mentions 景气/趋势/科技成长/行业爆发/1-3年/中期趋势/当前配置, or requests 欧奈尔/林奇/CAN SLIM/GARP/成长股筛选/景气度分析."
 disable-model-invocation: true
 ---
@@ -476,7 +476,7 @@ doubao_search.py --finance "Coherent 最新季度 业绩 光模块 2026"
 - PDF文档提取：[pdf-extraction](../tools-scripts/pdf-extraction.md)
 - 年报结构化抽取：[annual-report-parser](../tools-scripts/annual-report-parser.md)
 - 在研重大项目信息获取：[in-research-scan](../tools-scripts/in-research-scan.md)（R8 在研评分数据源，科创企业必查）
-- 景气趋势打分引擎：[trend-tech-screen 工具](../tools-scripts/trend-tech-screen.md)
+- 景气趋势打分引擎：[mid-trend-tech-screen 工具](../tools-scripts/trend-tech-screen.md)
 - 完整索引：[公共工具索引](../tools-scripts/common-tools-guide.md)
 
 **Python路径**：`F:/Anaconda3/envs/Python_3_12_3/python.exe`
@@ -529,7 +529,7 @@ doubao_search.py --finance "Coherent 最新季度 业绩 光模块 2026"
 
 **筛选日期**：{当天日期}
 **筛选标的数**：{N}家
-**适用框架**：trend-tech-screen（融合欧奈尔CAN SLIM + 林奇GARP + 郑希全球景气 + 李进产业验证）
+**适用框架**：mid-trend-tech-screen（融合欧奈尔CAN SLIM + 林奇GARP + 郑希全球景气 + 李进产业验证）
 **产业链周期定位**：{需求爆发期/技术跃迁期/供给受限期/成熟稳定期}（权重已相应调整）
 
 

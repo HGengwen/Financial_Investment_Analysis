@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Unit tests for in_research_scan.py 在研重大项目扫描器.
 
-覆盖 trend-tech-screen 步骤 3-A 落地工具：
+覆盖 mid-trend-tech-screen 步骤 3-A 落地工具：
 1. 渠道查询配方构建（与方案文档指令一致、website 需官网域名）
 2. 未知渠道报错
 3. 渠道结果聚合（去重、top_links、total）

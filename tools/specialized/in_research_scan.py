@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""在研重大项目扫描器（trend-tech-screen 步骤 3-A 落地工具）。
+"""在研重大项目扫描器（mid-trend-tech-screen 步骤 3-A 落地工具）。
 
 将 `research/quality-screen/在研重大项目信息获取方法的整合与强化.md` 中
 "五、实操执行指令" 拆分的手动搜索指令整合为一条可编程调用的批量入口：
@@ -514,7 +514,7 @@ def _build_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         prog="in_research_scan",
-        description="在研重大项目扫描器（trend-tech-screen 步骤 3-A）",
+        description="在研重大项目扫描器（mid-trend-tech-screen 步骤 3-A）",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "渠道列表: "

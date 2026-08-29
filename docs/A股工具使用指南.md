@@ -26,7 +26,7 @@
 | `financial_rigor.py` | 精确金融计算（PE、ROE、市值校验；含五维估值 `peg`/`ps-g`/`pe-percentile`/`implied-growth`） | `python tools/common/financial_rigor.py verify-valuation --help` |
 | `report_audit.py`    | 研究报告审核                      | `python tools/common/report_audit.py --help`                     |
 
-### 景气趋势筛选工具链（trend-tech-screen）
+### 景气趋势筛选工具链（mid-trend-tech-screen）
 
 | 工具文件               | 功能                              | 命令示例                                                           |
 | ---------------------- | --------------------------------- | ------------------------------------------------------------------ |

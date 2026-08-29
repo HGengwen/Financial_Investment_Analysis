@@ -449,7 +449,7 @@ class TestSafeApiCall(unittest.TestCase):
 
 
 # ===========================================================================
-# 5b. 指标化输出（--indicators）测试（trend-tech-screen 阶段二，mock 缓存层）
+# 5b. 指标化输出（--indicators）测试（mid-trend-tech-screen 阶段二，mock 缓存层）
 # ===========================================================================
 
 class TestIndicators(unittest.TestCase):

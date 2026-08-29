@@ -29,7 +29,7 @@ disable-model-invocation: true
 
 ---
 
-## 高级财务科目（trend-tech-screen 阶段二）
+## 高级财务科目（mid-trend-tech-screen 阶段二）
 
 ```bash
 # 暴露资产负债表/营运指标/员工数等高级科目

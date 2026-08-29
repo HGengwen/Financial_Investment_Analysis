@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Unit tests for trend_tech_screen.py 打分引擎。
 
-覆盖 trend-tech-screen 阶段一新增的评分引擎骨架：
+覆盖 mid-trend-tech-screen 阶段一新增的评分引擎骨架：
 1. 五维加权打分（技能文件 A/B/C 示例精确复现）
 2. 地缘二维修正矩阵系数
 3. 技术面止损校验（独立否决：红牌/预警/通过）

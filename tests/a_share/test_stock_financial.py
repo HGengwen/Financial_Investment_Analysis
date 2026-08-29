@@ -463,7 +463,7 @@ class TestFormatYearlyData(unittest.TestCase):
 
 
 # ===========================================================================
-# 4b. 高级科目（--advanced）测试（trend-tech-screen 阶段二，mock 缓存层）
+# 4b. 高级科目（--advanced）测试（mid-trend-tech-screen 阶段二，mock 缓存层）
 # ===========================================================================
 
 class TestAdvancedIndicators(unittest.TestCase):

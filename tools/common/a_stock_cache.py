@@ -433,7 +433,7 @@ def get_industry_status() -> str:
 
 
 # ---------------------------------------------------------------------------
-# 财务报告缓存（trend-tech-screen 阶段二新增，沿用 hit→refresh→stale 模式）
+# 财务报告缓存（mid-trend-tech-screen 阶段二新增，沿用 hit→refresh→stale 模式）
 #
 # 数据源：新浪三大报表（stock_financial_report_sina）+ 东财财务分析指标
 # （stock_financial_analysis_indicator）。per-stock 缓存到 data/a_share/financial/。

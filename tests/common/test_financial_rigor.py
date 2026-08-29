@@ -8,7 +8,7 @@ Test suite covering all major functions:
 4. Benford's Law check
 5. Exact calculator
 6. Three-scenario valuation
-7. PEG / PSG / PE-percentile / Implied-growth (trend-tech-screen 阶段一新增)
+7. PEG / PSG / PE-percentile / Implied-growth (mid-trend-tech-screen 阶段一新增)
 """
 
 import sys
@@ -325,7 +325,7 @@ class TestThreeScenarioValuation(unittest.TestCase):
 
 
 class TestPegRatio(unittest.TestCase):
-    """Test PEG calculation (林奇核心指标, trend-tech-screen 阶段一新增)."""
+    """Test PEG calculation (林奇核心指标, mid-trend-tech-screen 阶段一新增)."""
 
     @patch('sys.stdout', new_callable=StringIO)
     def test_peg_under_valued(self, mock_stdout):
@@ -351,7 +351,7 @@ class TestPegRatio(unittest.TestCase):
 
 
 class TestPsgRatio(unittest.TestCase):
-    """Test PSG calculation (市销率增长比, 爆发期专用, trend-tech-screen 阶段一新增)."""
+    """Test PSG calculation (市销率增长比, 爆发期专用, mid-trend-tech-screen 阶段一新增)."""
 
     @patch('sys.stdout', new_callable=StringIO)
     def test_psg_excellent(self, mock_stdout):
@@ -383,7 +383,7 @@ class TestPsgRatio(unittest.TestCase):
 
 
 class TestPePercentile(unittest.TestCase):
-    """Test PE historical percentile (trend-tech-screen 阶段一新增)."""
+    """Test PE historical percentile (mid-trend-tech-screen 阶段一新增)."""
 
     @patch('sys.stdout', new_callable=StringIO)
     def test_pe_percentile_high(self, mock_stdout):
@@ -408,7 +408,7 @@ class TestPePercentile(unittest.TestCase):
 
 
 class TestImpliedGrowth(unittest.TestCase):
-    """Test 市值隐含业绩倒推验证 (红/黄/绿, trend-tech-screen 阶段一新增)."""
+    """Test 市值隐含业绩倒推验证 (红/黄/绿, mid-trend-tech-screen 阶段一新增)."""
 
     @patch('sys.stdout', new_callable=StringIO)
     def test_implied_growth_green(self, mock_stdout):
