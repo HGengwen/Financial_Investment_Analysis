@@ -16,6 +16,8 @@ import time
 import json
 from datetime import datetime, timedelta
 
+import pytest
+
 # 添加父目录到路径，以便导入 momentum_backtest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'tools', 'specialized'))
 
@@ -89,6 +91,8 @@ class TestResult:
         return self.failed == 0
 
 
+@pytest.mark.skip(reason="独立脚本式网络可用性测试（需科学上网），"
+                   "由 python tests/specialized/test_momentum_backtest.py 独立运行")
 def test_network_connection(result):
     """测试网络连接"""
     print("\n[1/6] 测试网络连接...")
@@ -121,6 +125,8 @@ def test_network_connection(result):
             result.add(test_name, "FAIL", f"{error_type}: {e}", duration)
 
 
+@pytest.mark.skip(reason="独立脚本式网络可用性测试（需科学上网），"
+                   "由 python tests/specialized/test_momentum_backtest.py 独立运行")
 def test_yfinance_library(result):
     """测试 yfinance 库"""
     print("\n[2/6] 测试 yfinance 库...")
@@ -149,6 +155,8 @@ def test_yfinance_library(result):
         result.add(test_name, "FAIL", f"yfinance 测试失败: {e}", duration)
 
 
+@pytest.mark.skip(reason="独立脚本式网络可用性测试（需科学上网），"
+                   "由 python tests/specialized/test_momentum_backtest.py 独立运行")
 def test_fetch_price_data(result):
     """测试数据获取函数"""
     print("\n[3/6] 测试数据获取函数...")
@@ -186,6 +194,8 @@ def test_fetch_price_data(result):
         result.add(test_name, "FAIL", f"异常: {e}", duration)
 
 
+@pytest.mark.skip(reason="独立脚本式网络可用性测试（需科学上网），"
+                   "由 python tests/specialized/test_momentum_backtest.py 独立运行")
 def test_momentum_signals(result):
     """测试动量信号计算"""
     print("\n[4/6] 测试动量信号计算...")
@@ -223,6 +233,8 @@ def test_momentum_signals(result):
         result.add(test_name, "FAIL", f"异常: {e}", duration)
 
 
+@pytest.mark.skip(reason="独立脚本式网络可用性测试（需科学上网），"
+                   "由 python tests/specialized/test_momentum_backtest.py 独立运行")
 def test_value_verification(result):
     """测试价值验证引擎"""
     print("\n[5/6] 测试价值验证引擎...")
@@ -262,6 +274,8 @@ def test_value_verification(result):
         result.add(test_name, "FAIL", f"异常: {e}", duration)
 
 
+@pytest.mark.skip(reason="独立脚本式网络可用性测试（需科学上网），"
+                   "由 python tests/specialized/test_momentum_backtest.py 独立运行")
 def test_backtest_flow(result):
     """测试完整回测流程"""
     print("\n[6/6] 测试完整回测流程...")

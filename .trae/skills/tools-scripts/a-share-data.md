@@ -40,7 +40,7 @@ python tools/a_share/stock_financial.py --code {代码} --advanced 合同负债,
 
 ---
 
-## 动量与技术面（trend-tech-screen 阶段三）
+## 动量与技术面（mid-trend-tech-screen 阶段三）
 
 ```bash
 # 计算 250日 SMR 相对强度（同板块百分位）、RSI(50)、MA50/MA200、量能
@@ -52,7 +52,7 @@ python tools/a_share/stock_quote.py --code {代码} --momentum --auto-peers
 
 申万一级行业映射（`sw_index_first_info` + `index_component_sw`）一次性构建全市场"代码→行业"映射并缓存至 `data/a_share/sector/sw_industry_map.json`（覆盖 5000+ 只，远优于东财行业缓存的当季披露口径）。成分 250 日涨幅距 `stock_zh_a_daily`（新浪）优先、`stock_zh_a_hist`（东财）回退批量。
 
-## 完整画像（trend-tech-screen 阶段三）
+## 完整画像（mid-trend-tech-screen 阶段三）
 
 ```bash
 # 输出总市值/流通市值 + 机构覆盖度/研报数

@@ -402,19 +402,25 @@ def peg_ratio(pe, growth):
     print(f"  PEG        = PE / 增速 = {float(p):.2f} / {float(g):.2f} = {float(peg):.2f}")
     print()
 
-    if peg < 1:
-        rating = "低估 (低估潜力)"
+    if peg < 0.8:
+        rating = "显著低估 (<0.8)"
+        flag = "✅"
+    elif peg <= 1.2:
+        rating = "合理 (0.8~1.2)"
         flag = "✅"
     elif peg <= 1.5:
-        rating = "合理 (合理区间)"
+        rating = "偏贵 (1.2~1.5)"
         flag = "⚠️"
+    elif peg <= 2.0:
+        rating = "高估 (>1.5)"
+        flag = "🔴"
     else:
-        rating = "高估 (成长透支)"
+        rating = "严重透支 (>2)"
         flag = "🔴"
     print(f"  {flag} 林奇评级: {rating}")
 
-    if peg >= 3:
-        print("     警告: PEG > 3, 若营收高增可豁免参考, 但需警惕估值透支")
+    if peg > 2:
+        print("     警告: PEG > 2, 估值严重透支, 谨慎追高")
 
     result = {"peg": float(peg), "rating": rating}
     print(f"\n  结构化输出: {json.dumps(result, ensure_ascii=False)}")
@@ -505,8 +511,8 @@ def pe_percentile(pe_series, current_pe=None):
         print("  ❌ 历史序列不足，无法计算分位")
         return None
 
-    # 分位 = 历史中 ≤ 当前PE 的比例 (0-100)
-    below = sum(1 for v in hist if v <= current_pe_val)
+    # 分位 = 历史中 < 当前PE 的比例 (0-100)，历史最小值→0%
+    below = sum(1 for v in hist if v < current_pe_val)
     pct = below / n * 100
 
     print(f"  当前 PE:        {float(current_pe_val):.2f}x")

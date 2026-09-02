@@ -309,14 +309,14 @@ reports/
 │   │   ├── 07-X的管理层值不值得托付.md
 │   │   └── 08-多少钱值得买，什么信号必须卖.md
 │   ├── {公司名}-quality-screen-{YYYYMMDD}.md — 去劣筛选报告
-│   └── {公司名}-research-{YYYYMMDD}.md      — 其他研究报告
+│   └── {公司名}-investment-research-{YYYYMMDD}.md      — 其他研究报告
 ```
 
 ### 报告命名规范
 
 - 系列长文：`reports/{公司名}/《看懂{公司名}》/0X-XX.md`
 - 筛选报告：`reports/{公司名}/{公司名}-quality-screen-{YYYYMMDD}.md`
-- 研究报告：`reports/{公司名}/{公司名}-research-{YYYYMMDD}.md`
+- 研究报告：`reports/{公司名}/{公司名}-investment-research-{YYYYMMDD}.md`
 
 ---
 

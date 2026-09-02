@@ -17,6 +17,8 @@ import asyncio
 import sys
 import os
 
+import pytest
+
 # 添加项目根目录到 Python 路径
 # 本文件位于 tests/common/ 下，需向上 3 层到达项目根目录
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -24,6 +26,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from tools.common.tavily_search import tavily_search, print_results
 
 
+@pytest.mark.skip(
+    reason="原生 async 脚本测试，pytest 环境无 pytest-asyncio；"
+    "由 python tests/common/test_tavily_search.py 独立运行"
+)
 async def test_basic_search():
     """测试基本搜索功能。"""
     print("\n" + "="*60)
@@ -59,6 +65,10 @@ async def test_basic_search():
         return False
 
 
+@pytest.mark.skip(
+    reason="原生 async 脚本测试，pytest 环境无 pytest-asyncio；"
+    "由 python tests/common/test_tavily_search.py 独立运行"
+)
 async def test_result_format():
     """测试结果格式验证。"""
     print("\n" + "="*60)
@@ -100,6 +110,10 @@ async def test_result_format():
         return False
 
 
+@pytest.mark.skip(
+    reason="原生 async 脚本测试，pytest 环境无 pytest-asyncio；"
+    "由 python tests/common/test_tavily_search.py 独立运行"
+)
 async def test_print_results():
     """测试结果打印功能。"""
     print("\n" + "="*60)
@@ -132,6 +146,10 @@ async def test_print_results():
     return True
 
 
+@pytest.mark.skip(
+    reason="原生 async 脚本测试，pytest 环境无 pytest-asyncio；"
+    "由 python tests/common/test_tavily_search.py 独立运行"
+)
 async def test_empty_results():
     """测试空结果处理。"""
     print("\n" + "="*60)

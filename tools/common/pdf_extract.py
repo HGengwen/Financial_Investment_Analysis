@@ -31,7 +31,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import io
 import json
 import logging
 import os
@@ -629,12 +628,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     Returns:
         进程退出码：0 成功；1 处理异常；2 文件未找到。
     """
-    # 将 stdout 和 stderr 均包装为 UTF-8 编码，避免 Windows 控制台 GBK 编码
-    # 无法处理 PDF 中的 Unicode 字符（如拉丁连字 ﬁ、全角符号等）导致崩溃
-    if hasattr(sys.stdout, "buffer"):
-        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
-    if hasattr(sys.stderr, "buffer"):
-        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
+    # 将 stdout 和 stderr 均配置为 UTF-8 编码，避免 Windows 控制台 GBK 编码
+    # 无法处理 PDF 中的 Unicode 字符（如拉丁连字 ﬁ、全角符号等）导致崩溃。
+    # 使用 reconfigure 原地修改编码，而非替换 sys.stdout/sys.stderr 对象，
+    # 以保留调用方（如 pytest capsys）对标准流的捕获，避免输出丢失。
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
 
     parser = build_parser()
     args = parser.parse_args(argv)

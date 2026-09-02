@@ -15,6 +15,8 @@ import asyncio
 from pathlib import Path
 from typing import Dict, Any, Optional
 
+import pytest
+
 # 添加项目根目录到路径
 # 本文件位于 tests/common/ 下，需向上 3 层到达项目根目录
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -73,6 +75,10 @@ def test_api_key_check() -> None:
         add_test_result("API Key 检查", True, "⚠️ 跳过：未设置 DASHSCOPE_API_KEY（异步测试将跳过）")
 
 
+@pytest.mark.skip(
+    reason="原生 async 脚本测试，pytest 环境无 pytest-asyncio；"
+    "由 python tests/common/test_web_search.py 独立运行"
+)
 async def test_search_function() -> Optional[Dict[str, Any]]:
     """
     测试搜索功能。
@@ -107,6 +113,10 @@ async def test_search_function() -> Optional[Dict[str, Any]]:
         return None
 
 
+@pytest.mark.skip(
+    reason="原生 async 脚本测试，pytest 环境无 pytest-asyncio；"
+    "由 python tests/common/test_web_search.py 独立运行"
+)
 async def test_json_output() -> None:
     """测试 JSON 输出格式。"""
     result = await test_search_function()
@@ -140,6 +150,10 @@ async def test_json_output() -> None:
         add_test_result("JSON 输出格式", False, f"验证异常: {e}")
 
 
+@pytest.mark.skip(
+    reason="原生 async 脚本测试，pytest 环境无 pytest-asyncio；"
+    "由 python tests/common/test_web_search.py 独立运行"
+)
 async def test_financial_search() -> None:
     """测试金融相关搜索。"""
     api_key = os.getenv("DASHSCOPE_API_KEY")

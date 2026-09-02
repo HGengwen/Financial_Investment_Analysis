@@ -16,7 +16,7 @@
 - `data/` — 本地数据缓存（三市场财务数据、A股代码/行业、板块截面，由 common/*_cache 模块自动维护）
 - `research/` — 投资思想与理念研究文档（四位投资大师理念、个人投资者中长期投资思想）
 - `refs/` — 参考资料（搜索服务对比、技能配套参考文档）
-- `.trae/skills/` — 投研技能文件（21 个 SKILL.md + README.md，另有 `tools-scripts/` 工具使用参考文档）
+- `.trae/skills/` — 投研技能文件（29 个 SKILL.md + README.md，另有 `tools-scripts/` 工具使用参考文档）
 - `docs/` — 工具使用指南（A股/港股/美股）与 `dev_docs/` 开发记录
 - `tests/` — pytest 单元/集成测试（对应 tools/ 各模块）
 - `.env` / `.env.example` — 环境变量配置（API密钥、限流参数、缓存 TTL 等）
@@ -24,9 +24,12 @@
 
 ## Skill 使用
 
-技能安装在 `.trae/skills/` 目录下，共 **21 个技能**，覆盖行业研究、公司深度研究、买入决策、收入投资、财报跟踪、持仓管理、基础工具与内容输出七大类（另有 `tools-scripts/` 存放工具使用参考文档）。
+技能安装在 `.trae/skills/` 目录下，共 **29 个技能**，覆盖行业研究、公司深度研究、买入决策、中期投研（1-3年）、收入投资、财报跟踪、持仓管理、基础工具与内容输出八大类（另有 `tools-scripts/` 存放工具使用参考文档）。
 
-完整的技能选用指南参见 [证券AI价值投资研究工作步骤.md](.trae/skills/证券AI价值投资研究工作步骤.md)。
+完整的技能选用指南：
+
+- 长期（10 年）参见 [证券AI价值投资研究工作步骤.md](.trae/skills/证券AI价值投资研究工作步骤.md)
+- 中期（1-3 年）参见 [证券AI中长期（1~3年）价值投资研究工作步骤.md](.trae/skills/证券AI中长期（1~3年）价值投资研究工作步骤.md)
 
 ### 行业研究类
 
@@ -52,7 +55,20 @@
 | `/quality-screen {公司/行业/指数}`   | 去劣筛选：7 条硬指标 + 3 条豁免规则，快速排除非一流公司           |
 | `/investment-checklist {公司名}`     | 巴菲特六关 Checklist + 镜子测试 + 8 条红线否决                    |
 | `/income-investment {公司名}`        | 收入投资分析：分红持久性、现金流覆盖、收益陷阱识别                |
-| `/mid-trend-tech-screen {公司/行业/指数/主题}` | 景气趋势筛选：五维打分 + 地缘修正 + 技术面止损，1-3 年正向排序    |
+### 中期投研类（1-3年）
+
+| 命令 | 功能 |
+| --- | --- |
+| `/mid-industry-research {行业名}` | 中期行业景气研究：TAM/渗透率/业绩兑现/地缘风险四维筛选 |
+| `/mid-industry-funnel {行业名}` | 中期行业漏斗精选：硬指标粗筛→四大支柱→四大师研判，收敛 3 家底仓 + 2 家机动仓 |
+| `/mid-trend-tech-screen {公司/行业/指数/主题}` | 景气趋势筛选：五维打分 + 地缘修正 + 技术面止损，1-3 年正向排序 |
+| `/mid-investment-checklist {公司名}` | 买入前检查：七关景气投资 Checklist（赛道/景气/护城河/管理层×科研/估值建仓/仓位卖出/地缘） |
+| `/mid-management-deep-dive {公司名}` | 管理层纵深研究（1-3年）：诚信度/战略执行/科研转化/资本配置/治理结构，与 P0~P5 卖出纪律联动 |
+| `/valuation-thermometer {公司名}` | 估值温度计：PEG/PSG/PE分位/implied-growth 五档温度 |
+| `/qoq-accelerator {公司名}` | 季度加速度：连续 3 季二阶导，区分波动与拐点 |
+| `/trend-momentum-scan {持仓代码}` | 持仓动量体检：SMR/RSI50/MA50/MA200 技术破位预警 |
+| `/mid-thesis-drift {标的}` | 中期逻辑漂移：景气假设六大维度逐条验证 |
+| `/exit-signal {标的}` | 卖出信号：P0~P5 六级优先级硬编码检查 |
 
 ### 财报跟踪类
 
@@ -83,6 +99,16 @@
 | 命令                                 | 功能                                                          |
 | ------------------------------------ | ------------------------------------------------------------- |
 | `/private-company-research {公司名}` | 未上市公司研究：6 Agent 并行深度研究，拼凑信息还原真实价值   |
+
+## 持有周期路由规则（中期 vs 长期）
+
+- **中期链（1-3 年）**：提及「1-3 年 / 中期 / 景气 / 趋势 / 成长爆发」→
+  `mid-industry-research` → `mid-industry-funnel` → `mid-trend-tech-screen` → `mid-investment-checklist` → `valuation-thermometer` → `qoq-accelerator`
+  → `trend-momentum-scan` → `mid-thesis-drift` → `exit-signal`
+- **长期链（10 年）**：提及「10 年 / 长期 / 永续 / 护城河」→
+  `quality-screen` → `investment-research` → `thesis-tracker` → `thesis-drift`
+- **`mid-` 前缀显式调用优先匹配**：`/mid-xxx` 直接命中对应中期技能，不受关键词路由影响
+- **持有周期不明**：先询问用户持有周期（1-3 年 or 10 年）再路由
 
 ## 研究质量规则
 

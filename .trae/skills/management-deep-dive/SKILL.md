@@ -633,7 +633,7 @@ python tools/common/doubao_search.py "紫金矿业 H股占比 A股H股 差异" -
 reports/
 ├── {公司名}/                        — 公司所有研究报告
 │   ├── {公司名}-management-{YYYYMMDD}.md — 管理层深度研究报告
-│   ├── {公司名}-research-{YYYYMMDD}.md   — 其他研究报告
+│   ├── {公司名}-investment-research-{YYYYMMDD}.md   — 其他研究报告
 │   └── {公司名}-quality-screen-{YYYYMMDD}.md — 去劣筛选报告
 ```
 

@@ -396,7 +396,7 @@ pdftoppm -png cninfo_reports/601899_2025年报.pdf cninfo_reports/601899_2025年
 
 ### 第七步：保存报告
 
-将完整最终报告写入 `reports/{公司名}/{公司名}-research-{YYYYMMDD}.md`。如果 `reports/{公司名}/` 目录不存在则创建。
+将完整最终报告写入 `reports/{公司名}/{公司名}-investment-team-{YYYYMMDD}.md`。如果 `reports/{公司名}/` 目录不存在则创建。
 
 ---
 
@@ -456,7 +456,7 @@ python tools/common/doubao_search.py "AAPL business model analyst reactions" --f
 #   注意：extract 默认输出为"表格+JSON"混合内容，如需脚本解析请加 --output-json 参数
 #   （仅输出纯 JSON，可安全重定向到 .json 文件）
 python tools/common/report_audit.py extract \
-  --report reports/{公司名}/{公司名}-research-{YYYYMMDD}.md --seed 42 --output-json > "$TEMP/audit.json"
+  --report reports/{公司名}/{公司名}-investment-team-{YYYYMMDD}.md --seed 42 --output-json > "$TEMP/audit.json"
 
 # Step 2 - 对清单每项从可靠信源取数（按市场分别使用对应工具）
 #   A股：tools/a_share/stock_financial.py（东方财富主） -> 巨潮资讯副 -> 年报PDF原始一手
@@ -467,7 +467,7 @@ python tools/common/report_audit.py extract \
 # Step 3 - 输出准出/打回判决
 python tools/common/report_audit.py verdict \
   --results '<填好的JSON>' \
-  --report {公司名}-research-{YYYYMMDD}.md
+  --report {公司名}-investment-team-{YYYYMMDD}.md
 ```
 
 **【准出】** 全部通过 → 报告可发布；**【打回】** 有不通过 → 修正后重审。
@@ -530,7 +530,7 @@ python tools/common/report_audit.py verdict \
 
 ### 输出文件
 
-`reports/腾讯/腾讯-research-20260722.md`
+`reports/腾讯/腾讯-investment-team-20260722.md`
 
 ### 报告摘要示例
 

@@ -53,7 +53,7 @@
 ```
 /investment-research 腾讯
 ```
- 执行八步研究框架，输出 `reports/腾讯/腾讯-research-{YYYYMMDD}.md`
+ 执行八步研究框架，输出 `reports/腾讯/腾讯-investment-research-{YYYYMMDD}.md`
 
 ### 示例2：研究A股公司
 ```
@@ -69,7 +69,7 @@
 
 | 报告类型 | 文件路径 |
 |---------|---------|
-| 投资研究报告 | `reports/{公司名}/{公司名}-research-{YYYYMMDD}.md` |
+| 投资研究报告 | `reports/{公司名}/{公司名}-investment-research-{YYYYMMDD}.md` |
 
 ### 报告要求
 

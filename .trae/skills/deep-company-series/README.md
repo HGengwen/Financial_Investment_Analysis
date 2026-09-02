@@ -70,7 +70,7 @@
 |---------|---------|
 | 深度系列 | `reports/{公司名}/《看懂{公司名}》/` 目录下的 3-8 篇文章 + `00-系列说明.md` |
 | 去劣筛选 | `reports/{公司名}/{公司名}-quality-screen-{YYYYMMDD}.md` |
-| 其他研究 | `reports/{公司名}/{公司名}-research-{YYYYMMDD}.md` |
+| 其他研究 | `reports/{公司名}/{公司名}-investment-research-{YYYYMMDD}.md` |
 
 ### 报告目录结构
 
@@ -81,7 +81,7 @@ reports/
 │   │   ├── 00-系列说明.md          — 目录索引（不发表）
 │   │   ├── 01-XX.md ~ 08-XX.md     — 3-8 篇深度长文
 │   ├── {公司名}-quality-screen-{YYYYMMDD}.md
-│   └── {公司名}-research-{YYYYMMDD}.md
+│   └── {公司名}-investment-research-{YYYYMMDD}.md
 ```
 
 ### 目录冲突规则

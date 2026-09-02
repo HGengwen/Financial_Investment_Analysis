@@ -337,17 +337,31 @@ class TestPegRatio(unittest.TestCase):
 
     @patch('sys.stdout', new_callable=StringIO)
     def test_peg_fair(self, mock_stdout):
-        """Test PEG 1~1.5 → 合理."""
-        result = peg_ratio(50, 40)
-        self.assertAlmostEqual(result['peg'], 1.25, places=2)
+        """Test PEG 0.8~1.2 → 合理."""
+        result = peg_ratio(20, 20)
+        self.assertAlmostEqual(result['peg'], 1.0, places=2)
         self.assertIn('合理', result['rating'])
 
     @patch('sys.stdout', new_callable=StringIO)
+    def test_peg_expensive(self, mock_stdout):
+        """Test PEG 1.2~1.5 → 偏贵."""
+        result = peg_ratio(50, 40)
+        self.assertAlmostEqual(result['peg'], 1.25, places=2)
+        self.assertIn('偏贵', result['rating'])
+
+    @patch('sys.stdout', new_callable=StringIO)
     def test_peg_over_valued(self, mock_stdout):
-        """Test PEG > 1.5 → 高估."""
+        """Test PEG 1.5~2 → 高估."""
         result = peg_ratio(80, 40)
         self.assertAlmostEqual(result['peg'], 2.0, places=2)
         self.assertIn('高估', result['rating'])
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_peg_severely_over_valued(self, mock_stdout):
+        """Test PEG > 2 → 严重透支."""
+        result = peg_ratio(100, 40)
+        self.assertAlmostEqual(result['peg'], 2.5, places=2)
+        self.assertIn('严重透支', result['rating'])
 
 
 class TestPsgRatio(unittest.TestCase):
@@ -389,7 +403,7 @@ class TestPePercentile(unittest.TestCase):
     def test_pe_percentile_high(self, mock_stdout):
         """Test 当前 PE 处于历史高位 → >60%."""
         result = pe_percentile([20, 25, 30, 28, 26], 30)
-        self.assertAlmostEqual(result['percentile'], 100.0, places=1)
+        self.assertAlmostEqual(result['percentile'], 80.0, places=1)
         self.assertIn('偏高', result['rating'])
 
     @patch('sys.stdout', new_callable=StringIO)
@@ -404,6 +418,7 @@ class TestPePercentile(unittest.TestCase):
         """Test 缺省 current 时取序列最后一位."""
         result = pe_percentile([10, 20, 30])
         self.assertEqual(result['current_pe'], 30)
+        # 缺省时当前值从序列末尾 pop 出，历史序列剩 [10,20]，30 高于其 100%
         self.assertAlmostEqual(result['percentile'], 100.0, places=1)
 
 

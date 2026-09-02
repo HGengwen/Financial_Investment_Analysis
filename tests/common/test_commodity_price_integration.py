@@ -16,6 +16,8 @@
     - yfinance 在中国大陆可能需要代理
 """
 
+import socket
+import ssl
 import sys
 import time
 from pathlib import Path
@@ -41,6 +43,31 @@ from tools.common.commodity_price import (
 # 网络可达性检查
 # ===========================================================================
 
+def _tls_probe(host: str, port: int = 443, timeout: float = 5.0) -> bool:
+    """探测目标主机 TLS 握手是否可达。
+
+    Args:
+        host: 目标主机名。
+        port: 目标端口，默认 443。
+        timeout: 连接超时秒数。
+
+    Returns:
+        可达返回 True，否则返回 False。
+    """
+    try:
+        with socket.create_connection((host, port), timeout=timeout) as sock:
+            context = ssl.create_default_context()
+            with context.wrap_socket(sock, server_hostname=host):
+                return True
+    except (OSError, ssl.SSLError):
+        return False
+
+
+# 国内商品数据源为新浪期货接口（akshare），单独探测可达性
+# （8.8.8.8:53 可达不代表该数据源 TLS 可达，中国大陆网络环境可能被阻断）
+_SINA_FUTURES_OK = _tls_probe("stock2.finance.sina.com.cn")
+
+
 @pytest.fixture(scope="module")
 def network_available():
     """检查网络是否可用。"""
@@ -50,6 +77,12 @@ def network_available():
         return True
     except OSError:
         return False
+
+
+@pytest.fixture(scope="module")
+def domestic_network_available(network_available):
+    """国内商品数据源（新浪期货接口）是否可用。"""
+    return network_available and _SINA_FUTURES_OK
 
 
 @pytest.fixture(scope="module")
@@ -84,10 +117,10 @@ class TestDomesticCommodities:
         ("lc", "碳酸锂"),
         ("si", "工业硅"),
     ])
-    def test_fetch_domestic_commodity(self, code, name, network_available):
+    def test_fetch_domestic_commodity(self, code, name, domestic_network_available):
         """测试国内品种获取。"""
-        if not network_available:
-            pytest.skip("网络不可用")
+        if not domestic_network_available:
+            pytest.skip("国内商品数据源不可用")
 
         spec = get_commodity(code)
         assert spec.name == name

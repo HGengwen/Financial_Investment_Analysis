@@ -41,7 +41,7 @@
 4. **启动4个并行研究Agent** — 同一条消息中调用4次Task工具
 5. **实时跟踪进度** — 每收到一份报告更新进度+核心发现
 6. **Team Lead 汇总最终报告** — 找交叉和矛盾，不是拼报告
-7. **保存报告** — 写入 `reports/{公司名}/{公司名}-research-{YYYYMMDD}.md`
+7. **保存报告** — 写入 `reports/{公司名}/{公司名}-investment-team-{YYYYMMDD}.md`
 
 ### Team Lead 汇总要点
 
@@ -58,7 +58,7 @@
 ```
 /investment-team 腾讯
 ```
- 四Agent并行研究腾讯，Team Lead汇总产出 `reports/腾讯/腾讯-research-{YYYYMMDD}.md`
+ 四Agent并行研究腾讯，Team Lead汇总产出 `reports/腾讯/腾讯-investment-team-{YYYYMMDD}.md`
 
 ### 示例2：研究A股公司
 ```
@@ -74,7 +74,7 @@
 
 | 报告类型 | 文件路径 |
 |---------|---------|
-| 投资研究报告 | `reports/{公司名}/{公司名}-research-{YYYYMMDD}.md` |
+| 投资研究报告 | `reports/{公司名}/{公司名}-investment-team-{YYYYMMDD}.md` |
 
 如果 `reports/{公司名}/` 目录不存在则创建。
 

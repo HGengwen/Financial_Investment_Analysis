@@ -13,6 +13,7 @@ Morningstar 公允价值筛选工具测试软件
     python tests/specialized/test_morningstar_fair_value.py
 """
 
+import socket
 import sys
 import os
 import json
@@ -23,6 +24,48 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from tools.specialized.morningstar_fair_value import extract_ticker, fetch_page
+
+
+# ============================================================
+# 网络可达性探测（网络不可用时跳过网络依赖用例）
+# ============================================================
+
+def _tcp_probe(host: str, port: int = 443, timeout: float = 5.0) -> bool:
+    """TCP 连通性探测（短超时）。
+
+    Args:
+        host: 目标主机名。
+        port: 目标端口。
+        timeout: 探测超时（秒）。
+
+    Returns:
+        True 表示可建立 TCP 连接；False 表示不可达。
+    """
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
+_MORNINGSTAR_OK = _tcp_probe("lt.morningstar.com")
+
+
+def _skip_if_unreachable(*hosts_ok: bool) -> bool:
+    """任一必需数据源接口不可达时跳过用例。
+
+    Args:
+        *hosts_ok: 各必需接口的可达性布尔值。
+
+    Returns:
+        True 表示应跳过该用例；False 表示继续执行。
+    """
+    if all(hosts_ok):
+        return False
+    if "pytest" in sys.modules:
+        import pytest
+        pytest.skip("网络不可用（数据源接口不可达），跳过网络依赖测试")
+    return True
 
 
 # ============================================================
@@ -109,6 +152,9 @@ def test_extract_ticker():
 
 def test_api_connection():
     """测试 Morningstar API 连接"""
+    if _skip_if_unreachable(_MORNINGSTAR_OK):
+        print("  ⏭️  SKIP: Morningstar API 不可达")
+        return True
     print("\n" + "="*80)
     print("  测试 2: Morningstar API 连接")
     print("="*80)

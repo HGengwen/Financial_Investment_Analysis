@@ -869,11 +869,13 @@ def test_constants() -> bool:
 # ==================== 模块导入接口测试（需要真实凭证） ====================
 
 
-def test_module_interface_live(skip_live: bool) -> bool:
+def test_module_interface_live(skip_live: bool = True) -> bool:
     """测试模块导入接口（在线搜索，需要真实 API Key）。
 
     Args:
-        skip_live: 是否跳过在线测试。
+        skip_live: 是否跳过在线测试。pytest 环境下无命令行参数注入，
+            默认跳过在线测试（避免真实网络调用）；独立脚本运行时由
+            --skip-live 参数控制。
     """
     print("\n" + "=" * 60)
     print("测试21: 模块导入接口（在线搜索）")

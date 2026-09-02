@@ -89,11 +89,13 @@ python tools/common/financial_rigor.py pe-percentile \
 
 ```bash
 python tools/common/financial_rigor.py implied-growth \
-  --market-cap {市值} --target-pe {目标PE} --net-margin {年化净利率} \
-  --ttm-revenue {TTM营收} --guidance-growth {公司指引增速上限}
+  --market-cap {市值} --target-pe {目标PE} --net-margin {年化净利率,以小数输入,如 0.15} \
+  --ttm-revenue {TTM营收} --guidance-growth {公司指引增速上限,以小数输入,如 0.25}
 ```
 
 **用途**：倒推当前市值隐含的业绩增速要求，并与公司指引增速上限对照，输出红/黄/绿判定（红灯降级）。
+
+> **单位约定**：`--net-margin`（净利率）与 `--guidance-growth`（增速）**一律以小数输入**（如 `0.15` 表示 15%），禁止以百分数输入（如 `15`）。
 
 ---
 
@@ -117,6 +119,6 @@ python tools/common/financial_rigor.py implied-growth \
 
 ## 版本信息
 
-- **版本**：1.1.0（v1.1 新增五维估值命令：peg / ps-g / pe-percentile / implied-growth，trend-tech-screen 阶段一）
+- **版本**：1.1.0（v1.1 新增五维估值命令：peg / ps-g / pe-percentile / implied-growth，mid-trend-tech-screen 阶段一）
 - **创建日期**：2026-07-31
 - **更新日期**：2026-08-25

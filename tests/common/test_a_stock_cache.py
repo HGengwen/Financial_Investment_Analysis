@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""A股数据本地缓存模块测试（tests/common/test_stock_cache.py）。
+"""A股数据本地缓存模块测试（tests/common/test_a_stock_cache.py）。
 
-测试 tools/common/stock_cache.py 的缓存逻辑，全程 mock akshare，不联网：
+测试 tools/common/a_stock_cache.py 的缓存逻辑，全程 mock akshare，不联网：
 
 1. TTL 命中：新鲜缓存不触发 API 调用（状态 hit）
 2. TTL 过期：触发刷新并覆写缓存（状态 refresh）
@@ -32,9 +32,9 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 sys.path.insert(0, PROJECT_ROOT)
 
 try:
-    from tools.common import stock_cache
+    from tools.common import a_stock_cache as stock_cache
 except ImportError as e:
-    print(f"无法导入 stock_cache 模块: {e}")
+    print(f"无法导入 a_stock_cache 模块: {e}")
     sys.exit(1)
 
 

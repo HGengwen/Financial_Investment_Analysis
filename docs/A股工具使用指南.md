@@ -245,7 +245,7 @@ python tools/a_share/stock_quote.py --code 300502 --source sina
 }
 ```
 
-#### 5. 动量与技术面（--momentum，trend-tech-screen 阶段三）
+#### 5. 动量与技术面（--momentum，mid-trend-tech-screen 阶段三）
 
 ```bash
 # 计算 250日 SMR 相对强度（同板块百分位）、RSI(50)、MA50/MA200、量能
@@ -617,7 +617,7 @@ python tools/common/financial_rigor.py three-scenario \
 python tools/common/financial_rigor.py calc --expr "420.5 / 23.36"
 ```
 
-#### 6. 五维估值命令（trend-tech-screen 阶段一）
+#### 6. 五维估值命令（mid-trend-tech-screen 阶段一）
 
 ```bash
 # PEG 估值（林奇）：PEG <1 低估 / 1~1.5 合理 / >1.5 高估
