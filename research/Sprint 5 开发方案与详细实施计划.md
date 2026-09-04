@@ -102,7 +102,7 @@ Sprint 5（1.5 天）
 ```
 行业扫描 ──► 正向排序 ──► 个股验证 ──► 估值择时 ──► 持仓管理 ──► 卖出触发
 mid-industry-research  mid-trend-tech-screen  investment-research  valuation-thermometer  thesis-tracker --horizon mid  exit-signal
-bottleneck-hunter                            investment-checklist  qoq-accelerator       trend-momentum-scan
+mid-bottleneck-hunter                        investment-checklist  qoq-accelerator       trend-momentum-scan
                                              management-deep-dive                         mid-thesis-drift
                                                                                           portfolio-review --horizon mid
 ```

@@ -418,7 +418,7 @@ reports/{行业名}-mid-industry-{YYYYMMDD}.md
 | 头部公司 ROE 连续 3 季向下 | `exit-signal` P3 | 产业景气拐点触发之一 |
 | 行业整体 PEG>1.5 / >2 | `exit-signal` P4 | 估值透支减/清机动仓 |
 | 本报告 H1~H6 结论 | `mid-thesis-drift` | 作为漂移检测的基线假设（Sprint 3 消费） |
-| 卡脖子环节清单 | `bottleneck-hunter` | 第二、三层投资机会输入 |
+| 卡脖子环节清单 | `mid-bottleneck-hunter` | 第二、三层投资机会输入 |
 
 > 渗透率位置是 P3 的**核心输入之一**，本技能兑现 `qoq-accelerator` 承诺的「P3 渗透率位置由 `mid-industry-research` 提供」。
 

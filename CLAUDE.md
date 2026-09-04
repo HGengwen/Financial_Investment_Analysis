@@ -62,6 +62,8 @@
 | `/mid-industry-research {行业名}` | 中期行业景气研究：TAM/渗透率/业绩兑现/地缘风险四维筛选 |
 | `/mid-industry-funnel {行业名}` | 中期行业漏斗精选：硬指标粗筛→四大支柱→四大师研判，收敛 3 家底仓 + 2 家机动仓 |
 | `/mid-trend-tech-screen {公司/行业/指数/主题}` | 景气趋势筛选：五维打分 + 地缘修正 + 技术面止损，1-3 年正向排序 |
+| `/mid-investment-research {公司名}` | 单 Agent 四大师综合分析框架（1~3年景气版），快速产出中期研究报告 |
+| `/mid-investment-team {公司名}` | 四角色并行研究 + Team Lead 综合研判（欧奈尔/林奇/郑希/李进），产出系统化中期报告 |
 | `/mid-investment-checklist {公司名}` | 买入前检查：七关景气投资 Checklist（赛道/景气/护城河/管理层×科研/估值建仓/仓位卖出/地缘） |
 | `/mid-management-deep-dive {公司名}` | 管理层纵深研究（1-3年）：诚信度/战略执行/科研转化/资本配置/治理结构，与 P0~P5 卖出纪律联动 |
 | `/valuation-thermometer {公司名}` | 估值温度计：PEG/PSG/PE分位/implied-growth 五档温度 |

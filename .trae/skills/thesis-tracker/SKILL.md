@@ -278,11 +278,13 @@ python tools/common/doubao_search.py "{公司名} latest earnings management cha
 
 ### B6：输出追踪报告
 
+将完整追踪报告输出至 `reports/{公司名}-track-{YYYYMMDD}.md`（文件名含检查日期，如 `reports/腾讯-track-20260903.md`）。
+
 #### 报告结构
 
 ```markdown
 # {公司名} 投资论文追踪报告
-**检查日期：{YYYY-MM-DD}**
+**报告生成日期：{YYYY-MM-DD}｜检查日期：{YYYY-MM-DD}**
 
 ## 一、论文健康度评分
 X / 10分
@@ -333,7 +335,7 @@ X / 10分
 
 ### B7：更新论文文件
 
-将本次检查记录追加到 `reports/{公司名}-thesis.md` 的追踪记录表中：
+将本次检查摘要追加到 `reports/{公司名}-thesis.md` 的追踪记录表中（完整报告已输出至 `reports/{公司名}-track-{YYYYMMDD}.md`）：
 
 | 检查日期   | 健康度 | 核心变化                        | 动作建议 |
 | ---------- | :----: | ------------------------------- | -------- |
@@ -642,9 +644,11 @@ python tools/common/financial_rigor.py three-scenario \
 
 **报告结构**：
 
+将完整中期追踪报告输出至 `reports/{公司名}/{公司名}-mid-track-{YYYYMMDD}.md`（文件名含检查日期，如 `reports/腾讯/腾讯-mid-track-20260903.md`）。
+
 ```markdown
 # {公司名} 中期论文追踪报告（--horizon mid）
-**检查日期：{YYYY-MM-DD}**
+**报告生成日期：{YYYY-MM-DD}｜检查日期：{YYYY-MM-DD}**
 
 ## 一、中期健康度评分
 X / 10 分（含 PEG 水位扣分项明细）
@@ -675,7 +679,7 @@ X / 10 分（含 PEG 水位扣分项明细）
 
 ### M-B7：更新中期论文文件
 
-将本次检查记录追加到 `reports/{公司名}/{公司名}-mid-thesis.md` 的追踪记录表中：
+将本次检查摘要追加到 `reports/{公司名}/{公司名}-mid-thesis.md` 的追踪记录表中（完整报告已输出至 `reports/{公司名}/{公司名}-mid-track-{YYYYMMDD}.md`）：
 
 | 检查日期 | 健康度 | 核心变化 | 底仓动作 | 机动仓动作 |
 | --- | :--: | --- | --- | --- |
@@ -692,7 +696,9 @@ X / 10 分（含 PEG 水位扣分项明细）
 
 ### 输出文件
 
-`reports/腾讯-thesis.md`
+- **建立论文**：`reports/腾讯-thesis.md`（活文档，固定文件名，供持续追踪追加记录）
+- **季度检查**：`reports/腾讯-track-{YYYYMMDD}.md`（文件名含检查日期，如 `reports/腾讯-track-20260903.md`）
+- **中期检查**：`reports/腾讯/腾讯-mid-track-{YYYYMMDD}.md`（如 `reports/腾讯/腾讯-mid-track-20260903.md`）
 
 ### 报告摘要示例
 

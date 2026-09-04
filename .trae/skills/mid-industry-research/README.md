@@ -209,7 +209,7 @@
 - [景气趋势筛选](../mid-trend-tech-screen/README.md) — 后置技能（正向排序）
 - [卖出信号](../exit-signal/README.md) — 后置技能（P3/P4 输入）
 - [中期逻辑漂移检测](../mid-thesis-drift/README.md) — 后置技能（基线假设消费）
-- [瓶颈猎手](../bottleneck-hunter/README.md) — 卡脖子环节承接
+- [瓶颈猎手（中期版）](../mid-bottleneck-hunter/README.md) — 卡脖子环节承接
 - [财务计算与验证](../tools-scripts/financial-calc.md) — `financial_rigor.py` 计算命令
 
 ---
