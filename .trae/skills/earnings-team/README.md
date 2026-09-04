@@ -268,6 +268,7 @@ reports/{公司名}/
 - [财报精读](../earnings-review/README.md) — 单Agent财报精读（快速版）
 - [投研团队](../investment-team/README.md) — 四Agent全面公司研究
 - [深度公司系列](../deep-company-series/README.md) — 8篇长文拆一家公司
+- [深度公司系列（中期版）](../mid-deep-company-series/README.md) — 3-8篇长文拆一家公司（1~3年景气框架）
 
 ---
 

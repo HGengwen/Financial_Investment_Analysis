@@ -164,7 +164,7 @@ python tools/common/report_hub.py list --code 601899
 | investment-research | SKILL.md / README.md 下载引用 |
 | investment-checklist | SKILL.md / README.md 下载引用 |
 | quality-screen | SKILL.md / README.md 下载引用 |
-| deep-company-series | SKILL.md / README.md 下载引用 |
+| deep-company-series / mid-deep-company-series | SKILL.md / README.md 下载引用 |
 | bottleneck-hunter / mid-bottleneck-hunter / dyp-ask / news-pulse / wechat-article / thesis-tracker / thesis-drift / portfolio-review / income-investment | 引用处统一替换（多为工具表一行） |
 | 证券AI价值投资研究工作步骤.md | 报告获取章节同步 |
 
