@@ -196,6 +196,7 @@
 - [投研团队](../investment-team/README.md) — 四Agent全面公司研究（含段永平视角）
 - [深度公司系列](../deep-company-series/README.md) — 8篇长文拆一家公司
 - [深度公司系列（中期版）](../mid-deep-company-series/README.md) — 3-8篇长文拆一家公司（1~3年景气框架）
+- [GARP 价值成长问答（中期链）](../garp-ask/README.md) — 1~3 年中期 GARP 问答技能（林奇主轴），与本技能（长期链 10 年）物理隔离
 
 ---
 

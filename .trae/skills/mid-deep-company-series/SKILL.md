@@ -27,7 +27,7 @@ disable-model-invocation: true
 - 每篇独立成文（适合单篇分享），但贯穿一套估值/管理层/价格判断
 - 写给"愿意花 90 分钟读懂一家公司"的读者，不是写给券商客户
 
-**不适合用本 skill 的场景**：单篇研报、季报点评、行业研究——那些用 `/mid-investment-research`（快速四大师报告中期版）、`/earnings-review`、`/mid-industry-research`。
+**不适合用本 skill 的场景**：单篇研报、季报点评、行业研究——那些用 `/mid-investment-research`（快速四大师报告中期版）、`/mid-earnings-review`、`/mid-industry-research`。
 
 ---
 
@@ -408,7 +408,7 @@ git push
 | `/mid-industry-research` | 行业景气研究（渗透率/卡脖子） | 第 05/06 篇产业景气与渗透率口径来源 |
 | `/mid-management-deep-dive` | 管理层纵深研究 | 第 07 篇管理层/科研转化评分口径来源 |
 | `/wechat-article` | 微信公众号文章 | 单篇长文的排版发布承接 |
-| `/earnings-review` | 财报精读 | 系列后续的季度跟踪 |
+| `/mid-earnings-review` | 财报精读（轻量版） | 系列后续的季度跟踪 |
 
 ---
 
