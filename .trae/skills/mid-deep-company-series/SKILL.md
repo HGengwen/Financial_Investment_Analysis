@@ -407,7 +407,8 @@ git push
 | `/exit-signal` | 卖出信号 P0~P5 | 第 08 篇卖出纪律口径来源（引用不重复定义） |
 | `/mid-industry-research` | 行业景气研究（渗透率/卡脖子） | 第 05/06 篇产业景气与渗透率口径来源 |
 | `/mid-management-deep-dive` | 管理层纵深研究 | 第 07 篇管理层/科研转化评分口径来源 |
-| `/wechat-article` | 微信公众号文章 | 单篇长文的排版发布承接 |
+| `/wechat-article` | 微信公众号文章（长期版，巴芒段李） | 长期链（10年）内容输出，物理隔离不互用 |
+| `/mid-wechat-article` | 微信公众号文章（1~3年景气版） | 单篇长文的排版发布承接（输出路径 `-mid-wechat-` 隔离命名） |
 | `/mid-earnings-review` | 财报精读（轻量版） | 系列后续的季度跟踪 |
 
 ---

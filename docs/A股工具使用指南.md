@@ -13,7 +13,7 @@
 | 工具文件                      | 功能                     | 命令示例                                                     |
 | ----------------------------- | ------------------------ | ------------------------------------------------------------ |
 | `stock_info.py`             | A股信息查询（含 `--profile` 完整画像）              | `python tools/a_share/stock_info.py --search 新易盛`       |
-| `stock_quote.py`            | A股行情数据（含 `--momentum`/`--auto-peers` 动量）              | `python tools/a_share/stock_quote.py --code 300502`        |
+| `stock_quote.py`            | A股行情数据（含 `--realtime` 实时快照、`--momentum`/`--auto-peers` 动量）              | `python tools/a_share/stock_quote.py --realtime 300502`     |
 | `stock_financial.py`        | A股财务指标（含 `--advanced` 高级科目）              | `python tools/a_share/stock_financial.py --code 300502`    |
 | `stock_financial_batch.ps1` | 批量查询多只股票财务指标 | `powershell -File tools/a_share/stock_financial_batch.ps1` |
 | `stock_screen.py`           | 质量筛选7条指标          | `python tools/a_share/stock_screen.py --code 300502`       |
@@ -169,7 +169,7 @@ python tools/a_share/stock_info.py --industry 光模块
 
 ### 功能说明
 
-获取A股历史K线数据，支持日/周/月线、前/后复权、多数据源。
+获取A股历史K线数据与当日实时快照，支持日/周/月线、前/后复权、多数据源；`--realtime` 返回新浪全市场实时快照（盘中实时最新价/涨跌幅）。
 
 ### 使用方法
 
@@ -256,6 +256,45 @@ python tools/a_share/stock_quote.py --code 300502 --momentum --auto-peers
 ```
 
 **说明**：SMR 百分位按"同板块"口径计算。申万一级行业成分映射（`sw_index_first_info` + `index_component_sw`）一次性构建全市场"代码→行业"映射并缓存至 `data/a_share/sector/sw_industry_map.json`（覆盖 5000+ 只）；成分 250 日涨幅距 `stock_zh_a_daily`（新浪）优先、`stock_zh_a_hist`（东财）回退批量。该输出为景气趋势筛选的动量维度与技术面止损校验数据源。
+
+#### 6. 当日实时快照（--realtime，news-pulse / mid-news-pulse 实时取价）
+
+```bash
+# 新浪全市场快照，返回当日实时「最新价 / 涨跌幅 / 开高低 / 成交额」（A股盘中实时，拉取约 15 秒）
+python tools/a_share/stock_quote.py --realtime 300502
+
+# 也支持 --realtime --code 300502 写法
+```
+
+**输出示例**:
+
+```json
+{
+  "success": true,
+  "data": {
+    "代码": "300502",
+    "名称": "新易盛",
+    "最新价": 425.0,
+    "涨跌幅": 1.87,
+    "涨跌额": 7.8,
+    "今开": 418.0,
+    "最高": 428.5,
+    "最低": 416.0,
+    "昨收": 417.2,
+    "成交量": 23456789,
+    "成交额": 9800000000
+  },
+  "meta": {
+    "tool": "stock_quote",
+    "command": "realtime",
+    "code": "300502",
+    "market": "a",
+    "source": "sina_spot"
+  }
+}
+```
+
+**说明**：实时快照为 news-pulse / mid-news-pulse 股价异动溯源的价格锚点——盘中取实时最新价，收盘后取当日收盘价，休市日用最近交易日收盘价并标注日期。
 
 ---
 
@@ -2058,7 +2097,7 @@ python tools/a_share/stock_info.py --search 新易盛
 python tools/a_share/stock_info.py --code 300502
 ```
 
-### 场景2: 获取历史行情
+### 场景2: 获取历史行情与实时快照
 
 ```bash
 # 最近30天行情
@@ -2066,6 +2105,9 @@ python tools/a_share/stock_quote.py --code 300502
 
 # 指定日期范围（前复权）
 python tools/a_share/stock_quote.py --code 300502 --start 20250101 --end 20260710 --adjust qfq
+
+# 当日实时快照（新浪全市场）
+python tools/a_share/stock_quote.py --realtime 300502
 ```
 
 ### 场景3: 查询财务指标

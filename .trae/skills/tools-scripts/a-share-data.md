@@ -23,9 +23,20 @@ disable-model-invocation: true
 |------|------|---------|
 | `tools/a_share/stock_info.py` | A股信息查询 | `python tools/a_share/stock_info.py --search {公司名}` |
 | `tools/a_share/stock_financial.py` | A股财务指标（ROE、毛利率等） | `python tools/a_share/stock_financial.py --code {股票代码}` |
-| `tools/a_share/stock_quote.py` | A股行情数据 | `python tools/a_share/stock_quote.py --code {股票代码}` |
+| `tools/a_share/stock_quote.py` | A股行情数据（含 `--realtime` 实时快照） | `python tools/a_share/stock_quote.py --realtime {股票代码}` |
 | `tools/a_share/stock_screen.py` | 质量筛选7条指标 | `python tools/a_share/stock_screen.py --code {股票代码}` |
 | `tools/a_share/stock_equity.py` | 股权结构与财报PDF下载 | `python tools/a_share/stock_equity.py --code {股票代码}` |
+
+---
+
+## 实时快照（news-pulse / mid-news-pulse 实时取价）
+
+```bash
+# 新浪全市场快照，返回当日实时「最新价 / 涨跌幅 / 开高低 / 成交额」（A股盘中实时，拉取约 15 秒）
+python tools/a_share/stock_quote.py --realtime {代码}
+
+# 也支持 --realtime --code {代码} 写法
+```
 
 ---
 

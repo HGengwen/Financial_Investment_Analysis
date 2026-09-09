@@ -15,6 +15,7 @@ Usage:
     {py} tools/hk_stock/stock_quote.py --code 00700 --start 20260101 --end 20260710
     {py} tools/hk_stock/stock_quote.py --code 00700 --adjust qfq
     {py} tools/hk_stock/stock_quote.py --index HSI
+    {py} tools/hk_stock/stock_quote.py --realtime 00700   # 实时行情快照
 """
 
 import argparse
@@ -339,6 +340,58 @@ def cmd_momentum(code, peers, auto_peers=False):
 
 
 # ---------------------------------------------------------------------------
+# 实时行情快照（--realtime）
+# ---------------------------------------------------------------------------
+
+def cmd_realtime(code: str) -> None:
+    """--realtime: 获取港股单只实时行情快照。
+
+    复用 tools/hk_stock/stock_info.py 的 get_hk_stock_info（新浪 stock_hk_spot
+    全市场快照 + 重试 + 动态字段适配），输出结构与 A 股 --realtime 对齐。
+
+    Args:
+        code: 港股代码（5 位数字，如 00700）。
+    """
+    try:
+        from tools.hk_stock import stock_info as hk_info
+        rec = hk_info.get_hk_stock_info(code)
+        if rec is None:
+            raise RuntimeError(f"实时快照中未找到代码 {code}（可能已退市或代码有误）")
+        data = {
+            "code": rec["code"],
+            "name": rec["name"],
+            "price": rec["price"],
+            "change": rec["change"],
+            "change_pct": rec["change_pct"],
+            "prev_close": rec["pre_close"],
+            "open": rec["open"],
+            "high": rec["high"],
+            "low": rec["low"],
+            "volume": rec["volume"],
+            "amount": rec["amount"],
+            "quote_time": None,  # 新浪港股快照无时间戳字段，以 meta.snapshot_time 为准
+        }
+        meta = {
+            "tool": "stock_quote_hk",
+            "command": "realtime",
+            "market": "hk",
+            "source": "sina",
+            "snapshot_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "timestamp": datetime.now().isoformat(),
+        }
+        print(json.dumps({"success": True, "data": data, "meta": meta}, ensure_ascii=False))
+    except Exception as e:
+        print(json.dumps({
+            "success": False,
+            "error": f"获取实时行情失败: {e}",
+            "detail": traceback.format_exc(),
+            "meta": {"tool": "stock_quote_hk", "command": "realtime", "code": code,
+                     "timestamp": datetime.now().isoformat()},
+        }, ensure_ascii=False), file=sys.stderr)
+        sys.exit(1)
+
+
+# ---------------------------------------------------------------------------
 # CLI 处理逻辑
 # ---------------------------------------------------------------------------
 
@@ -454,6 +507,10 @@ def main():
                         help="周期类型: daily=日线(默认), weekly=周线, monthly=月线")
     parser.add_argument("--momentum", action="store_true",
                         help="计算动量与技术面指标（250日涨幅/SMR百分位/RSI50/MA50/MA200）")
+    parser.add_argument("--realtime", type=str, default=None, nargs="?",
+                        const="__flag__", metavar="CODE",
+                        help="获取港股实时行情快照（新浪，含最新价/涨跌幅/昨收/今开/最高/最低）。"
+                             "用法: --realtime 00700 或 --realtime --code 00700")
     parser.add_argument("--peers", type=str, default=None, metavar="PCTS",
                         help="同板块成分250日涨幅百分比列表（逗号分隔，如 20.5,-3.2,55），"
                              "用于计算 SMR 同板块百分位")
@@ -470,6 +527,17 @@ def main():
             print("\n错误: --momentum 需配合 --code 使用", file=sys.stderr)
             sys.exit(1)
         cmd_momentum(args.code, _parse_peers(args.peers), args.auto_peers)
+        return
+
+    # --realtime 优先处理（可单独使用，或配合 --code）
+    if args.realtime is not None:
+        code = args.realtime if args.realtime != "__flag__" else args.code
+        if not code:
+            parser.print_help()
+            print("\n错误: --realtime 需提供代码（--realtime 00700 或 --realtime --code 00700）",
+                  file=sys.stderr)
+            sys.exit(1)
+        cmd_realtime(code.zfill(5))
         return
 
     # 确保至少一个操作

@@ -10,6 +10,7 @@ Usage:
     {py} tools/a_share/stock_quote.py --code 300502 --start 20260101 --end 20260710
     {py} tools/a_share/stock_quote.py --code 300502 --adjust qfq
     {py} tools/a_share/stock_quote.py --code 300502 --source sina
+    {py} tools/a_share/stock_quote.py --realtime 300502   # 实时行情快照
 """
 
 import argparse
@@ -396,6 +397,69 @@ def cmd_index(symbol, start, end):
 
 
 # ---------------------------------------------------------------------------
+# 实时行情快照（--realtime）
+# ---------------------------------------------------------------------------
+
+#: 新浪全市场快照代码列前缀（sh-沪 / sz-深 / bj-北交），匹配前需剥离
+_SPOT_PREFIX_RE = r"^(sh|sz|bj)"
+
+
+def cmd_realtime(code: str) -> None:
+    """--realtime: 获取 A 股单只股票实时快照（新浪全市场快照按代码过滤）。
+
+    东财 push2 实时接口（stock_bid_ask_em / stock_zh_a_spot_em）在中国大陆
+    网络下连接不稳定（RemoteDisconnected），故以新浪 stock_zh_a_spot 为主源。
+
+    Args:
+        code: 6 位 A 股代码（不足位自动补零）。
+    """
+    try:
+        print("正在获取全市场实时快照（新浪，约 10-20 秒）...", file=sys.stderr)
+        df = ak.stock_zh_a_spot()
+        code6 = code.zfill(6)
+        # 新浪代码列形如 sz300502 / sh600000 / bj920000，剥离前缀后精确匹配
+        df = df.copy()
+        df["代码"] = df["代码"].astype(str).str.replace(_SPOT_PREFIX_RE, "", regex=True)
+        row = df[df["代码"] == code6]
+        if row.empty:
+            raise RuntimeError(f"实时快照中未找到代码 {code6}（可能已退市或代码有误）")
+        rec = row.iloc[0]
+
+        data = {
+            "code": code6,
+            "name": rec.get("名称"),
+            "price": float(rec.get("最新价")),      # 最新成交价（元）
+            "change": float(rec.get("涨跌额")),      # 涨跌额（元）
+            "change_pct": float(rec.get("涨跌幅")),  # 涨跌幅（%）
+            "prev_close": float(rec.get("昨收")),    # 昨收（元）
+            "open": float(rec.get("今开")),          # 今开（元）
+            "high": float(rec.get("最高")),          # 当日最高（元）
+            "low": float(rec.get("最低")),           # 当日最低（元）
+            "volume": float(rec.get("成交量")),      # 成交量（股）
+            "amount": float(rec.get("成交额")),      # 成交额（元）
+            "quote_time": str(rec.get("时间戳")),    # 新浪行情时间（HH:MM:SS）
+        }
+        meta = {
+            "tool": "stock_quote",
+            "command": "realtime",
+            "market": "a_share",
+            "source": "sina",
+            "snapshot_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "timestamp": datetime.now().isoformat(),
+        }
+        print(json.dumps({"success": True, "data": data, "meta": meta}, ensure_ascii=False))
+    except Exception as e:
+        print(json.dumps({
+            "success": False,
+            "error": f"获取实时行情失败: {e}",
+            "detail": traceback.format_exc(),
+            "meta": {"tool": "stock_quote", "command": "realtime", "code": code,
+                     "timestamp": datetime.now().isoformat()},
+        }, ensure_ascii=False), file=sys.stderr)
+        sys.exit(1)
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -428,6 +492,10 @@ def main():
                         help='数据源: eastmoney-东方财富, sina-新浪 (默认 eastmoney)')
     parser.add_argument("--momentum", action="store_true",
                         help="计算动量与技术面指标（250日涨幅/SMR百分位/RSI50/MA50/MA200）")
+    parser.add_argument("--realtime", type=str, default=None, nargs="?",
+                        const="__flag__", metavar="CODE",
+                        help="获取实时行情快照（新浪全市场快照，含最新价/涨跌幅/昨收/今开/最高/最低）。"
+                             "用法: --realtime 300502 或 --realtime --code 300502")
     parser.add_argument("--peers", type=str, default=None, metavar="PCTS",
                         help="同板块成分250日涨幅百分比列表（逗号分隔，如 20.5,-3.2,55），"
                              "用于计算 SMR 同板块百分位")
@@ -443,6 +511,16 @@ def main():
             print("\n错误: --momentum 需配合 --code 使用", file=sys.stderr)
             sys.exit(1)
         cmd_momentum(args.code.zfill(6), _parse_peers(args.peers), args.auto_peers)
+        return
+
+    if args.realtime is not None:
+        code = args.realtime if args.realtime != "__flag__" else args.code
+        if not code:
+            parser.print_help()
+            print("\n错误: --realtime 需提供代码（--realtime 300502 或 --realtime --code 300502）",
+                  file=sys.stderr)
+            sys.exit(1)
+        cmd_realtime(code.zfill(6))
         return
 
     # 确保至少指定一个查询目标

@@ -46,7 +46,7 @@ disable-model-invocation: true
 | ROIC / 增量资本回报率 / 资本配置 20 分制（唯一权威口径） | `mid-management-deep-dive` |
 | 产业景气 / 渗透率（唯一权威口径） | `mid-industry-research` |
 | 管理层诚信 + 科研转化 20 分制 | `mid-management-deep-dive` |
-| 组合适配、集中度与仓位 | `portfolio-review` |
+| 组合适配、集中度与仓位 | `portfolio-review --horizon mid` |
 | 分红 / 收入型标的分析 | `income-investment`（长期版，路由互斥） |
 
 本技能负责「流动性质量与再投资能力」专项判决，不得静默覆盖 `mid-management-deep-dive` 的评分结论或 `exit-signal` 的组合级卖出决策。
@@ -483,8 +483,8 @@ python tools/common/report_audit.py verdict --results '<verified JSON>' --report
 | `/exit-signal` | 卖出纪律 P0~P5 | 组合级卖出决策 |
 | `/mid-industry-research` | 产业景气 / 渗透率 | 赛道景气判断 |
 | `/income-investment`（长期版） | 收入型投资决策 | 评估分红/收入型标的时（路由互斥） |
-| `/portfolio-review` | 组合管理 | 评估组合层面的流动性风险 |
+| `/portfolio-review {持仓清单} --horizon mid` | 组合管理 | 评估组合层面的流动性风险 |
 
 ---
 
-*本技能：将长期版收入投资分析，改造为 1~3 年景气投资中的「流动性质量与再投资能力」专项验证 | 核心工具：FCF 质量、增量 ROIC、资本配置评估、PEG（引用 valuation-thermometer）| 四大师分工：林奇（GARP 主轴 + 分类闸门）/ 郑希（现金流支撑景气）/ 李进（再投资效率 + 资本配置）/ 欧奈尔（风控底线，引用 exit-signal）*
+*本技能：将长期版收入投资分析，改造为 1~3 年景气投资中的「流动性质量与再投资能力」专项验证 | 核心工具：FCF 质量、增量 ROIC、资本配置评估、PEG（引用 valuation-thermometer）| 四大师分工：林奇（GARP 主轴 + 分类闸门）/ 郑希（现金流支撑景气）/ 李进（再投资效率 + 资本配置）/ 欧奈尔（风控底线，引用 exit-signal） | V1.0.0*

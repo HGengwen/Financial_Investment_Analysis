@@ -19,6 +19,7 @@ Usage:
     {py} tools/us_stock/stock_quote.py --daily AAPL --no-adjust
     {py} tools/us_stock/stock_quote.py --index
     {py} tools/us_stock/stock_quote.py --index --start 2025-01-01 --end 2026-07-27
+    {py} tools/us_stock/stock_quote.py --realtime AAPL   # 实时行情快照
 """
 
 import argparse
@@ -401,6 +402,156 @@ def cmd_momentum(symbol, peers, auto_peers=False):
 
 
 # ---------------------------------------------------------------------------
+# 实时行情快照（--realtime）
+# ---------------------------------------------------------------------------
+
+def _realtime_from_sina(symbol: str) -> Dict[str, Any]:
+    """新浪美股单只实时行情兜底源。
+
+    yfinance（Yahoo）在中国大陆网络下常被 403 地域风控拦截，此时回退到新浪
+    hq.sinajs.cn 单只行情接口（与 A股/港股新浪行情同源，大陆可达，秒级返回）。
+    注意：新浪美股行情存在约 15 分钟延迟，meta.source 会标注 "sina" 以提示。
+
+    Args:
+        symbol: 美股代码（如 AAPL）。
+
+    Returns:
+        标准 data 字典；失败返回 None。
+    """
+    import requests as _req
+
+    code = symbol.strip().upper().replace(".", "-").replace("$", "-")
+    url = f"https://hq.sinajs.cn/list=gb_{code.lower()}"
+    try:
+        resp = _req.get(url, headers={
+            "Referer": "https://finance.sina.com.cn",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        }, timeout=10)
+        resp.encoding = "gbk"
+        text = resp.text.strip()
+        if "hq_str_gb_" not in text or '"' not in text:
+            return None
+        raw = text.split('"')[1]
+        parts = raw.split(",")
+        if len(parts) < 11 or not parts[1]:
+            return None
+
+        def _f(idx: int) -> Optional[float]:
+            """安全取浮点字段。"""
+            try:
+                v = float(parts[idx])
+                return v if v == v else None  # 排除 NaN
+            except (ValueError, IndexError):
+                return None
+
+        price = _f(1)
+        prev_close = _f(6)
+        open_ = _f(5)
+        high = max(x for x in (_f(7), _f(8)) if x is not None) if (_f(7) or _f(8)) else None
+        low = min(x for x in (_f(7), _f(8)) if x is not None) if (_f(7) or _f(8)) else None
+        volume = _f(10)
+        change = (price - prev_close) if (price is not None and prev_close) else None
+        change_pct = (change / prev_close * 100) if (change is not None and prev_close) else None
+        return {
+            "symbol": symbol,
+            "name": parts[0] or symbol,
+            "price": price,
+            "change": change,
+            "change_pct": change_pct,
+            "prev_close": prev_close,
+            "open": open_,
+            "high": high,
+            "low": low,
+            "volume": volume,
+            "amount": None,  # 新浪美股接口未提供稳定成交额字段
+            "quote_time": parts[3] or None,  # 北京时间
+        }
+    except Exception:
+        return None
+
+
+def cmd_realtime(symbol: str) -> None:
+    """--realtime: 获取美股单只实时行情快照。
+
+    双数据源策略：
+    1. 首选 yfinance（Yahoo Finance，.info 的 regularMarket 系列实时字段）；
+    2. 失败时回退新浪 hq.sinajs.cn 单只行情接口（大陆可达，延迟约 15 分钟，
+       输出 meta.source=sina 提示）。
+
+    输出结构与 A 股 --realtime 对齐（无成交额字段时 amount 置 None）。
+
+    Args:
+        symbol: 美股代码（如 AAPL）。
+    """
+    source = "yfinance"
+    try:
+        # yfinance 默认将 cookie/时区缓存写入系统用户缓存目录（AppData），
+        # 在受限沙箱环境中会被拒绝。此处重定向到项目内 data/ 可写目录，
+        # 必须在任何 yfinance 请求前调用（进程级单例，一次生效）。
+        _cache_dir = Path(__file__).resolve().parent.parent.parent / "data" / "us_yfinance_cache"
+        _cache_dir.mkdir(parents=True, exist_ok=True)
+        yf.set_tz_cache_location(str(_cache_dir))
+        from tools.us_stock import stock_info as us_info
+        result = us_info.get_stock_realtime_info(symbol)
+        if not result.get("success"):
+            raise RuntimeError(result.get("error", "获取实时行情失败"))
+        raw = result.get("raw_info") or {}
+        base = result["data"]
+        price = raw.get("regularMarketPrice") or base.get("当前价格")
+        prev_close = raw.get("regularMarketPreviousClose") or base.get("昨日收盘价")
+        change = raw.get("regularMarketChange")
+        change_pct = raw.get("regularMarketChangePercent")
+        # 缺涨跌幅字段时由价格推算（除零保护）
+        if change is None and price is not None and prev_close:
+            change = price - prev_close
+        if change_pct is None and price is not None and prev_close:
+            change_pct = (change / prev_close * 100) if prev_close else None
+        quote_ts = raw.get("regularMarketTime")  # Unix epoch（美东时间）
+        quote_time = (datetime.fromtimestamp(quote_ts).strftime("%Y-%m-%d %H:%M:%S")
+                      if quote_ts else None)
+        data = {
+            "symbol": symbol,
+            "name": base.get("公司名称"),
+            "price": price,
+            "change": change,
+            "change_pct": change_pct,
+            "prev_close": prev_close,
+            "open": raw.get("regularMarketOpen") or base.get("开盘价"),
+            "high": raw.get("regularMarketDayHigh") or base.get("最高价"),
+            "low": raw.get("regularMarketDayLow") or base.get("最低价"),
+            "volume": raw.get("regularMarketVolume") or base.get("成交量"),
+            "amount": None,  # yfinance 无成交额字段
+            "quote_time": quote_time,
+        }
+        if data["price"] is None:
+            raise RuntimeError("yfinance 未返回价格，尝试新浪兜底源")
+    except Exception:
+        # 回退新浪单只接口（大陆网络下 Yahoo 常被 403 拦截）
+        data = _realtime_from_sina(symbol)
+        if data is None:
+            print(json.dumps({
+                "success": False,
+                "error": "获取实时行情失败: yfinance 与新浪源均不可用",
+                "detail": traceback.format_exc(),
+                "meta": {"tool": "stock_quote", "command": "realtime", "symbol": symbol,
+                         "timestamp": datetime.now().isoformat()},
+            }, ensure_ascii=False), file=sys.stderr)
+            sys.exit(1)
+        source = "sina"
+    meta = {
+        "tool": "stock_quote",
+        "command": "realtime",
+        "market": "us",
+        "source": source,
+        "snapshot_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "timestamp": datetime.now().isoformat(),
+    }
+    if source == "sina":
+        meta["note"] = "新浪美股行情延迟约 15 分钟，非实时盘口"
+    print(json.dumps({"success": True, "data": data, "meta": meta}, ensure_ascii=False))
+
+
+# ---------------------------------------------------------------------------
 # 主程序
 # ---------------------------------------------------------------------------
 
@@ -420,6 +571,10 @@ def main():
     )
 
     parser.add_argument("--daily", type=str, help="获取个股历史K线（美股代码，如 AAPL、MSFT）")
+    parser.add_argument("--realtime", type=str, default=None, nargs="?",
+                        const="__flag__", metavar="SYMBOL",
+                        help="获取美股实时行情快照（yfinance，含最新价/涨跌幅/昨收/今开/最高/最低）。"
+                             "用法: --realtime AAPL 或 --realtime --daily AAPL")
     parser.add_argument("--index", action="store_true", help="获取美股三大指数历史日线")
     parser.add_argument("--momentum", action="store_true",
                         help="计算动量与技术面指标（需配合 --daily）")
@@ -443,6 +598,17 @@ def main():
             print("\n错误: --momentum 需配合 --daily 使用", file=sys.stderr)
             sys.exit(1)
         cmd_momentum(args.daily, _parse_peers(args.peers), args.auto_peers)
+        return
+
+    # --realtime 优先处理（可单独使用，或配合 --daily）
+    if args.realtime is not None:
+        symbol = args.realtime if args.realtime != "__flag__" else args.daily
+        if not symbol:
+            parser.print_help()
+            print("\n错误: --realtime 需提供代码（--realtime AAPL 或 --realtime --daily AAPL）",
+                  file=sys.stderr)
+            sys.exit(1)
+        cmd_realtime(symbol)
         return
 
     # 如果没有提供任何参数，显示帮助信息

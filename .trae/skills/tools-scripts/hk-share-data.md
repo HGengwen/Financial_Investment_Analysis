@@ -17,6 +17,7 @@ disable-model-invocation: true
 | `tools/hk_stock/stock_financial.py` | 港股信息查询与财务指标 | `python tools/hk_stock/stock_financial.py --financial {股票代码}` |
 | `tools/hk_stock/stock_financial.py` | 高级财务科目（合约负债/存货/应付账款/预付款项） | `python tools/hk_stock/stock_financial.py --advanced {科目1,科目2}` |
 | `tools/hk_stock/stock_quote.py` | 港股历史K线与指数数据 | `python tools/hk_stock/stock_quote.py --code {股票代码}` |
+| `tools/hk_stock/stock_quote.py` | 港股实时快照（新浪全市场，盘中实时） | `python tools/hk_stock/stock_quote.py --realtime {股票代码}` |
 | `tools/hk_stock/stock_quote.py` | 动量与技术面（RSI/MA，SMR 截面对港股不可用） | `python tools/hk_stock/stock_quote.py --code {代码} --momentum --auto-peers` |
 | `tools/hk_stock/stock_screen.py` | 港股质量筛选7条指标 | `python tools/hk_stock/stock_screen.py --code {股票代码}` |
 

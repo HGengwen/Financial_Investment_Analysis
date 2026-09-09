@@ -365,7 +365,8 @@ grep -r "<本机用户名>\|/Users/\|<个人身份信息>" reports/ | head
 - [卖出信号](../exit-signal/README.md) — P0~P5 卖出纪律权威口径
 - [中期行业景气研究](../mid-industry-research/README.md) — 渗透率/产业景气口径来源
 - [中期管理层纵深研究](../mid-management-deep-dive/README.md) — 管理层/科研转化评分口径来源
-- [微信公众号文章](../wechat-article/README.md) — 单篇长文的排版发布承接
+- [微信公众号文章（长期版）](../wechat-article/README.md) — 长期链内容输出，物理隔离不互用
+- [微信公众号文章（中期景气版）](../mid-wechat-article/README.md) — 单篇长文的排版发布承接（1~3 年景气版）
 
 ---
 
