@@ -42,7 +42,7 @@
 4. **逆向思考与风险清单** — 芒格"反过来想"+失败路径+历史类比
 5. **管理层评估** — 段永平"对的人"+巴菲特"管理层诚信"
 6. **行业与文明趋势** — 李录"文明演进框架"+TAM分析
-7. **估值与安全边际** — 巴菲特"内在价值"+段永平"对的价格"+三情景估值
+7. **估值与安全边际** — 巴菲特"内在价值"+段永平"对的价格"+三情景估值+长期折现估值（十年尺度，必须执行）
 8. **综合决策备忘录** — 六维度汇总表+四大师模拟点评
 
 ---
@@ -162,6 +162,7 @@ python tools/common/report_audit.py verdict \
 | 工具 | 功能 |
 |------|------|
 | `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值验证、三情景估值） |
+| `tools/common/terminal_value.py` | 长期折现估值（十年尺度）：终值 PE、IRR、r/ROIC/g 三输入、三条硬约束 audit |
 | `tools/common/report_audit.py` | 报告数据抽检与审核 |
 
 **关键计算命令**：
@@ -183,6 +184,16 @@ python tools/common/financial_rigor.py verify-valuation \
 python tools/common/financial_rigor.py three-scenario \
   --price {股价} --eps {EPS} --shares {总股本亿} \
   --growth {乐观} {中性} {悲观} --pe {乐观PE} {中性PE} {悲观PE}
+# 长期折现估值（十年尺度，三情景之外必须执行）
+# 三条硬约束准出检查（C1 r/g 同币种、C2 r−g≥5pct、C3 离散风险不得进 r/β）
+python tools/common/terminal_value.py audit \
+  --currency {CNY|USD|HKD} --r {资本成本} --roic {稳态ROIC} \
+  --g {悲观g},{基准g},{乐观g} --rf {无风险利率} --beta 1.0 \
+  --discrete-risks "{风险名}:{情景|尾部档|概率|未建模},..."
+python tools/common/terminal_value.py pe --roic {ROIC} --g {g} --r {r}
+python tools/common/terminal_value.py irr \
+  --profit {终值年利润} --mcap {今日市值} --pe {退出PE} \
+  --years 10 --payout {股息率-稀释率}
 
 # 获取实时汇率（跨币种折算前必用，勿用固定汇率）
 python tools/common/fx_rate.py --code USDCNY,HKDCNY

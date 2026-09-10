@@ -17,6 +17,7 @@ disable-model-invocation: true
 | [a-share-data.md](./a-share-data.md) | A股数据获取 | `stock_info.py`（含 `--profile`）、`stock_financial.py`（含 `--advanced`）、`stock_quote.py`（含 `--realtime`/`--momentum`/`--auto-peers`）、`stock_screen.py`、`stock_equity.py` |
 | [hk-share-data.md](./hk-share-data.md) | 港股数据获取 | `stock_financial.py`（含 `--advanced`）、`stock_quote.py`（含 `--realtime`）、`stock_screen.py` |
 | [financial-calc.md](./financial-calc.md) | 财务计算与验证 | `financial_rigor.py`（市值验算、交叉验证、估值验算、三情景估值、五维估值 peg/ps-g/pe-percentile/implied-growth） |
+| [terminal-value.md](./terminal-value.md) | 长期折现估值（十年尺度） | `terminal_value.py`（终值PE、十年IRR、三条硬约束 audit：C1 r/g 同币种、C2 r−g≥5pct、C3 离散风险不得进 r/β） |
 | [web-search-tools.md](./web-search-tools.md) | 网络信息搜索（v3.0 五工具） | `anysearch.py`（A股投研首选）、`doubao_search.py`（实时资讯首选）、`exa_search.py`（美股深度研究首选）、`tavily_search.py`（港美股辅源）、`web_search.py`（仅兜底） |
 | [report-audit.md](./report-audit.md) | 报告审核与抽检 | `report_audit.py`（15%随机抽样、准出/打回判决） |
 | [global-constraints.md](./global-constraints.md) | 全局约束规范 | 误差处理规则、股价复权规范、七条核心约束 |
@@ -47,6 +48,7 @@ disable-model-invocation: true
 本技能的工具使用规范详见以下公共技能文件：
 - A股/港股数据获取：[A股数据](../tools-scripts/a-share-data.md) / [港股数据](../tools-scripts/hk-share-data.md)
 - 财务计算与验证：[financial-calc](../tools-scripts/financial-calc.md)
+- 长期折现估值：[terminal-value](../tools-scripts/terminal-value.md)
 - 网络信息搜索：[web-search-tools](../tools-scripts/web-search-tools.md)
 - 报告审核与抽检：[report-audit](../tools-scripts/report-audit.md)
 - 全局约束规范：[global-constraints](../tools-scripts/global-constraints.md)

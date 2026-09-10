@@ -24,6 +24,7 @@
 | 工具文件               | 功能                              | 命令示例                                                           |
 | ---------------------- | --------------------------------- | ------------------------------------------------------------------ |
 | `financial_rigor.py` | 精确金融计算（PE、ROE、市值校验；含五维估值 `peg`/`ps-g`/`pe-percentile`/`implied-growth`） | `python tools/common/financial_rigor.py verify-valuation --help` |
+| `terminal_value.py` | 长期折现估值（十年尺度：终值PE、十年IRR、r/ROIC/g三输入、三条硬约束audit） | `python tools/common/terminal_value.py audit --currency CNY --r 0.08 --roic 0.20 --g 0.005,0.02,0.03` |
 | `report_audit.py`    | 研究报告审核                      | `python tools/common/report_audit.py --help`                     |
 
 ### 景气趋势筛选工具链（mid-trend-tech-screen）
@@ -685,7 +686,83 @@ python tools/common/financial_rigor.py implied-growth \
 
 ---
 
-## 七、report_audit.py - 研究报告审核
+## 七、terminal_value.py - 长期折现估值（十年尺度）
+
+> 三情景估值回答"贵不贵"，本工具用永续增长模型回答"值不值得重仓"。凡是给出**十年期 IRR 或终值倍数**的研究，必须用它，核心是永续增长模型：`PE(终值) = (1 - g/ROIC) / (r - g)`。
+
+**零外部依赖**，仅用 Python 标准库，要求 Python ≥ 3.7。
+
+### 功能说明
+
+提供终值倍数与十年 IRR 推演，含 7 个子命令：`pe` / `company` / `table` / `sweep` / `check` / `audit` / `irr`，并内置 7 家公司预设（腾讯/阿里巴巴/拼多多/贵州茅台/泡泡玛特/美团/MiniMax）与币种口径护栏（CNY/USD/HKD）。
+
+### 使用方法
+
+#### 1. 单点退出 PE（打印完整算式）
+
+```bash
+python tools/common/terminal_value.py pe --roic 0.20 --g 0.02 --r 0.06
+```
+
+#### 2. 单公司三档推演（用内置预设）
+
+```bash
+python tools/common/terminal_value.py company --name 腾讯 --r 0.06 --g-shift -0.01
+```
+
+#### 3. 多公司横评表 + 排序
+
+```bash
+python tools/common/terminal_value.py table --r 0.06 --g-shift -0.01 --rf 0.017
+```
+
+#### 4. 多档 r 敏感性 + 排序稳定性检验
+
+```bash
+python tools/common/terminal_value.py sweep --r 0.06,0.08,0.10,0.12 --g-shift -0.01 --rf 0.017
+```
+
+#### 5. 分母宽度体检（哪些格跌破 5pct 有效性下限）
+
+```bash
+python tools/common/terminal_value.py check --r 0.06 --g-shift -0.01
+```
+
+#### 6. 三条硬约束准出检查（必做，通过才可把估值写进报告）
+
+```bash
+python tools/common/terminal_value.py audit   --currency {CNY|USD|HKD} --r {资本成本} --roic {稳态ROIC}   --g {悲观g},{基准g},{乐观g} --rf {无风险利率} --beta 1.0   --discrete-risks "{风险名}:{情景|尾部档|概率|未建模},..."
+```
+
+三条检查与打回条件：
+
+| # | 检查 | 打回条件 |
+|---|---|---|
+| **C1** | **r 与 g 必须同币种**（人民币 r 6%–9%，美元/港元 9%–11.5%） | r 落在别的币种区间，或基准档 g 超过本币上限 |
+| **C2** | **分母 r−g ≥ 5 个百分点** | 任一档不足 5pct（如需做情景加 `--upside-only` 显式声明） |
+| **C3** | **离散风险不得进 r 或 β** | 退市/VIE/地缘断供/监管重击写进 `折现率`/`r`/`beta` 一律打回；β≠1.0 必须给 `--beta-justification` |
+
+#### 7. 从零算 IRR（不依赖预设，给利润与市值）
+
+```bash
+python tools/common/terminal_value.py irr --profit 5390 --mcap 34420 --pe 22.5 --years 10 --payout 0.015
+```
+
+#### 8. 用自己的公司配置
+
+```bash
+python tools/common/terminal_value.py table --r 0.08 --config my_companies.json
+```
+
+### 应用场景
+
+- 十年期终值 PE 推演
+- 十年期 IRR 估算（回答"值不值得重仓"）
+- 多公司横评与 r 敏感性排序稳定性检验
+- 估值口径三条硬约束准出检查（写入报告前必须通过）
+
+---
+## 八、report_audit.py - 研究报告审核
 
 ### 功能说明
 
@@ -714,7 +791,7 @@ python tools/common/report_audit.py --file reports/腾讯-20260722.md --sample 1
 
 ---
 
-## 八、anysearch.py - AnySearch 全域结构化搜索
+## 九、anysearch.py - AnySearch 全域结构化搜索
 
 ### 功能说明
 
@@ -877,7 +954,7 @@ for item in results:
 
 ---
 
-## 九、doubao_search.py - 豆包搜索
+## 十、doubao_search.py - 豆包搜索
 
 ### 功能说明
 
@@ -1041,7 +1118,7 @@ for r in results:
 
 ---
 
-## 十、exa_search.py - Exa 语义搜索
+## 十一、exa_search.py - Exa 语义搜索
 
 ### 功能说明
 
@@ -1142,7 +1219,7 @@ for item in results:
 
 ---
 
-## 十一、tavily_search.py - Tavily 搜索
+## 十二、tavily_search.py - Tavily 搜索
 
 ### 功能说明
 
@@ -1244,7 +1321,7 @@ asyncio.run(main())
 
 ---
 
-## 十二、web_search.py - 阿里云百炼 WebSearch
+## 十三、web_search.py - 阿里云百炼 WebSearch
 
 ### 功能说明
 
@@ -1330,7 +1407,7 @@ asyncio.run(main())
 
 ---
 
-## 十三、搜索工具选型对比
+## 十四、搜索工具选型对比
 
 本章为五工具 × 市场选型矩阵，依据《搜索服务选择策略重构方案 v2.0》定稿。
 
@@ -1476,7 +1553,7 @@ asyncio.run(main())
 
 ---
 
-## 十四、commodity_price.py - 大宗商品价格数据
+## 十五、commodity_price.py - 大宗商品价格数据
 
 ### 功能说明
 
@@ -1590,7 +1667,7 @@ python tools/common/commodity_price.py --code cu --max-records 5
 
 ---
 
-## 十五、fx_rate.py - 国际主要货币汇率
+## 十六、fx_rate.py - 国际主要货币汇率
 
 ### 功能说明
 
@@ -1725,7 +1802,7 @@ python tools/common/fx_rate.py --code USDCNY --max-records 100
 
 ---
 
-## 十六、pdf_extract.py - PDF 文字与表格提取
+## 十七、pdf_extract.py - PDF 文字与表格提取
 
 ### 功能说明
 
@@ -1893,7 +1970,7 @@ python tools/common/pdf_extract.py markdown cninfo_reports/601899_2025年报.pdf
 
 ---
 
-## 十七、A股代码格式说明
+## 十八、A股代码格式说明
 
 A股代码统一使用**6位数字字符串**:
 
@@ -1926,7 +2003,7 @@ A股代码统一使用**6位数字字符串**:
 
 ---
 
-## 十八、数据源说明
+## 十九、数据源说明
 
 ### stock_info_a_code_name()
 
@@ -2024,7 +2101,7 @@ A股代码统一使用**6位数字字符串**:
 
 ---
 
-## 十九、注意事项
+## 二十、注意事项
 
 ### 1. 代码格式
 
@@ -2062,7 +2139,7 @@ A股代码必须为6位数字字符串，如 `300502`，不要添加 `.SH` 或 `
 
 ---
 
-## 二十、与港股/美股工具的区别
+## 二十一、与港股/美股工具的区别
 
 | 特性     | A股工具              | 港股工具       | 美股工具           |
 | -------- | -------------------- | -------------- | ------------------ |
@@ -2077,7 +2154,7 @@ A股代码必须为6位数字字符串，如 `300502`，不要添加 `.SH` 或 `
 
 ---
 
-## 二十一、Python路径
+## 二十二、Python路径
 
 ```bash
 F:\Anaconda3\envs\Python_3_12_3\python.exe
@@ -2085,7 +2162,7 @@ F:\Anaconda3\envs\Python_3_12_3\python.exe
 
 ---
 
-## 二十二、常见使用场景
+## 二十三、常见使用场景
 
 ### 场景1: 快速查询公司信息
 
@@ -2209,7 +2286,7 @@ python tools/common/fx_rate.py --code USDCNY --start 2026-07-20 --end 2026-08-01
 
 ---
 
-## 二十三、局限性说明
+## 二十四、局限性说明
 
 1. **数据窗口**：部分公司上市时间较短，财务数据可能不足10年
 2. **周期性行业**：周期性行业需用完整周期平均值判断，避免单一年份误导

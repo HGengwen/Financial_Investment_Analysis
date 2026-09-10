@@ -10,13 +10,13 @@
   - `a_share/` — A股数据工具（akshare）
   - `hk_stock/` — 港股数据工具（东方财富/新浪）
   - `us_stock/` — 美股数据工具（yfinance）
-  - `common/` — 通用工具（金融计算、搜索、汇率、PDF提取、年报解析、动量计算、三市场数据缓存、报告审核等）
+  - `common/` — 通用工具（金融计算、长期折现估值、搜索、汇率、PDF提取、年报解析、动量计算、三市场数据缓存、报告审核等）
   - `specialized/` — 专用工具（景气趋势打分、在研项目扫描、动量回测、晨星公允价值）
 - `reports/` — 研究报告输出（工作区根目录，含个股/行业/bottleneck-map/trend-screen/pdf 等子目录）
 - `data/` — 本地数据缓存（三市场财务数据、A股代码/行业、板块截面，由 common/*_cache 模块自动维护）
 - `research/` — 投资思想与理念研究文档（四位投资大师理念、个人投资者中长期投资思想）
 - `refs/` — 参考资料（搜索服务对比、技能配套参考文档）
-- `.trae/skills/` — 投研技能文件（41 个 SKILL.md + README.md，另有 `tools-scripts/` 工具使用参考文档）
+- `.trae/skills/` — 投研技能文件（43 个 SKILL.md + README.md，另有 `tools-scripts/` 工具使用参考文档）
 - `docs/` — 工具使用指南（A股/港股/美股）与 `dev_docs/` 开发记录
 - `tests/` — pytest 单元/集成测试（对应 tools/ 各模块）
 - `.env` / `.env.example` — 环境变量配置（API密钥、限流参数、缓存 TTL 等）
@@ -24,7 +24,7 @@
 
 ## Skill 使用
 
-技能安装在 `.trae/skills/` 目录下，共 **41 个技能**，覆盖行业研究、公司深度研究、买入决策、中期投研（1-3年）、财报跟踪、持仓管理、基础工具与内容输出、未上市公司研究八大类（另有 `tools-scripts/` 存放工具使用参考文档）。
+技能安装在 `.trae/skills/` 目录下，共 **43 个技能**，覆盖行业研究、公司深度研究、买入决策、中期投研（1-3年）、财报跟踪、持仓管理、基础工具与内容输出、未上市公司研究八大类（另有 `tools-scripts/` 存放工具使用参考文档）。
 
 完整的技能选用指南：
 
@@ -38,6 +38,7 @@
 | `/industry-research {行业名}`   | 产业链全景扫描 + 四大师个股分析，首次研究一个行业时使用      |
 | `/industry-funnel {行业名}`     | 从全市场 30-60 家逐层精选到 3 家终选标的                     |
 | `/bottleneck-hunter {趋势名}`   | 从供应链"咽喉位置"挖掘第二、第三层投资机会                   |
+| `/era-alpha {行业/方向}`        | 时代α捕手：高增长核心资产的识别-验证-持有，聚焦时代级主线     |
 
 ### 公司深度研究类
 
@@ -59,6 +60,7 @@
 
 | 命令 | 功能 |
 | --- | --- |
+| `/mid-era-alpha {行业/方向}` | 时代α捕手（1~3年景气版）：时代级高增长主线与核心α识别-验证-持有，聚焦高景气主线的介入与退出纪律 |
 | `/mid-industry-research {行业名}` | 中期行业景气研究：TAM/渗透率/业绩兑现/地缘风险四维筛选 |
 | `/mid-industry-funnel {行业名}` | 中期行业漏斗精选：硬指标粗筛→四大支柱→四大师研判，收敛 3 家底仓 + 2 家机动仓 |
 | `/mid-bottleneck-hunter {趋势名}` | 供应链瓶颈猎手（中期版）：从物理供应链咽喉位置挖掘第二、三层瓶颈机会，叠加景气度与地缘六维评估 |
@@ -116,9 +118,13 @@
 - **中期链（1-3 年）**：提及「1-3 年 / 中期 / 景气 / 趋势 / 成长爆发」→
   `mid-industry-research` → `mid-industry-funnel` → `mid-trend-tech-screen` → `mid-investment-checklist` → `valuation-thermometer` → `qoq-accelerator`
   → `trend-momentum-scan` → `mid-thesis-drift` → `exit-signal`
+- **中期链 · 时代主线识别**：提及「时代α / 高增长核心资产 / 时代主线 / 范式转移」且属 1-3 年 / 中期 / 景气语境 →
+  `mid-era-alpha` → `mid-industry-research` → `mid-industry-funnel` → `mid-trend-tech-screen` → `mid-investment-checklist` → `exit-signal`
 - **股价异动应急**：提及「股价异动 / 暴跌 / 暴涨 / 为什么跌 / 为什么涨 / 新闻归因」→ `mid-news-pulse`（快速归因）→ 命中卖出纪律转 `exit-signal` → 景气逻辑复核转 `qoq-accelerator` / `mid-thesis-drift`
 - **长期链（10 年）**：提及「10 年 / 长期 / 永续 / 护城河」→
   `quality-screen` → `investment-research` → `thesis-tracker` → `thesis-drift`
+- **长期链 · 时代主线识别（10 年）**：提及「时代α / 高增长核心资产 / 时代主线 / 范式转移」且属 10 年 / 长期 / 永续语境 →
+  `era-alpha` → `quality-screen` → `investment-research` → `thesis-tracker` → `thesis-drift`
 - **`mid-` 前缀显式调用优先匹配**：`/mid-xxx` 直接命中对应中期技能，不受关键词路由影响
 - **中期问答入口**：涉及中期景气/PEG/估值/卖出纪律的轻量问答，可用 `/garp-ask {问题}`（问答型、不生成报告，林奇主轴）；与长期链 `/dyp-ask`（段永平）物理隔离
 - **未上市公司研究**：提及「未上市 / Pre-IPO / 独角兽 / 一级市场」→ 默认按持有周期分流：长期链 `/private-company-research`（10 年 / 护城河）、中期链 `/mid-private-company-research`（1-3 年景气 GARP）
@@ -209,6 +215,7 @@
 | 工具文件                            | 功能                                            | 命令示例                                                           |
 | ----------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------ |
 | `tools/common/financial_rigor.py` | 精确金融计算（PE、ROE、市值校验、三情景估值）   | `python tools/common/financial_rigor.py verify-valuation --help` |
+| `tools/common/terminal_value.py` | 长期折现估值（十年尺度：终值PE、十倍IRR、r/ROIC/g三输入、三条硬约束audit） | `python tools/common/terminal_value.py audit --currency CNY --r 0.08 --roic 0.20 --g 0.005,0.02,0.03` |
 | `tools/common/fx_rate.py`         | 国际主要货币汇率（Akshare 优先，yfinance 回退） | `python tools/common/fx_rate.py --code USDCNY`                   |
 | `tools/common/commodity_price.py` | 大宗商品价格（Akshare 优先，yfinance 回退）     | `python tools/common/commodity_price.py --code cu,GC,CL`         |
 | `tools/common/pdf_extract.py`     | PDF文字与表格提取（pdf-inspector，自动乱码检测 + OCR 回退） | `python tools/common/pdf_extract.py markdown report.pdf` |
