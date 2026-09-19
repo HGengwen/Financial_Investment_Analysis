@@ -894,8 +894,8 @@ python tools/common/report_audit.py verdict \
 | 后置（景气假设） | `mid-thesis-drift` | H1~H6 漂移验证 |
 | 后置（财报深读） | `mid-earnings-review` / `mid-earnings-team` | 上市后财报跟踪 |
 | 后置（瓶颈挖掘） | `mid-bottleneck-hunter` | 从供应链咽喉位置挖掘第二三层机会 |
-| 同级（问答型） | `garp-ask` | 涉及 GARP 轻量问答可转此，不重复研究 |
-| 同级（流动性验证） | `garp-liquidity-reinvestment` | 上市后自由现金流/再投资效率深挖 |
+| 同级（问答型） | `mid-ask` | 涉及 GARP 轻量问答可转此，不重复研究 |
+| 同级（流动性验证） | `mid-liquidity-reinvestment` | 上市后自由现金流/再投资效率深挖 |
 
 > **引用不重建原则**：本技能只做"上市前预判建档"，**不重建** `exit-signal` 的 P0~P5 规则、**不重建** `valuation-thermometer` 的估值公式、**不重建** `mid-thesis-drift` 的 H1~H6——一律引用指向，避免口径漂移。
 
@@ -924,7 +924,7 @@ python tools/common/report_audit.py verdict \
 10. **上市后视角导向**——最终目标是判断"值不值得等待上市"，不是输出一份好看的报告
 11. **术语红线**——全文禁止"护城河永续""终局思维""持有 10 年""论文已破"等长期术语；壁垒表述统一为"1~3 年景气竞争力"；卖出纪律统一 P0~P5，时间止损归 P2，无 P6 层级
 12. **报告物理隔离**——报告路径统一 `-mid-private-` 前缀，与长期版 `-private-` 区分
-13. **技能名准确**——中期链技能名为 `/mid-investment-checklist`、`/mid-earnings-review`、`/mid-earnings-team`、`/mid-investment-research`、`/mid-investment-team`、`/mid-bottleneck-hunter`；`garp-ask`、`garp-liquidity-reinvestment` 为真实中期专用技能可正常引用
+13. **技能名准确**——中期链技能名为 `/mid-investment-checklist`、`/mid-earnings-review`、`/mid-earnings-team`、`/mid-investment-research`、`/mid-investment-team`、`/mid-bottleneck-hunter`；`mid-ask`、`mid-liquidity-reinvestment` 为真实中期专用技能可正常引用
 
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: garp-liquidity-reinvestment
+name: mid-liquidity-reinvestment
 description: "流动性质量与再投资能力验证（1~3年景气投资版）：评估快速增长型公司的自由现金流质量、再投资效率与资本配置纪律，判断其成长是否建立在真实现金创造与高效再投资之上。触发词：流动性质量/自由现金流/FCF/再投资/增量ROIC/资本配置/现金流验证/1-3年/中期。与长期版 income-investment（分红收入分析）路由区分：本技能验证增长型公司的现金流与再投资质量，不评估分红收入。"
 disable-model-invocation: true
 ---
@@ -399,7 +399,7 @@ python tools/common/financial_rigor.py three-scenario \
 
 将判决门控结果包含在第 2 节，来源标题、发布者、发布日期、查询日期、报告期间、URL 和一手/二手标签包含在第 11 节。
 
-保存报告至 `reports/{公司名}/{公司名}-garp-liquidity-{YYYYMMDD}.md`，使用文件系统安全的公司标识符。
+保存报告至 `reports/{公司名}/{公司名}-mid-liquidity-{YYYYMMDD}.md`，使用文件系统安全的公司标识符。
 
 ---
 
@@ -407,10 +407,10 @@ python tools/common/financial_rigor.py three-scenario \
 
 ```bash
 # 提取报告中的数据项
-python tools/common/report_audit.py extract --report reports/{公司名}/{公司名}-garp-liquidity-{YYYYMMDD}.md
+python tools/common/report_audit.py extract --report reports/{公司名}/{公司名}-mid-liquidity-{YYYYMMDD}.md
 
 # 验证每个提取项与可靠来源一致，然后：
-python tools/common/report_audit.py verdict --results '<verified JSON>' --report reports/{公司名}/{公司名}-garp-liquidity-{YYYYMMDD}.md
+python tools/common/report_audit.py verdict --results '<verified JSON>' --report reports/{公司名}/{公司名}-mid-liquidity-{YYYYMMDD}.md
 ```
 
 修复未通过项并重复审核。明确保留未解决的缺口，降低置信度而非用假设填充。
@@ -474,8 +474,8 @@ python tools/common/report_audit.py verdict --results '<verified JSON>' --report
 
 | Skill | 定位 | 何时用 |
 | --- | --- | --- |
-| **`/garp-liquidity-reinvestment`（本 Skill）** | **流动性质量与再投资能力专项验证** | 验证快速增长型公司的 FCF 质量和再投资效率 |
-| `/garp-ask`（GARP 问答） | GARP 价值成长问答（林奇主轴） | 轻量问答，不生成正式报告 |
+| **`/mid-liquidity-reinvestment`（本 Skill）** | **流动性质量与再投资能力专项验证** | 验证快速增长型公司的 FCF 质量和再投资效率 |
+| `/mid-ask`（GARP 问答） | GARP 价值成长问答（林奇主轴） | 轻量问答，不生成正式报告 |
 | `/mid-investment-research` | 单 Agent 全面公司研究 | 首次深度研究一家公司 |
 | `/mid-investment-team` | 四 Agent 全面公司研究 | 需要多 Agent 综合研究时 |
 | `/mid-management-deep-dive` | 管理层诚信 + 资本配置 20 分制 | 深度评估管理层与科研转化 |

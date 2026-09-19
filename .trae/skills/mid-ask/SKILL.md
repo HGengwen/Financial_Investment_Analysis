@@ -1,5 +1,5 @@
 ---
-name: garp-ask
+name: mid-ask
 description: "GARP价值成长问答技能——以彼得·林奇为核心主轴，辅以郑希/李进/欧奈尔，用 PEG 估值、六类分类、P0~P5 卖出纪律回答 1~3 年中期投资问题。核心是以合理价格买入可持续成长（Growth at a Reasonable Price）。"
 disable-model-invocation: true
 ---
@@ -405,7 +405,7 @@ python tools/common/financial_rigor.py calc --expr "(未来第2年EPS/当前TTM 
 
 禁止使用 Anthropic 官方 WebSearch / WebFetch（中国大陆不可用），统一使用本地五工具组合。完整选型见 `web-search-tools.md`。
 
-**garp-ask 场景下的搜索选型**：
+**mid-ask 场景下的搜索选型**：
 
 - A股财报/公告深查：`anysearch.py --tag finance` 主 + `doubao_search.py --finance` 辅
 - 实时舆情（卖出 P0/P5 判断）：`doubao_search.py --finance`
@@ -413,7 +413,7 @@ python tools/common/financial_rigor.py calc --expr "(未来第2年EPS/当前TTM 
 - 港美股内容辅源：`tavily_search.py`
 - 轻量验证兜底：`web_search.py`
 
-**搜索规范（garp-ask 特有）**：
+**搜索规范（mid-ask 特有）**：
 
 - 一致预期 EPS 增速至少取 2 个来源，误差 > 10% 须标记（供 PEG `--growth` 校验）
 - 治理/造假/立案线索（P0 判断）优先 `anysearch --tag legal` + `doubao --finance`

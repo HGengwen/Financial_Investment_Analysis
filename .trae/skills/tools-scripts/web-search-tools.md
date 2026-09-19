@@ -27,7 +27,7 @@ disable-model-invocation: true
 
 | 工具                 | 关键参数                                                                                                                       |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `anysearch.py`     | `--tag finance/legal/patent/paper`、`--zone cn/intl`、`--language zh-CN/en`、`--count`、`--export`                   |
+| `anysearch.py`     | `--count`、`--zone cn/intl`、`--language zh-CN/en`、`--export`（`--tag` 垂直库需额外参数 symbol/type/cn_code，裸用 HTTP 400，见下方警告） |
 | `doubao_search.py` | `--finance`、`--sites`、`--block-hosts`、`--need-content`、`--export`、`--time-range`、`--industry`、`--count` |
 | `exa_search.py`    | `--type instant/fast/auto/deep-lite/deep`、`--highlights`、`--max-results`、`--max-characters`、`--no-autoprompt`    |
 | `tavily_search.py` | `--max-results`（1-20）、搜索深度（advanced）、`--json`                                                                    |
@@ -41,7 +41,7 @@ disable-model-invocation: true
 
 | 场景                         | 主搜索                                       | 辅/验证                     |
 | ---------------------------- | -------------------------------------------- | --------------------------- |
-| 财报/研报/公告/判例/专利深查 | `anysearch --tag finance/legal`            | `doubao --finance`        |
+| 财报/研报/公告/判例/专利深查 | `anysearch` 通用检索（`--count`）          | `doubao --finance`        |
 | 实时新闻/舆情/热点资讯       | `doubao --finance`                         | `anysearch`               |
 | 精确数值核验                 | `financial_rigor.py`（专用工具，不属搜索） | —                          |
 | 多源交叉验证                 | `anysearch` + `doubao` 双主              | `web_search` 兜底（手动） |
@@ -75,7 +75,7 @@ disable-model-invocation: true
 
 - **anysearch 港股覆盖**：通用搜索模式已实测通过（腾讯 00700 返回 5 条权威财经媒体结果含精确财务数据；港交所 00388 返回 3 条含精确业绩数据）
 - **anysearch 美股覆盖**：`--zone intl --language en` 已实测通过（NVDA 返回 $130.5B revenue, $2.94 EPS）
-- **anysearch 垂直库警告**：`--tag finance` 垂直库需额外参数（symbol/type/cn_code）
+- **anysearch 垂直库警告**：`--tag finance` 垂直库**需额外参数**（`symbol` / `type` / `cn_code`），裸用返回 `HTTP 400 [Missing required params for tag 'finance.fundamental']`（2026-09-19 实测）；**改用通用检索 + `--count`** 即可正常返回（实测 5 条 / 1540ms）。本文件所有 `anysearch` 示例均已按此更正。
 - **exa SEC filings**：搜索 "AAPL 10-K" 直接命中 SEC.gov 原文（aapl-20240928.htm）+ Apple IR + EDGAR，5 条结果全部高质量
 - **doubao**：实测正常
 
@@ -90,7 +90,7 @@ disable-model-invocation: true
   │
   ├─ 哪个市场？
   │   ├─ A股 ↓
-  │   │   ├─ 财报/研报/公告/判例/专利深查？ → anysearch --tag 主 + doubao --finance 辅
+  │   │   ├─ 财报/研报/公告/判例/专利深查？ → anysearch 通用检索（--count）主 + doubao --finance 辅
   │   │   ├─ 实时新闻/舆情/热点？ → doubao --finance 主 + anysearch 辅
   │   │   └─ 精确数值核验？ → financial_rigor.py（专用工具，不属搜索）
   │   ├─ 港股 ↓
@@ -117,8 +117,9 @@ disable-model-invocation: true
 # 基本搜索
 python tools/common/anysearch.py "紫金矿业 财报"
 
-# 垂直领域定向搜索（tag）
-python tools/common/anysearch.py "A股 半年报 业绩" --tag finance
+# 垂直领域定向搜索（tag 垂直库需额外参数 symbol/type/cn_code，裸用 HTTP 400，改用通用检索）（tag）
+# 注意：--tag 垂直库需搭配合法参数，否则 HTTP 400（见下方警告）
+python tools/common/anysearch.py "A股 半年报 业绩" --count 5
 python tools/common/anysearch.py "民法典 民间借贷 利率" --tag legal
 python tools/common/anysearch.py "carbon capture" --tag paper --zone intl
 
@@ -223,8 +224,9 @@ python tools/common/web_search.py "腾讯控股 股价"
 ### A股双主验证
 
 ```bash
-# anysearch 垂直检索（财报/研报）+ doubao 财经定向（权威信源 + 正文）
-python tools/common/anysearch.py "紫金矿业 财报" --tag finance
+# anysearch 通用检索（财报/研报）+ doubao 财经定向（权威信源 + 正文）
+# 注意：anysearch 的 --tag finance 垂直库需额外参数（symbol/type/cn_code），裸用会 HTTP 400
+python tools/common/anysearch.py "紫金矿业 财报" --count 5
 python tools/common/doubao_search.py "紫金矿业 2025年报" --finance --need-content --export
 ```
 
@@ -274,8 +276,8 @@ from tools.common.anysearch import anysearch
 # 基本调用
 results = anysearch("黄金价格", max_results=5)
 
-# 垂直领域定向搜索
-results = anysearch("紫金矿业 财报", tag="finance", max_results=5)
+# 垂直领域定向搜索（tag 垂直库需额外参数 symbol/type/cn_code，裸用 HTTP 400，改用通用检索）
+results = anysearch("紫金矿业 财报", max_results=5)
 
 for item in results:
     print(f"标题: {item['title']}")

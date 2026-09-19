@@ -548,7 +548,7 @@ python tools/common/report_audit.py verdict \
 | `/valuation-thermometer` | 估值五档温度 | 文章 PEG 档位口径来源 |
 | `/exit-signal` | 卖出信号 P0~P5 | 文章卖出纪律口径来源 |
 | `/mid-management-deep-dive` | 管理层纵深研究 | 管理层/科研转化 20 分制口径来源 |
-| `/garp-ask` | 景气大师问答（林奇主轴） | 投资问答互动，轻量口径参考 |
+| `/mid-ask` | 景气大师问答（林奇主轴） | 投资问答互动，轻量口径参考 |
 | `/wechat-article` | 公众号文章写作（长期版，巴芒段李） | 长期链（10年）内容输出，物理隔离不互用 |
 
 ---

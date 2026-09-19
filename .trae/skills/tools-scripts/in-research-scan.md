@@ -110,6 +110,70 @@ python tools/common/doubao_search.py --sites chinadrugtrials.org.cn --time-range
 | 6 ≤ R8 < 8 | 在②研发模块**额外 +3 分奖励** |
 | R8 < 0 | 触发**在研项目风险警告**，评级下调一级（S→A→B→C） |
 
+## 研发管线 NPV 粗算子 `pipeline-npv`（GARP 独立档）
+
+> **口径归属**：本节属 **GARP 独立档（1~5 年，五大师：费雪 / 林奇 / 郑希 / 李进 / 欧奈尔）**，服务框架第 4 步·估值工具矩阵「未盈利科技型」行的**辅助工具「研发管线 NPV」**（主锚仍为 PS / EV-Sales），由 P4-5 `garp-valuation` 编排调用。与上文 `scan` 的 R8 评分口径**物理共存、语义隔离**，两者不混用。
+
+### 用法
+
+```bash
+# 最小用法（折现率 / 币种 / 基准年一律由调用方提供）
+python tools/specialized/in_research_scan.py pipeline-npv \
+    --projects p.json --discount-rate 0.10 --currency CNY --as-of-year 2026 --json
+
+# 附敏感性（绝对步长，3×3 网格）
+python tools/specialized/in_research_scan.py pipeline-npv \
+    --projects p.json --discount-rate 0.10 --currency CNY --as-of-year 2026 \
+    --sensitivity "r=0.01;p=0.10" --json
+
+# 从 scan 结果提取候选项目名（只取名称，不含数值）
+python tools/specialized/in_research_scan.py pipeline-npv \
+    --from-scan scan.json --discount-rate 0.10 --currency CNY --as-of-year 2026
+
+# stdin 传入项目文件
+python tools/specialized/in_research_scan.py pipeline-npv \
+    --projects - --discount-rate 0.10 --currency CNY --as-of-year 2026 < p.json
+```
+
+### 输入（`--projects` JSON）
+
+| 字段 | 必填 | 说明 |
+|------|:---:|------|
+| `name` | ✅ | 项目名 |
+| `peak_revenue` | ✅ | 峰值年收入（金额单位由调用方自定，工具不解释） |
+| `launch_year` | ✅ | 商业化年份（早于基准年即报错） |
+| `probability` | ✅ | 成功概率（0~1） |
+| `source` | ✅ | 参数来源（原样回显，供审计追溯） |
+| `cost` | — | 投入成本；**唯一允许的缺省**，缺省 `0.0` 且写入 `defaults_applied` 回显 |
+| `currency` / `as_of_year` | — | 文件级可选；币种须与 `--currency` 一致，基准年须为**整数**且与 `--as-of-year` 一致，否则报错（不静默忽略） |
+
+### 计算口径（写死，禁止 LLM 心算）
+
+| 项 | 公式 |
+|----|------|
+| 期数 | `n_i = launch_year_i − as_of_year` |
+| 峰值现值 | `PV_peak = peak_revenue / (1+r)**n` |
+| 成本现值 | `PV_cost = cost / (1+r)**n` |
+| 项目 NPV | `NPV_i = probability × PV_peak − PV_cost` |
+| 管线 NPV | `pipeline_npv = Σ NPV_i` |
+
+### 输出与退出码
+
+- `--json`：`{task, as_of_year, currency, discount_rate, projects[], pipeline_npv, sensitivity, data_insufficient, missing[], defaults_applied[], note}`；
+- **缺项属业务状态**：`data_insufficient=true` + `missing[]`，逐项目数值与 `pipeline_npv` **均为 `null`（不做部分计算）**、`sensitivity` 恒 `null`，**退出码 0**；
+- **用法错误**：参数缺失/非法、币种或基准年冲突、折现率 `≤ -1` 或 `> 1.0`、敏感性折现率网格越界 → **退出码 2**，错误写 stderr、stdout 不出 JSON；
+- 敏感性：`--sensitivity "r=Δr;p=Δp"` → 3×3 网格 + `npv_low` / `npv_high` / `base`；概率越界**截断并标 `clipped=true`**（唯一允许的截断）。
+
+### 红线
+
+1. **不内置任何默认假设**：折现率 / 币种 / 概率 / 峰值收入 / 商业化年份一律由调用方提供，缺失即标注数据不足；
+2. 不换算汇率、不解释金额单位；
+3. 不做分年爬坡、税率、摊销、项目相关性调整（概率是唯一风险调整因子）；
+4. 不输出买卖结论、档位、评级、排序；
+5. 不替换 PS / EV-Sales 主锚；不叠加 ESG 折价（由 P4-5 编排层完成）。
+
+> 折现率上限 `1.0` **仅拦「百分数当小数」的量纲误用**（如把 10% 写成 `10`），不是默认值或经验值。完整口径、样例与验收对照见 `upgrade1.0/P3-8/`（开发方案与计划 / 样例与期望输出 / 测试记录 / 回归核对记录 / 口径隔离声明）。
+
 ---
 
 ## 信息来源速查表（完整版）
@@ -146,12 +210,23 @@ result = scan(
 queries = build_queries("中芯国际", channels=["patent", "gov"])
 ```
 
+```python
+from tools.specialized.in_research_scan import run_pipeline_npv
+
+# 研发管线 NPV 粗算（GARP 独立档；参数全部由调用方提供，缺失即标注数据不足）
+result = run_pipeline_npv(
+    "p.json", discount_rate=0.10, currency="CNY", as_of_year=2026,
+)
+print(result["pipeline_npv"], result["data_insufficient"])
+```
+
 ---
 
 ## 相关技能
 
 - [景气趋势筛选打分引擎](./trend-tech-screen.md)（`score --r8` 消费方）
 - [网络信息搜索](./web-search-tools.md)（底层 `doubao_search` 五工具）
+- **消费方**：P4-5 `garp-valuation`（GARP 独立档估值编排层）—— 消费本文档的 `pipeline-npv` 数值段；`scan` 段的消费方为 `trend_tech_screen.py score --r8`
 - [年报结构化抽取](./annual-report-parser.md)
 - [PDF文档提取](./pdf-extraction.md)
 - [公共工具索引](./common-tools-guide.md)
@@ -160,8 +235,8 @@ queries = build_queries("中芯国际", channels=["patent", "gov"])
 
 ## 版本信息
 
-- **版本**：1.0.0
+- **版本**：**1.1.0**
 - **创建日期**：2026-08-26
-- **更新日期**：2026-08-26
-- **来源**：《在研重大项目信息获取方法的整合与强化.md》（`research/quality-screen/`）整合落地
+- **更新日期**：2026-09-17
+- **来源**：《在研重大项目信息获取方法的整合与强化.md》（`research/quality-screen/`）整合落地；1.1.0 追加 `pipeline-npv` 子命令说明（P3-8，GARP 独立档，2026-09-17）
 - **维护状态**：活跃维护

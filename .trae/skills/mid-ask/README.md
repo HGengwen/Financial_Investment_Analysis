@@ -1,4 +1,4 @@
-# GARP 价值成长问答 (GARP Ask)
+# GARP 价值成长问答 (Mid Ask)
 
 以彼得·林奇为核心主轴，辅以郑希 / 李进 / 欧奈尔，用 PEG 估值、六类分类、P0~P5 卖出纪律，回答 1~3 年中期投资问题。核心是以合理价格买入可持续成长（Growth at a Reasonable Price）。
 
@@ -9,15 +9,15 @@
 ### 基本调用方式
 
 ```
-/garp-ask {你的问题}
+/mid-ask {你的问题}
 ```
 
 例如：
 
-- `/garp-ask 我看好一家公司，增速 30%，PE 35 倍，可以买吗？`
-- `/garp-ask 这家公司属于林奇六类中的哪一类？`
-- `/garp-ask 持仓的股票 PEG 从 0.8 涨到 1.6 了，该卖吗？`
-- `/garp-ask 怎么判断一家公司成长是否可持续？`
+- `/mid-ask 我看好一家公司，增速 30%，PE 35 倍，可以买吗？`
+- `/mid-ask 这家公司属于林奇六类中的哪一类？`
+- `/mid-ask 持仓的股票 PEG 从 0.8 涨到 1.6 了，该卖吗？`
+- `/mid-ask 怎么判断一家公司成长是否可持续？`
 
 ### 快捷指令
 
@@ -60,7 +60,7 @@ GARP 介于纯价值投资与纯成长投资之间——不买最便宜的烂公
 ### 示例 1：询问估值是否合理
 
 ```
-/garp-ask @林奇 增速 30%、PE 35 倍，能买吗？
+/mid-ask @林奇 增速 30%、PE 35 倍，能买吗？
 ```
 
  以林奇为主线：先算 PEG（落五档口径），再问增速可持续性、六类分类归属。
@@ -68,7 +68,7 @@ GARP 介于纯价值投资与纯成长投资之间——不买最便宜的烂公
 ### 示例 2：询问成长可持续性
 
 ```
-/garp-ask 这家公司的 30% 增速能持续吗？
+/mid-ask 这家公司的 30% 增速能持续吗？
 ```
 
  林奇主导 + 郑希辅助验证（ROE 趋势、产业景气、渗透率位置）。
@@ -76,7 +76,7 @@ GARP 介于纯价值投资与纯成长投资之间——不买最便宜的烂公
 ### 示例 3：询问管理层质量
 
 ```
-/garp-ask 这家公司管理层靠谱吗？
+/mid-ask 这家公司管理层靠谱吗？
 ```
 
  林奇主导 + 李进辅助验证（管理层 20 分制、科研转化 20 分制、治理一票否决）。
@@ -84,7 +84,7 @@ GARP 介于纯价值投资与纯成长投资之间——不买最便宜的烂公
 ### 示例 4：询问是否该卖
 
 ```
-/garp-ask @GARP 持仓 PEG 涨到 1.6，该卖吗？
+/mid-ask @GARP 持仓 PEG 涨到 1.6，该卖吗？
 ```
 
  林奇主导 + 欧奈尔辅助，严格引用 `exit-signal` 的 P0~P5 优先级。
@@ -167,7 +167,7 @@ python tools/common/financial_rigor.py calc --expr "(未来第2年EPS/当前TTM 
 
 禁止使用 Anthropic 官方 WebSearch / WebFetch（中国大陆不可用），统一使用本地五工具组合。完整选型见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
-**garp-ask 场景下的搜索选型**：
+**mid-ask 场景下的搜索选型**：
 
 - A股财报/公告深查：`anysearch.py --tag finance` 主 + `doubao_search.py --finance` 辅
 - 实时舆情（卖出 P0/P5 判断）：`doubao_search.py --finance`
@@ -175,7 +175,7 @@ python tools/common/financial_rigor.py calc --expr "(未来第2年EPS/当前TTM 
 - 港美股内容辅源：`tavily_search.py`
 - 轻量验证兜底：`web_search.py`
 
-**搜索规范（garp-ask 特有）**：
+**搜索规范（mid-ask 特有）**：
 
 - 一致预期 EPS 增速至少取 2 个来源，误差 > 10% 须标记（供 PEG `--growth` 校验）
 - 治理/造假/立案线索（P0 判断）优先 `anysearch --tag legal` + `doubao --finance`

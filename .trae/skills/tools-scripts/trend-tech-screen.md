@@ -58,9 +58,9 @@ python tools/specialized/trend_tech_screen.py batch --input companies.json --cyc
 | 维度 | 数据来源 |
 |------|---------|
 | 财务科目 | `stock_financial.py`（A股 `--advanced` / 港股 `--advanced` / 美股 `--indicators`） |
-| 动量与技术面 | `stock_quote.py --momentum`（SMR/RSI(50)/MA50/MA200/量能） |
+| 动量与技术面 | `stock_quote.py --momentum`（SMR/RSI(50)/MA50/MA200/量能/ATR(14)） |
 | 市值/覆盖度 | `stock_info.py --profile` |
-| 估值计算 | `financial_rigor.py`（peg / ps-g / pe-percentile / implied-growth） |
+| 估值计算 | `financial_rigor.py`（peg / ps-g / pe-percentile / implied-growth / roic / incremental-roic / wacc / rule-of-40 / ev-sales / adjusted-peg / dcf） |
 | 年报字段 | `annual_report_parser.py`（员工/子公司/新品/供应链/收入分部） |
 | 在研项目扫描 | `in_research_scan.py scan {公司} --market sz --official-site {官网} --annual-report {年报md}`（gov/patent/bidding/academic/investor/website/research 多渠道，R8 数据源） |
 | 政策/制裁/国产化 | `doubao_search.py` / `anysearch.py` |
@@ -103,6 +103,6 @@ python tools/specialized/in_research_scan.py list
 
 ## 版本信息
 
-- **版本**：1.1.0
+- **版本**：1.2.0
 - **创建日期**：2026-08-25
-- **更新日期**：2026-08-26（补齐 `--r8` 参数说明；新增在研项目扫描工具 `in_research_scan.py` 章节）
+- **更新日期**：2026-09-14（上游数据工具补充 `atr14` 与 GARP 计算核心七命令，Phase 1 同步）

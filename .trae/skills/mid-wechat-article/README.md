@@ -289,7 +289,7 @@ python tools/common/report_audit.py verdict \
 - [卖出信号](../exit-signal/README.md) — P0~P5 卖出纪律（文章卖出纪律口径来源）
 - [中期行业研究](../mid-industry-research/README.md) — 产业景气/渗透率口径来源
 - [中期管理层纵深](../mid-management-deep-dive/README.md) — 管理层/科研转化 20 分制口径来源
-- [景气大师问答](../garp-ask/README.md) — 林奇主轴轻量问答，口径参考
+- [景气大师问答](../mid-ask/README.md) — 林奇主轴轻量问答，口径参考
 
 ---
 

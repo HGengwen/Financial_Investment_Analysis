@@ -18,10 +18,10 @@ disable-model-invocation: true
 | `tools/hk_stock/stock_financial.py` | 高级财务科目（合约负债/存货/应付账款/预付款项） | `python tools/hk_stock/stock_financial.py --advanced {科目1,科目2}` |
 | `tools/hk_stock/stock_quote.py` | 港股历史K线与指数数据 | `python tools/hk_stock/stock_quote.py --code {股票代码}` |
 | `tools/hk_stock/stock_quote.py` | 港股实时快照（新浪全市场，盘中实时） | `python tools/hk_stock/stock_quote.py --realtime {股票代码}` |
-| `tools/hk_stock/stock_quote.py` | 动量与技术面（RSI/MA，SMR 截面对港股不可用） | `python tools/hk_stock/stock_quote.py --code {代码} --momentum --auto-peers` |
+| `tools/hk_stock/stock_quote.py` | 动量与技术面（RSI/MA/ATR(14)，SMR 截面对港股不可用） | `python tools/hk_stock/stock_quote.py --code {代码} --momentum --auto-peers` |
 | `tools/hk_stock/stock_screen.py` | 港股质量筛选7条指标 | `python tools/hk_stock/stock_screen.py --code {股票代码}` |
 
-> **注**：港股 `--momentum --auto-peers` 会输出 SMR 结论"不可用"提示（港股板块成分无可靠公共数据源），同时仍计算 RSI(50)/MA/止损位并将 SMR 百分位置 None。SMR 需手动指定 `--peers` 或使用搜索补充。
+> **注**：港股 `--momentum --auto-peers` 会输出 SMR 结论"不可用"提示（港股板块成分无可靠公共数据源），同时仍计算 RSI(50)/MA/ATR(14)（Wilder 口径、2 位小数，供 GARP 高波动科技股动态跟踪止损）并将 SMR 百分位置 None。SMR 需手动指定 `--peers` 或使用搜索补充。
 
 ---
 
@@ -42,5 +42,6 @@ disable-model-invocation: true
 
 ## 版本信息
 
-- **版本**：1.0.0
+- **版本**：1.1.0（v1.1 `--momentum` 输出新增 `atr14`，Phase 1）
 - **创建日期**：2026-07-31
+- **更新日期**：2026-09-14

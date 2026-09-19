@@ -1,6 +1,6 @@
 ---
 name: annual-report-parser
-description: "年报结构化抽取工具：从 pdf_extract.py 产出的年报 markdown 中定向抽取员工情况、子公司列表、研发投入、收入分部、新品收入占比、供应链风险等结构化JSON，为人才维度与地缘Y轴评估提供数据，禁止LLM手工挖文本。"
+description: "年报结构化抽取工具：从 pdf_extract.py 产出的年报 markdown 中定向抽取员工情况、子公司列表、研发投入、收入分部、新品收入占比、供应链风险、治理字段（大股东质押率/管理层持股/分红回购/销售组织/ESG摘录）等结构化JSON，为人才维度、地缘Y轴评估与GARP管理层/ESG评分提供数据，禁止LLM手工挖文本。"
 disable-model-invocation: true
 ---
 
@@ -35,7 +35,7 @@ python tools/common/annual_report_parser.py {年报md路径} --output-json
 
 ## 结构化字段说明
 
-抽取的 JSON 含以下六大块：
+抽取的 JSON 含以下七大块：
 
 | 块 | 关键字段 | 支撑指标 |
 |------|---------|---------|
@@ -45,6 +45,9 @@ python tools/common/annual_report_parser.py {年报md路径} --output-json
 | `revenue_segments` | segments[{dimension, name, amount, ratio}]（按产品/地区/销售模式） | 景气前瞻、收入结构 |
 | `new_product` | found / excerpts（新品收入占比文本摘录） | 欧奈尔 N 因子 |
 | `supply_chain` | found / excerpts（供应链风险文本摘录） | 反证清单红线 |
+| `governance` | pledge_ratio / management_shareholding / dividend_buyback / sales_organization / esg（各有 confidence + 源文本摘录，缺省 None） | GARP 管理层 20 分制 + 费雪补充 + ESG 补充检查 |
+
+> `governance` 为 GARP 独立档（1~5 年）治理取证字段：**只抽事实、不判档**（质押率>50% 预警、分红率≥30%、持股≥3% 等阈值判定由 `governance_data.py` 承担）。
 
 `warnings` 数组标注未定位到的章节（如新品收入/供应链未披露为正常情况）。
 
@@ -70,6 +73,6 @@ res = annual_report_parser.parse_markdown_file("cninfo_reports/extracted/002709_
 
 ## 版本信息
 
-- **版本**：1.0.0
+- **版本**：1.1.0
 - **创建日期**：2026-08-25
-- **更新日期**：2026-08-25
+- **更新日期**：2026-09-16

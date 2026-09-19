@@ -16,7 +16,7 @@
 - `data/` — 本地数据缓存（三市场财务数据、A股代码/行业、板块截面，由 common/*_cache 模块自动维护）
 - `research/` — 投资思想与理念研究文档（四位投资大师理念、个人投资者中长期投资思想）
 - `refs/` — 参考资料（搜索服务对比、技能配套参考文档）
-- `.trae/skills/` — 投研技能文件（43 个 SKILL.md + README.md，另有 `tools-scripts/` 工具使用参考文档）
+- `.trae/skills/` — 投研技能文件（65 个 SKILL.md + README.md，另有 `tools-scripts/` 工具使用参考文档）
 - `docs/` — 工具使用指南（A股/港股/美股）与 `dev_docs/` 开发记录
 - `tests/` — pytest 单元/集成测试（对应 tools/ 各模块）
 - `.env` / `.env.example` — 环境变量配置（API密钥、限流参数、缓存 TTL 等）
@@ -24,12 +24,13 @@
 
 ## Skill 使用
 
-技能安装在 `.trae/skills/` 目录下，共 **43 个技能**，覆盖行业研究、公司深度研究、买入决策、中期投研（1-3年）、财报跟踪、持仓管理、基础工具与内容输出、未上市公司研究八大类（另有 `tools-scripts/` 存放工具使用参考文档）。
+技能安装在 `.trae/skills/` 目录下，共 **65 个技能**（43 个非 GARP + **22 个 GARP 独立档**），覆盖行业研究、公司深度研究、买入决策、中期投研（1-3年）、**GARP 独立档（1~5年）**、财报跟踪、持仓管理、基础工具与内容输出、未上市公司研究九大类（另有 `tools-scripts/` 存放工具使用参考文档）。
 
 完整的技能选用指南：
 
 - 长期（10 年）参见 [证券AI价值投资研究工作步骤.md](.trae/skills/证券AI价值投资研究工作步骤.md)
 - 中期（1-3 年）参见 [证券AI中长期（1~3年）价值投资研究工作步骤.md](.trae/skills/证券AI中长期（1~3年）价值投资研究工作步骤.md)
+- GARP（1~5 年）参见 [证券AI中长期价值成长（GARP）投资研究工作步骤.md](.trae/skills/证券AI中长期价值成长（GARP）投资研究工作步骤.md)
 
 ### 行业研究类
 
@@ -78,8 +79,35 @@
 | `/mid-thesis-drift {标的}` | 中期逻辑漂移：景气假设六大维度逐条验证 |
 | `/exit-signal {标的}` | 卖出信号：P0~P5 六级优先级硬编码检查 |
 | `/mid-news-pulse {公司名}` | 公司新闻脉搏（景气投资版）：股价异动快速归因 + P0~P5 卖出纪律触发检查 |
-| `/garp-ask {问题}` | GARP 价值成长问答（1~3年）：林奇主轴 + 郑希/李进/欧奈尔辅助，PEG/六类分类/P0~P5 卖出纪律 |
-| `/garp-liquidity-reinvestment {公司名}` | 流动性质量与再投资能力验证（1~3年景气版）：自由现金流质量、再投资效率与资本配置纪律 |
+| `/mid-ask {问题}` | GARP 价值成长问答（1~3年）：林奇主轴 + 郑希/李进/欧奈尔辅助，PEG/六类分类/P0~P5 卖出纪律 |
+| `/mid-liquidity-reinvestment {公司名}` | 流动性质量与再投资能力验证（1~3年景气版）：自由现金流质量、再投资效率与资本配置纪律 |
+
+### GARP 独立档类（1~5 年，口径与 1-3 年中期链 / 10 年长期链物理隔离）
+
+| 命令 | 功能 |
+| --- | --- |
+| `/garp-geo-policy {行业/公司}` | 第 0 步地缘政治与政策资本前置判定：地缘倒逼强度 + 政策覆盖度 → 0.3 三维交叉矩阵 |
+| `/garp-macro {市场}` | 宏观环境适配：美林四档查表 → 调整后 PEG 区间 + 现金仓位下限 + 单只上限（三档） |
+| `/garp-industry-research {行业名}` | GARP 行业研究：六维筛选 + 0.3 三维矩阵与赛道两分法 + 卡脖子环节 + Tier1~4 + 十四节报告 |
+| `/garp-era-alpha {行业/方向}` | 时代α捕手：渗透率 15%~40% 黄金窗收敛闸门 + 五维景气验证 + 五大师透镜 → 介入锚点 |
+| `/garp-bottleneck-hunter {趋势名}` | 供应链瓶颈猎手：咽喉位置第二、三层机会 + 国产化率四梯队 + 六档与 3 年隐含回报检查 |
+| `/garp-industry-funnel {行业名}` | GARP 行业漏斗精选：能力圈四维 → 6 硬指标粗筛 → 五大支柱精析 → 五大师研判，收敛 3 底仓 + 2 机动仓 |
+| `/garp-trend-tech-screen {公司/行业/指数/主题}` | GARP 景气趋势筛选：四层递进 + 五维加权打分 → S/A/B/C 评级 + GARP 三档结论 + 反证清单 |
+| `/garp-investment-checklist {公司名}` | GARP 买入前门槛：能力圈四维 → 财务五门槛（科技豁免 L1/L2/L3）→ 五大支柱（V1~V4 一票否决 / S1~S5 达标）→ 三档结论 + 镜子测试 |
+| `/garp-investment-research {公司名}` | GARP 个股深度研究（单 Agent 五大师）：林奇六类归类 / 渗透率五档 / ROIC 四档 / 多工具估值矩阵 / 五级卖出 |
+| `/garp-investment-team {公司名}` | GARP 投研团队：五角色并行分析框架 + Team Lead 综合研判 |
+| `/garp-management {公司名}` | GARP 管理层与科研转化纵深研究：诚信前置否决闸门 → 管理层/科研转化两套 20 分制合成 |
+| `/garp-valuation {公司名}` | GARP 估值锚定：按公司类型选主锚的多工具估值矩阵 + 宏观 PE 区间 + ESG 折价 → 统一六档 |
+| `/garp-exit {标的}` | GARP 卖出信号：五级优先级硬编码检查（诚信否决 > 硬止损 > 逻辑止损 > 产业景气 > 估值）+ 补充机制 + ATR 动态止损 |
+| `/garp-thesis-tracker {公司名}` | GARP 投资论文追踪：建立论文 + 五大师假设清单 + 季度体检（健康度评分与底仓/机动仓相对动作） |
+| `/garp-thesis-drift {标的}` | GARP 论文漂移检测：H1~H7 七维假设逐条验证 → 四级漂移等级 + 五级卖出映射 |
+| `/garp-portfolio-review {持仓清单}` | GARP 组合管理：底仓/机动仓分离 + 单只与行业上限 + 流动性/ESG/宏观调档 + 五级卖出联动 |
+| `/garp-news-pulse {公司名}` | GARP 公司新闻脉搏：股价异动快速归因 + 五级卖出触发初筛 + GARP 逻辑（H1~H7）影响评估 |
+| `/garp-earnings-review {公司名} {期间}` | GARP 财报精读（轻量版）：单 Agent 快速精读，验证景气逻辑 + 定位估值档位 + 更新卖出纪律 |
+| `/garp-earnings-team {公司名} {期间}` | GARP 财报精读团队：五大师并行解读 + Team Lead 五维评分合成 + 编辑润色 + 读者评审 |
+| `/garp-private-company-research {公司名}` | 未上市公司「上市后 GARP 适配性预判」建档：6 路 Agent 并行拼凑分散信息 |
+| `/garp-deep-company-series {公司名}` | GARP 深度公司系列：3-8 篇长文（约 3-12 万字），从认知重置到决策框架完整闭环 |
+| `/garp-wechat-article {主题}` | GARP 微信公众号文章：作者-编辑-读者三 Agent 协作，价值成长分析为主、技术解读为辅 |
 
 ### 财报跟踪类
 
@@ -113,22 +141,30 @@
 | `/private-company-research {公司名}` | 未上市公司研究：6 Agent 并行深度研究，拼凑信息还原真实价值   |
 | `/mid-private-company-research {公司名}` | 未上市公司研究（1-3年景气版）：6 Agent 并行，判断上市后是否适用 GARP 框架、是否值得等待上市 |
 
-## 持有周期路由规则（中期 vs 长期）
+## 持有周期路由规则（三档并存：1-3 年中期 / 1~5 年 GARP / 10 年长期）
+
+> **三档物理隔离**：`garp-` 前缀唯一归属 **1~5 年 GARP 独立档**；`mid-` 前缀唯一归属 **1-3 年中期链**；无前缀技能归属 **10 年长期链**。三档不得互相引用其可执行口令、编号体系与阈值口径。
 
 - **中期链（1-3 年）**：提及「1-3 年 / 中期 / 景气 / 趋势 / 成长爆发」→
   `mid-industry-research` → `mid-industry-funnel` → `mid-trend-tech-screen` → `mid-investment-checklist` → `valuation-thermometer` → `qoq-accelerator`
   → `trend-momentum-scan` → `mid-thesis-drift` → `exit-signal`
 - **中期链 · 时代主线识别**：提及「时代α / 高增长核心资产 / 时代主线 / 范式转移」且属 1-3 年 / 中期 / 景气语境 →
   `mid-era-alpha` → `mid-industry-research` → `mid-industry-funnel` → `mid-trend-tech-screen` → `mid-investment-checklist` → `exit-signal`
-- **股价异动应急**：提及「股价异动 / 暴跌 / 暴涨 / 为什么跌 / 为什么涨 / 新闻归因」→ `mid-news-pulse`（快速归因）→ 命中卖出纪律转 `exit-signal` → 景气逻辑复核转 `qoq-accelerator` / `mid-thesis-drift`
+- **GARP 链（1~5 年）**：提及「1~5 年 / GARP / 价值成长 / 成长爆发 / 五大师」→
+  `garp-geo-policy` → `garp-industry-research` → `garp-industry-funnel` → `garp-trend-tech-screen` → `garp-investment-checklist` → `garp-valuation`
+  → `garp-portfolio-review` / `garp-news-pulse` / `garp-earnings-review` / `garp-thesis-drift` → `garp-exit`
+  （完整六阶段闭环见《证券AI中长期价值成长（GARP）投资研究工作步骤.md》）
+- **GARP 链 · 时代主线识别（1~5 年）**：提及「时代α / 高增长核心资产 / 时代主线 / 范式转移」且属 1~5 年 / GARP / 价值成长语境 →
+  `garp-era-alpha` → `garp-industry-research` → `garp-industry-funnel` → `garp-trend-tech-screen` → `garp-investment-checklist` → `garp-exit`
+- **股价异动应急**：提及「股价异动 / 暴跌 / 暴涨 / 为什么跌 / 为什么涨 / 新闻归因」→ 按档位分流：中期链 `mid-news-pulse`（快速归因）→ 命中卖出纪律转 `exit-signal` → 景气逻辑复核转 `qoq-accelerator` / `mid-thesis-drift`；GARP 链 `garp-news-pulse` → 命中五级卖出转 `garp-exit` → 逻辑复核转 `garp-thesis-drift`
 - **长期链（10 年）**：提及「10 年 / 长期 / 永续 / 护城河」→
   `quality-screen` → `investment-research` → `thesis-tracker` → `thesis-drift`
 - **长期链 · 时代主线识别（10 年）**：提及「时代α / 高增长核心资产 / 时代主线 / 范式转移」且属 10 年 / 长期 / 永续语境 →
   `era-alpha` → `quality-screen` → `investment-research` → `thesis-tracker` → `thesis-drift`
-- **`mid-` 前缀显式调用优先匹配**：`/mid-xxx` 直接命中对应中期技能，不受关键词路由影响
-- **中期问答入口**：涉及中期景气/PEG/估值/卖出纪律的轻量问答，可用 `/garp-ask {问题}`（问答型、不生成报告，林奇主轴）；与长期链 `/dyp-ask`（段永平）物理隔离
-- **未上市公司研究**：提及「未上市 / Pre-IPO / 独角兽 / 一级市场」→ 默认按持有周期分流：长期链 `/private-company-research`（10 年 / 护城河）、中期链 `/mid-private-company-research`（1-3 年景气 GARP）
-- **持有周期不明**：先询问用户持有周期（1-3 年 or 10 年）再路由
+- **`mid-` / `garp-` 前缀显式调用优先匹配**：`/mid-xxx` 直接命中对应中期技能，`/garp-xxx` 直接命中对应 GARP 技能，均不受关键词路由影响
+- **中期问答入口**：涉及中期景气/PEG/估值/卖出纪律的轻量问答，可用 `/mid-ask {问题}`（问答型、不生成报告，林奇主轴）；与长期链 `/dyp-ask`（段永平）物理隔离
+- **未上市公司研究**：提及「未上市 / Pre-IPO / 独角兽 / 一级市场」→ 默认按持有周期分流：长期链 `/private-company-research`（10 年 / 护城河）、中期链 `/mid-private-company-research`（1-3 年景气）、GARP 链 `/garp-private-company-research`（1~5 年 GARP 适配性预判）
+- **持有周期不明**：先询问用户持有周期（1-3 年 / 1~5 年 / 10 年）再路由
 
 ## 研究质量规则
 
@@ -152,6 +188,7 @@
 - **配置文件**：`.env` 存放 API 密钥与工具参数（如 `FX_MAX_RECORDS_HARD_LIMIT`、`STOCK_CACHE_TTL_DAYS`、`ANYSEARCH_API_KEY`、`VOLC_AK/SK`、`EXA_API_KEY` 等），工具启动时自动加载；新增配置项同步写入 `.env.example`
 - **数据缓存**：三市场财务数据、A股代码/行业、板块截面均落地 `data/` 目录（TTL 内免网络调用，过期自动刷新，失败降级旧缓存 hit→refresh→stale）
 - **推送前**：询问用户是否需要推送到 GitHub；推送前务必 `git pull --rebase`
+- **文件落盘纪律**：修改既有文件一律走**确定性写入范式**，不依赖 `Edit` 工具单次调用——本项目多次出现「`Edit` 返回成功但**未落盘**」的静默失败。范式四步：① `read_bytes()` 读入并解码；② 断言**无 BOM**、行尾与目标一致；③ 断言**新串不存在**（防重复写入）、**锚点计数 = 1**（防误替换）；④ 写入后**立即回读断言**（字节数 / 行数 / 关键锚点）。整文件重写（`Write`）可能引入 **CRLF** 与**超长截断**（约 850~900 行以上易不落盘），须事后归一与校验；临时脚本一律用后即删。
 
 ## 用户偏好
 

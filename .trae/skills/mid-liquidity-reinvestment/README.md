@@ -9,15 +9,15 @@
 ### 基本调用方式
 
 ```
-/garp-liquidity-reinvestment {公司名或股票代码}
+/mid-liquidity-reinvestment {公司名或股票代码}
 ```
 
 例如：
 
-- `/garp-liquidity-reinvestment 新易盛`
-- `/garp-liquidity-reinvestment 300502`（A股股票代码）
-- `/garp-liquidity-reinvestment 00700`（港股腾讯）
-- `/garp-liquidity-reinvestment NVDA`（美股英伟达）
+- `/mid-liquidity-reinvestment 新易盛`
+- `/mid-liquidity-reinvestment 300502`（A股股票代码）
+- `/mid-liquidity-reinvestment 00700`（港股腾讯）
+- `/mid-liquidity-reinvestment NVDA`（美股英伟达）
 
 ### 适用前自检
 
@@ -70,7 +70,7 @@
 ### 示例 1：分析 A 股成长股
 
 ```
-/garp-liquidity-reinvestment 新易盛
+/mid-liquidity-reinvestment 新易盛
 ```
 
 用 A 股本地工具获取财务数据，按九步流程验证其光模块业务的高增速是否建立在真实的自由现金流与高效再投资之上。
@@ -78,7 +78,7 @@
 ### 示例 2：分析港股科技股
 
 ```
-/garp-liquidity-reinvestment 00700
+/mid-liquidity-reinvestment 00700
 ```
 
 评估腾讯的自由现金流质量与资本配置纪律（回购、并购、研发投入），跨币种折录用 `fx_rate.py --code HKDCNY` 获取实时汇率。
@@ -86,7 +86,7 @@
 ### 示例 3：分析美股成长股
 
 ```
-/garp-liquidity-reinvestment NVDA
+/mid-liquidity-reinvestment NVDA
 ```
 
 评估英伟达的资本开支结构（扩张性占比）、增量资本回报率与自由现金流质量，判断其高增长的可兑现性。
@@ -99,7 +99,7 @@
 
 | 报告类型 | 文件路径 |
 |---------|---------|
-| 流动性质量验证报告 | `reports/{公司名}/{公司名}-garp-liquidity-{YYYYMMDD}.md` |
+| 流动性质量验证报告 | `reports/{公司名}/{公司名}-mid-liquidity-{YYYYMMDD}.md` |
 
 ### 报告结构（11 节）
 
@@ -120,8 +120,8 @@
 报告保存后须运行审核流程：
 
 ```bash
-python tools/common/report_audit.py extract --report reports/{公司名}/{公司名}-garp-liquidity-{YYYYMMDD}.md
-python tools/common/report_audit.py verdict --results '<verified JSON>' --report reports/{公司名}/{公司名}-garp-liquidity-{YYYYMMDD}.md
+python tools/common/report_audit.py extract --report reports/{公司名}/{公司名}-mid-liquidity-{YYYYMMDD}.md
+python tools/common/report_audit.py verdict --results '<verified JSON>' --report reports/{公司名}/{公司名}-mid-liquidity-{YYYYMMDD}.md
 ```
 
 ---
@@ -222,7 +222,7 @@ python tools/common/report_audit.py verdict --results '<verified JSON>' --report
 - [卖出信号](../exit-signal/README.md) — P0~P5 卖出优先级唯一权威口径
 - [管理层纵深研究（中期版）](../mid-management-deep-dive/README.md) — ROIC / 增量资本回报率 / 资本配置 20 分制口径
 - [中期行业景气研究](../mid-industry-research/README.md) — 产业景气 / 渗透率 / 地缘政治口径
-- [GARP 价值成长问答](../garp-ask/README.md) — GARP 系列问答入口（问答型，不生成报告）
+- [GARP 价值成长问答](../mid-ask/README.md) — GARP 系列问答入口（问答型，不生成报告）
 - [收入投资分析（长期版）](../income-investment/README.md) — 分红收入分析，与本技能**路由互斥**
 
 ---
