@@ -1,5 +1,7 @@
 # mid-wechat-article 技能建设方案
 
+> 【迁移说明 · P0-1】本文件为历史开发档案，所载 `garp-ask` 现更名为 `mid-ask`、`garp-liquidity-reinvestment` 现更名为 `mid-liquidity-reinvestment`，正文保留历史原名（2026-09-13 命名冲突清理，详见 `upgrade1.0/P0-1/`）。
+
 - 日期：2026-09-08
 - 状态：**方案已最终确认（2026-09-08）**，开发已按第九节实施顺序推进（任务 1~8）
 - 权威口径来源：

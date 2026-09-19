@@ -1,5 +1,7 @@
 # mid-private-company-research 技能建设方案与实施计划（待确认稿）
 
+> 【迁移说明 · P0-1】本文件为历史开发档案，所载 `garp-ask` 现更名为 `mid-ask`、`garp-liquidity-reinvestment` 现更名为 `mid-liquidity-reinvestment`，正文保留历史原名（2026-09-13 命名冲突清理，详见 `upgrade1.0/P0-1/`）。
+
 > **目标**：以 `research/early-version/private-company-research技能文件（草稿）.md` 为前期草稿，参考 `.trae/skills/private-company-research/SKILL.md` 的格式与范式，依据 `research/个人投资者1~3年中长期投资思想与理念 V2.0.md`，撰写 1~3 年景气投资的 `mid-private-company-research` 技能文件，并同步更新关联文档与注册信息。
 >
 > **状态**：✅ 已确认进入开发（2026-09-07） | **创建日期**：2026-09-07 | **免责声明**：仅供学习研究参考，不构成投资建议。

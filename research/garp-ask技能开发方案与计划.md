@@ -1,5 +1,7 @@
 # garp-ask 技能开发方案与计划（确认稿）
 
+> 【迁移说明 · P0-1】本文件为历史开发档案，所载 `garp-ask` 现更名为 `mid-ask`、`garp-liquidity-reinvestment` 现更名为 `mid-liquidity-reinvestment`，正文保留历史原名（2026-09-13 命名冲突清理，详见 `upgrade1.0/P0-1/`）。
+
 > 本方案用于指导 `garp-ask`（GARP 价值成长问答）技能文件的撰写与联动文档更新。
 > 本方案已经用户确认（决策点 D1/D2/D3/D5 均选定推荐方案，D4 默认方案 A），进入开发实现阶段。
 >

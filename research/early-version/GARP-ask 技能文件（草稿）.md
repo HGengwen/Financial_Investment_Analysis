@@ -1,5 +1,7 @@
 # 修改后的 `GARP-ask` 技能文件（草稿版）
 
+> 【迁移说明 · P0-1】本文件为历史开发档案，所载 `garp-ask` 现更名为 `mid-ask`、`garp-liquidity-reinvestment` 现更名为 `mid-liquidity-reinvestment`，正文保留历史原名（2026-09-13 命名冲突清理，详见 `upgrade1.0/P0-1/`）。
+
 
 ---
 name: garp-ask
