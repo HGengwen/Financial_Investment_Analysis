@@ -33,6 +33,10 @@ Usage:
     {py} tools/specialized/in_research_scan.py scan 中芯国际 \\
         --official-site smics.com --annual-report reports/002709_2025年报.md --export
 
+
+    # 研发管线 NPV 粗算子（参数全部由调用方提供，缺失即标注数据不足）
+    {py} tools/specialized/in_research_scan.py pipeline-npv --projects p.json \
+        --discount-rate 0.10 --currency CNY --json
     # 列出渠道元信息
     {py} tools/specialized/in_research_scan.py list
 """
@@ -41,11 +45,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 # 项目根目录（本文件位于 tools/specialized/，向上 3 层）
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -333,7 +338,7 @@ def channel_result(
         聚合后的渠道条目 dict。
     """
     all_items: List[Dict] = []
-    seen: set = set()
+    seen: set[str] = set()
     query_records: List[Dict] = []
     for q, results in zip(queries, results_by_query):
         items = []
@@ -503,6 +508,570 @@ def scan(
 
 
 # ---------------------------------------------------------------------------
+# 研发管线 NPV 粗算子（pipeline-npv 子命令）
+# ---------------------------------------------------------------------------
+
+#: 支持的币种（本工具只做同口径运算，**不做汇率换算**）
+SUPPORTED_CURRENCIES: Tuple[str, ...] = ("CNY", "HKD", "USD")
+
+#: 项目级必填字段（任一缺失即判定「数据不足」，工具不产生替代数值）
+REQUIRED_PROJECT_FIELDS: Tuple[str, ...] = (
+    "name",
+    "peak_revenue",
+    "launch_year",
+    "probability",
+    "source",
+)
+
+#: 敏感性规格允许的键：r=折现率绝对步长，p=概率绝对步长
+_SENSITIVITY_KEYS: Tuple[str, ...] = ("r", "p")
+
+#: 折现率上限：仅拦截「百分数当小数」的量纲误用（折现率以小数给出，如 0.10 表示 10%）
+MAX_DISCOUNT_RATE: float = 1.0
+
+
+class PipelineNpvError(ValueError):
+    """pipeline-npv 的用法错误（对应进程退出码 2）。"""
+
+
+def _is_number(value: Any) -> bool:
+    """判断是否为有限实数（排除 bool / NaN / inf）。
+
+    Args:
+        value: 待判断的值。
+
+    Returns:
+        是有限实数返回 True，否则 False。
+    """
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+    )
+
+
+def load_projects(source: str) -> Dict[str, Any]:
+    """读取 `--projects` 参数（JSON 文件路径，或 `-` 表示从 stdin 读取）。
+
+    Args:
+        source: 文件路径或 `-`。
+
+    Returns:
+        解析后的顶层 JSON 对象。
+
+    Raises:
+        PipelineNpvError: 文件不存在、JSON 解析失败或顶层不是对象。
+    """
+    if source == "-":
+        raw_text = sys.stdin.read()
+        origin = "stdin"
+    else:
+        path = Path(source)
+        if not path.is_file():
+            raise PipelineNpvError(f"--projects 文件不存在: {source}")
+        raw_text = path.read_text(encoding="utf-8")
+        origin = str(path)
+
+    try:
+        payload = json.loads(raw_text)
+    except json.JSONDecodeError as exc:
+        raise PipelineNpvError(
+            f"--projects JSON 解析失败（{origin}）: {exc}"
+        ) from exc
+
+    if not isinstance(payload, dict):
+        raise PipelineNpvError("--projects 顶层必须为 JSON 对象（含 projects 数组）")
+    return payload
+
+
+def parse_sensitivity_spec(spec: str) -> Tuple[float, float]:
+    """解析 `--sensitivity` 规格（形如 `r=0.01;p=0.10`，绝对步长）。
+
+    Args:
+        spec: 规格字符串。
+
+    Returns:
+        (折现率步长, 概率步长)。
+
+    Raises:
+        PipelineNpvError: 规格格式非法、键缺失/未知、步长非正数。
+    """
+    values: Dict[str, float] = {}
+    for part in (chunk.strip() for chunk in spec.split(";")):
+        if not part:
+            continue
+        if "=" not in part:
+            raise PipelineNpvError(
+                f'--sensitivity 规格非法（应形如 "r=0.01;p=0.10"）: "{part}"'
+            )
+        key, _, raw_value = part.partition("=")
+        key = key.strip().lower()
+        if key not in _SENSITIVITY_KEYS:
+            raise PipelineNpvError(
+                f'--sensitivity 含未知键 "{key}"（仅支持 r / p）'
+            )
+        try:
+            value = float(raw_value.strip())
+        except ValueError as exc:
+            raise PipelineNpvError(f"--sensitivity 步长非数值: {part}") from exc
+        if not math.isfinite(value) or value <= 0:
+            raise PipelineNpvError(f"--sensitivity 步长必须为正数: {part}")
+        values[key] = value
+
+    # 3×3 网格需要两个键同时给出，缺一即视为规格非法
+    for key in _SENSITIVITY_KEYS:
+        if key not in values:
+            raise PipelineNpvError(
+                f'--sensitivity 缺少键 "{key}"（须同时给出 r=…;p=…）'
+            )
+    return values["r"], values["p"]
+
+
+def extract_project_candidates(scan_result: Dict[str, Any]) -> List[str]:
+    """从 `scan --json` 结果中提取**项目名候选**（仅标题，不含任何数值）。
+
+    Args:
+        scan_result: `scan --json` 的解析结果。
+
+    Returns:
+        去重后的候选标题列表（保持原顺序）。
+    """
+    candidates: List[str] = []
+    seen: set[str] = set()
+    channels = scan_result.get("channels")
+    if not isinstance(channels, dict):
+        return candidates
+
+    for channel in channels.values():
+        if not isinstance(channel, dict):
+            continue
+        for item in channel.get("top_links") or []:
+            title = item.get("title") if isinstance(item, dict) else None
+            if not isinstance(title, str):
+                continue
+            candidate = title.strip()
+            if candidate and candidate not in seen:
+                seen.add(candidate)
+                candidates.append(candidate)
+    return candidates
+
+
+def load_project_candidates(path: str) -> List[str]:
+    """读取 `--from-scan` 文件并提取项目名候选。
+
+    Args:
+        path: `scan --json` 输出文件路径。
+
+    Returns:
+        项目名候选列表。
+
+    Raises:
+        PipelineNpvError: 文件不存在、JSON 解析失败或顶层不是对象。
+    """
+    scan_path = Path(path)
+    if not scan_path.is_file():
+        raise PipelineNpvError(f"--from-scan 文件不存在: {path}")
+    try:
+        payload = json.loads(scan_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise PipelineNpvError(
+            f"--from-scan JSON 解析失败（{path}）: {exc}"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise PipelineNpvError("--from-scan 顶层必须为 JSON 对象（scan --json 输出）")
+    return extract_project_candidates(payload)
+
+
+def parse_projects(payload: Dict[str, Any], as_of_year: int) -> Dict[str, Any]:
+    """解析并校验 `--projects` 中的项目清单。
+
+    校验规则（与《P3-8 开发方案与计划》§2.1/§3.2 一致）：
+      - 必填字段缺失 / None / 空字符串 → 记入 missing（**业务状态**，不报错）；
+      - 字段存在但类型或取值非法 → 抛 PipelineNpvError（**用法错误**）；
+      - `cost` 缺省视为 0，并记入 defaults_applied（唯一允许的缺省，须透明回显）。
+
+    Args:
+        payload: `--projects` 顶层 JSON 对象。
+        as_of_year: 基准年份。
+
+    Returns:
+        {"projects": [条目...], "missing": [...], "defaults_applied": [...],
+         "data_insufficient": bool}；条目中 pv_peak / pv_cost / npv 初始为 None。
+
+    Raises:
+        PipelineNpvError: 字段类型非法、概率越界、折现期数为负。
+    """
+    raw_projects = payload.get("projects")
+    missing: List[str] = []
+    defaults_applied: List[str] = []
+    projects: List[Dict[str, Any]] = []
+
+    # 项目清单为空同样属「数据不足」，不产生任何数值
+    if not isinstance(raw_projects, list) or not raw_projects:
+        return {
+            "projects": [],
+            "missing": ["projects"],
+            "defaults_applied": [],
+            "data_insufficient": True,
+        }
+
+    for idx, raw in enumerate(raw_projects):
+        if not isinstance(raw, dict):
+            raise PipelineNpvError(f"projects[{idx}] 必须为 JSON 对象")
+
+        # ① 必填字段缺失识别（缺失不报错，仅记为数据不足）
+        missing_here = [
+            field
+            for field in REQUIRED_PROJECT_FIELDS
+            if raw.get(field) is None
+            or (isinstance(raw.get(field), str) and not raw.get(field).strip())
+        ]
+
+        # ② 已提供字段的类型与取值校验（非法即用法错误）
+        name = raw.get("name")
+        if "name" not in missing_here and not isinstance(name, str):
+            raise PipelineNpvError(f"projects[{idx}].name 必须为字符串")
+        source = raw.get("source")
+        if "source" not in missing_here and not isinstance(source, str):
+            raise PipelineNpvError(
+                f"projects[{idx}].source 必须为字符串（参数来源，如年报页码）"
+            )
+
+        peak_revenue = raw.get("peak_revenue")
+        if "peak_revenue" not in missing_here and not _is_number(peak_revenue):
+            raise PipelineNpvError(f"projects[{idx}].peak_revenue 必须为数值")
+
+        launch_year = raw.get("launch_year")
+        if "launch_year" not in missing_here:
+            if not isinstance(launch_year, int) or isinstance(launch_year, bool):
+                raise PipelineNpvError(
+                    f"projects[{idx}].launch_year 必须为整数年份"
+                )
+            if launch_year - as_of_year < 0:
+                raise PipelineNpvError(
+                    f"projects[{idx}].launch_year={launch_year} 早于基准年 "
+                    f"{as_of_year}（折现期数不得为负）"
+                )
+
+        probability = raw.get("probability")
+        if "probability" not in missing_here:
+            if not _is_number(probability):
+                raise PipelineNpvError(f"projects[{idx}].probability 必须为数值")
+            if not 0.0 <= probability <= 1.0:
+                raise PipelineNpvError(
+                    f"projects[{idx}].probability={probability} 越界（须在 [0,1]）"
+                )
+
+        # ③ cost 是唯一允许的缺省项：缺省=0 且必须透明回显
+        cost = raw.get("cost")
+        if cost is None:
+            cost = 0.0
+            defaults_applied.append(f"projects[{idx}].cost=0")
+        elif not _is_number(cost):
+            raise PipelineNpvError(f"projects[{idx}].cost 必须为数值")
+
+        missing.extend(f"projects[{idx}].{field}" for field in missing_here)
+        years_to_launch = (
+            launch_year - as_of_year if isinstance(launch_year, int) else None
+        )
+        projects.append(
+            {
+                "name": name,
+                "launch_year": launch_year,
+                "years_to_launch": years_to_launch,
+                "probability": probability,
+                "peak_revenue": peak_revenue,
+                "cost": cost,
+                "pv_peak": None,
+                "pv_cost": None,
+                "npv": None,
+                "source": source,
+            }
+        )
+
+    return {
+        "projects": projects,
+        "missing": missing,
+        "defaults_applied": defaults_applied,
+        "data_insufficient": bool(missing),
+    }
+
+
+def compute_pipeline_npv(
+    projects: List[Dict[str, Any]], discount_rate: float, as_of_year: int
+) -> Dict[str, Any]:
+    """计算各项目 NPV 与合计（单期峰值现金流折现 + 概率线性调整）。
+
+    公式（P3-8 方案 §2.2，写死）::
+
+        n_i         = launch_year_i - as_of_year
+        PV_peak_i   = peak_revenue_i / (1 + r) ** n_i
+        PV_cost_i   = cost_i / (1 + r) ** n_i
+        NPV_i       = probability_i * PV_peak_i - PV_cost_i
+        pipeline_npv = Σ NPV_i
+
+    Args:
+        projects: 已校验的项目参数字典列表。
+        discount_rate: 折现率（小数）。
+        as_of_year: 基准年份。
+
+    Returns:
+        {"projects": [含 pv_peak / pv_cost / npv 的条目...],
+         "pipeline_npv": 合计 NPV}。
+
+    Raises:
+        PipelineNpvError: 概率越界或折现期数为负（防御性校验）。
+    """
+    computed: List[Dict[str, Any]] = []
+    total = 0.0
+
+    for entry in projects:
+        label = entry.get("name")
+        launch_year = entry.get("launch_year")
+        probability = entry.get("probability")
+
+        if not isinstance(launch_year, int) or isinstance(launch_year, bool):
+            raise PipelineNpvError(f"项目「{label}」的 launch_year 必须为整数年份")
+        years_to_launch = launch_year - as_of_year
+        if years_to_launch < 0:
+            raise PipelineNpvError(
+                f"项目「{label}」的折现期数为负（launch_year={launch_year}）"
+            )
+        if not _is_number(probability) or not 0.0 <= probability <= 1.0:
+            raise PipelineNpvError(f"项目「{label}」的 probability 越界（须在 [0,1]）")
+
+        # 折现因子：负期数已排除，正期数与 0 期（当年商业化）均合法
+        factor = (1 + discount_rate) ** years_to_launch
+        pv_peak = entry["peak_revenue"] / factor
+        pv_cost = entry["cost"] / factor
+        npv = probability * pv_peak - pv_cost
+
+        item = dict(entry)
+        item.update(
+            {
+                "years_to_launch": years_to_launch,
+                "pv_peak": pv_peak,
+                "pv_cost": pv_cost,
+                "npv": npv,
+            }
+        )
+        computed.append(item)
+        total += npv
+
+    return {"projects": computed, "pipeline_npv": total}
+
+
+def build_sensitivity(
+    projects: List[Dict[str, Any]],
+    discount_rate: float,
+    as_of_year: int,
+    spec: str,
+) -> Dict[str, Any]:
+    """构建 3×3 敏感性网格（折现率 × 概率绝对步长）。
+
+    概率按**绝对步长**逐项目平移，越界者截断至 [0,1] 并在该格标注 clipped=True
+    （唯一允许的截断，且必须透明标注）；折现率网格越界（下限 ≤ 0 或上限 > 1.0）
+    视为用法错误。
+
+    Args:
+        projects: 已校验的项目参数字典列表。
+        discount_rate: 基准折现率。
+        as_of_year: 基准年份。
+        spec: `--sensitivity` 规格字符串。
+
+    Returns:
+        {"spec": {...}, "grid": [...], "npv_low": float, "npv_high": float,
+         "base": float}。
+
+    Raises:
+        PipelineNpvError: 规格非法或折现率网格越界（下限 ≤ 0 / 上限 > 1.0）。
+    """
+    step_r, step_p = parse_sensitivity_spec(spec)
+    if discount_rate - step_r <= 0:
+        raise PipelineNpvError(
+            f"--sensitivity 折现率下限 {discount_rate - step_r} ≤ 0（步长过大）"
+        )
+    if discount_rate + step_r > MAX_DISCOUNT_RATE:
+        raise PipelineNpvError(
+            f"--sensitivity 折现率上限 {discount_rate + step_r} 超出 "
+            f"{MAX_DISCOUNT_RATE}（步长过大）"
+        )
+
+    grid: List[Dict[str, Any]] = []
+    for rate in (discount_rate - step_r, discount_rate, discount_rate + step_r):
+        for shift in (-step_p, 0.0, step_p):
+            shifted: List[Dict[str, Any]] = []
+            clipped = False
+            for entry in projects:
+                probability = entry["probability"] + shift
+                if probability < 0.0 or probability > 1.0:
+                    clipped = True
+                    probability = min(1.0, max(0.0, probability))
+                item = dict(entry)
+                item["probability"] = probability
+                shifted.append(item)
+            cell_npv = compute_pipeline_npv(shifted, rate, as_of_year)["pipeline_npv"]
+            grid.append(
+                {
+                    "discount_rate": rate,
+                    "probability_shift": shift,
+                    "pipeline_npv": cell_npv,
+                    "clipped": clipped,
+                }
+            )
+
+    values = [cell["pipeline_npv"] for cell in grid]
+    return {
+        "spec": {"discount_rate_step": step_r, "probability_step": step_p},
+        "grid": grid,
+        "npv_low": min(values),
+        "npv_high": max(values),
+        "base": compute_pipeline_npv(projects, discount_rate, as_of_year)["pipeline_npv"],
+    }
+
+
+def run_pipeline_npv(
+    projects_source: str,
+    discount_rate: float,
+    currency: str,
+    as_of_year: Optional[int] = None,
+    sensitivity_spec: Optional[str] = None,
+    from_scan_path: Optional[str] = None,
+) -> Dict[str, Any]:
+    """执行 pipeline-npv 全流程，返回输出 JSON 契约。
+
+    Args:
+        projects_source: `--projects`（文件路径或 `-`）。
+        discount_rate: 折现率（无默认值）。
+        currency: 币种（无默认值，不换算）。
+        as_of_year: 基准年份；缺省取系统当前年份并回显。
+        sensitivity_spec: `--sensitivity` 规格；缺省则 sensitivity=None。
+        from_scan_path: `--from-scan` 文件；缺省则 project_candidates=[]。
+
+    Returns:
+        与《P3-8 开发方案与计划》§3.3 一致的输出字典。
+
+    Raises:
+        PipelineNpvError: 一切用法错误（对应退出码 2）。
+    """
+    if not math.isfinite(discount_rate) or discount_rate <= -1:
+        raise PipelineNpvError("--discount-rate 必须为大于 -1 的实数（如 0.10）")
+    # 上限仅拦量纲误用（如把 10% 写成 10），不限制任何现实合理的折现率
+    if discount_rate > MAX_DISCOUNT_RATE:
+        raise PipelineNpvError(
+            f"--discount-rate={discount_rate} 超出上限 {MAX_DISCOUNT_RATE}"
+            "（须以小数给出，如 0.10 表示 10%）"
+        )
+    if currency not in SUPPORTED_CURRENCIES:
+        raise PipelineNpvError(
+            f"--currency 仅支持 {'/'.join(SUPPORTED_CURRENCIES)}（本工具不换算）"
+        )
+
+    resolved_year = as_of_year if as_of_year is not None else datetime.now().year
+
+    payload = load_projects(projects_source)
+    # 币种冲突：文件内 currency 与 CLI --currency 必须一致（不得静默取其一）
+    file_currency = payload.get("currency")
+    if isinstance(file_currency, str) and file_currency.strip():
+        if file_currency.strip().upper() != currency.upper():
+            raise PipelineNpvError(
+                f"币种冲突：--projects 内 currency={file_currency.strip()} 与 "
+                f"--currency={currency} 不一致（本工具不换算）"
+            )
+
+    # 基准年冲突：文件内 as_of_year 不得被静默忽略（与 CLI 基准年必须一致）
+    file_year = payload.get("as_of_year")
+    if file_year is not None:
+        if not isinstance(file_year, int) or isinstance(file_year, bool):
+            raise PipelineNpvError("--projects 内 as_of_year 必须为整数年份")
+        if file_year != resolved_year:
+            raise PipelineNpvError(
+                f"基准年冲突：--projects 内 as_of_year={file_year} 与本次基准年 "
+                f"{resolved_year} 不一致（如确需该基准年，请显式传 "
+                f"--as-of-year {file_year}）"
+            )
+
+    parsed = parse_projects(payload, resolved_year)
+    result: Dict[str, Any] = {
+        "command": "pipeline-npv",
+        "as_of_year": resolved_year,
+        "discount_rate": discount_rate,
+        "currency": currency,
+        "data_insufficient": parsed["data_insufficient"],
+        "missing": parsed["missing"],
+        "defaults_applied": parsed["defaults_applied"],
+        "projects": parsed["projects"],
+        "pipeline_npv": None,
+        "sensitivity": None,
+        "project_candidates": load_project_candidates(from_scan_path)
+        if from_scan_path
+        else [],
+    }
+
+    # 存在缺项时**不计算任何数值**（合计与逐项目 NPV 均为 null），避免部分数值被误用
+    if not parsed["data_insufficient"]:
+        computed = compute_pipeline_npv(
+            parsed["projects"], discount_rate, resolved_year
+        )
+        result["projects"] = computed["projects"]
+        result["pipeline_npv"] = computed["pipeline_npv"]
+        if sensitivity_spec:
+            result["sensitivity"] = build_sensitivity(
+                parsed["projects"], discount_rate, resolved_year, sensitivity_spec
+            )
+    return result
+
+
+def _format_scalar(value: Any) -> str:
+    """把人读摘要中的标量格式化为文本（缺值统一为 `null`，与 JSON 口径一致）。
+
+    Args:
+        value: 待格式化的值。
+
+    Returns:
+        数值的字符串形式；None 返回 "null"。
+    """
+    return "null" if value is None else str(value)
+
+
+def _print_pipeline_summary(result: Dict[str, Any]) -> None:
+    """打印 pipeline-npv 的人读摘要（非 JSON 模式）。
+
+    Args:
+        result: run_pipeline_npv 的输出字典。
+    """
+    print(
+        f"研发管线 NPV 粗算子 | 基准年: {result['as_of_year']} | "
+        f"折现率: {result['discount_rate']} | 币种: {result['currency']}"
+    )
+    if result["data_insufficient"]:
+        print(f"[数据不足] 缺失项: {', '.join(result['missing'])}")
+        print("[数据不足] 合计 NPV: null（存在缺失项，工具不产生替代数值）")
+    else:
+        print(f"合计 NPV: {_format_scalar(result['pipeline_npv'])}")
+
+    for entry in result["projects"]:
+        print(
+            f"  - {_format_scalar(entry['name'])} | "
+            f"期数: {_format_scalar(entry['years_to_launch'])} | "
+            f"概率: {_format_scalar(entry['probability'])} | "
+            f"NPV: {_format_scalar(entry['npv'])}"
+        )
+    if result["defaults_applied"]:
+        print(f"[缺省回显] {', '.join(result['defaults_applied'])}")
+
+    sensitivity = result["sensitivity"]
+    if sensitivity:
+        print(
+            f"敏感性: base={sensitivity['base']} | low={sensitivity['npv_low']} | "
+            f"high={sensitivity['npv_high']}"
+        )
+    if result["project_candidates"]:
+        count = len(result["project_candidates"])
+        print(f"[scan 项目名候选] {count} 条（仅名称，不含数值）")
+
+
+# ---------------------------------------------------------------------------
 # 命令行入口
 # ---------------------------------------------------------------------------
 
@@ -540,6 +1109,25 @@ def _build_parser() -> argparse.ArgumentParser:
     p_scan.add_argument("--export-path", help="自定义导出路径")
 
     sub.add_parser("list", help="列出渠道元信息")
+
+    p_npv = sub.add_parser(
+        "pipeline-npv",
+        help="研发管线 NPV 粗算子（参数全部由调用方提供，缺失即标注数据不足）",
+    )
+    p_npv.add_argument("--projects", required=True,
+                       help="在研项目参数 JSON 文件路径；- 表示从 stdin 读取")
+    p_npv.add_argument("--discount-rate", type=float, required=True,
+                       help="折现率（小数，如 0.10）；无默认值")
+    p_npv.add_argument("--currency", required=True,
+                       choices=list(SUPPORTED_CURRENCIES),
+                       help="币种（本工具不做汇率换算）")
+    p_npv.add_argument("--as-of-year", type=int,
+                       help="基准年份（缺省=系统当前年份）")
+    p_npv.add_argument("--sensitivity",
+                       help='敏感性绝对步长，形如 "r=0.01;p=0.10"')
+    p_npv.add_argument("--from-scan",
+                       help="scan --json 结果文件；仅提取项目名候选，不生成数值")
+    p_npv.add_argument("--json", action="store_true", help="输出 JSON")
     return parser
 
 
@@ -590,6 +1178,26 @@ def _main(argv: Optional[List[str]] = None) -> int:
             )
             saved = export_markdown(result, path)
             print(f"\n[成功] 报告已保存至: {saved}")
+        return 0
+
+    if args.command == "pipeline-npv":
+        try:
+            result = run_pipeline_npv(
+                projects_source=args.projects,
+                discount_rate=args.discount_rate,
+                currency=args.currency,
+                as_of_year=args.as_of_year,
+                sensitivity_spec=args.sensitivity,
+                from_scan_path=args.from_scan,
+            )
+        except PipelineNpvError as exc:
+            # 用法错误：错误信息写 stderr，退出码 2（stdout 不输出 JSON）
+            print(f"[错误] {exc}", file=sys.stderr)
+            return 2
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            _print_pipeline_summary(result)
         return 0
 
     return 0

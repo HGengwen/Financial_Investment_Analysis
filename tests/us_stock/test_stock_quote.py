@@ -45,6 +45,7 @@ from tools.us_stock.stock_quote import (
     US_INDEX_MAP,
 )
 from tools.us_stock import stock_quote as stock_quote_module
+from tools.common.momentum import atr as momentum_atr
 
 # 工具文件路径（用于 CLI 子进程测试）
 TOOL_PATH = os.path.join(PROJECT_ROOT, "tools", "us_stock", "stock_quote.py")
@@ -731,6 +732,18 @@ def _make_daily_df(n=260):
     }, index=idx)
 
 
+def _make_ohlc_df(n=20):
+    """构造含 High/Low/Close 三价且非对称的 K 线 DataFrame（供 ATR 测试）。"""
+    idx = pd.date_range("2024-01-01", periods=n, freq="D")
+    closes = [100.0 + i * 0.5 for i in range(n)]
+    return pd.DataFrame({
+        "High": [c + 2.0 + (i % 3) * 0.5 for i, c in enumerate(closes)],
+        "Low": [c - 1.0 - (i % 2) * 0.5 for i, c in enumerate(closes)],
+        "Close": closes,
+        "Volume": [1_000_000.0] * n,
+    }, index=idx)
+
+
 class TestMomentum(unittest.TestCase):
     """--momentum 计算与命令行分发测试。"""
 
@@ -796,6 +809,83 @@ class TestMomentum(unittest.TestCase):
         self.assertIsNotNone(out["data"]["ma50"])
         self.assertIs(out["data"]["tech"]["close_above_ma200"], True)
         mock_ss.compute_peers_for_stock.assert_called_once_with("AAPL", market="us")
+
+    def test_extract_ohlc_for_atr_normal(self):
+        """含 High/Low/Close 的 DataFrame 返回三价等长列表。"""
+        df = _make_ohlc_df(20)
+        highs, lows, closes = stock_quote_module._extract_ohlc_for_atr(df)
+        self.assertEqual(len(highs), 20)
+        self.assertEqual(len(lows), 20)
+        self.assertEqual(len(closes), 20)
+        self.assertEqual(highs[0], 100.0 + 2.0)
+        self.assertEqual(lows[0], 100.0 - 1.0)
+        self.assertEqual(closes[-1], 100.0 + 19 * 0.5)
+
+    def test_extract_ohlc_for_atr_missing_column(self):
+        """缺少 High/Low/Close 任一列时返回空三元组。"""
+        df = _make_daily_df(20)  # 仅 Close/Volume，无 High/Low
+        highs, lows, closes = stock_quote_module._extract_ohlc_for_atr(df)
+        self.assertEqual(highs, [])
+        self.assertEqual(lows, [])
+        self.assertEqual(closes, [])
+
+    def test_extract_ohlc_for_atr_filters_nan(self):
+        """任意一价含 NaN 的行被跳过，返回序列等长对齐。"""
+        df = _make_ohlc_df(20)
+        df.loc[df.index[1], "Low"] = None
+        df.loc[df.index[3], "Close"] = None
+        highs, lows, closes = stock_quote_module._extract_ohlc_for_atr(df)
+        self.assertEqual(len(highs), 18)
+        self.assertEqual(len(highs), len(lows))
+        self.assertEqual(len(highs), len(closes))
+
+    def test_momentum_atr14_with_ohlc(self):
+        """传入三价齐全序列时 atr14 等于 momentum.atr()，且非 None。"""
+        df = _make_ohlc_df(20)
+        highs, lows, ohlc_closes = stock_quote_module._extract_ohlc_for_atr(df)
+        res = stock_quote_module._momentum_from_series(
+            ohlc_closes, None, None,
+            highs=highs, lows=lows, atr_closes=ohlc_closes)
+        self.assertEqual(res["atr14"], momentum_atr(highs, lows, ohlc_closes))
+        self.assertIsNotNone(res["atr14"])
+
+    def test_momentum_atr14_none_without_ohlc(self):
+        """未提供 highs/lows/atr_closes 时 atr14 为 None。"""
+        closes, volumes = stock_quote_module._extract_series_from_df(_make_daily_df(260))
+        res = stock_quote_module._momentum_from_series(closes, volumes, None)
+        self.assertIsNone(res["atr14"])
+
+    def test_momentum_atr14_none_on_length_mismatch(self):
+        """三价序列长度不一致时 atr14 静默降级为 None（不抛异常）。"""
+        highs, lows, ohlc_closes = stock_quote_module._extract_ohlc_for_atr(_make_ohlc_df(20))
+        res = stock_quote_module._momentum_from_series(
+            ohlc_closes, None, None,
+            highs=highs, lows=lows, atr_closes=ohlc_closes[:-1])
+        self.assertIsNone(res["atr14"])
+
+    def test_cmd_momentum_atr14_with_ohlc_df(self):
+        """三价 DataFrame 接线：cmd_momentum 输出的 atr14 与 momentum.atr() 一致。"""
+        df = _make_ohlc_df(20)
+        highs, lows, closes = stock_quote_module._extract_ohlc_for_atr(df)
+        with patch.object(stock_quote_module, "get_stock_daily_kline",
+                          return_value={"success": True, "raw_data": df}):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                stock_quote_module.cmd_momentum("AAPL", None)
+        out = json.loads(buf.getvalue())
+        self.assertTrue(out["success"])
+        self.assertEqual(out["data"]["atr14"], momentum_atr(highs, lows, closes))
+
+    def test_cmd_momentum_atr14_none_without_ohlc_df(self):
+        """无三价 DataFrame 时 cmd_momentum 输出 atr14=None（无回归）。"""
+        with patch.object(stock_quote_module, "get_stock_daily_kline",
+                          return_value={"success": True, "raw_data": _make_daily_df(260)}):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                stock_quote_module.cmd_momentum("AAPL", None)
+        out = json.loads(buf.getvalue())
+        self.assertTrue(out["success"])
+        self.assertIsNone(out["data"]["atr14"])
 
 
 if __name__ == "__main__":

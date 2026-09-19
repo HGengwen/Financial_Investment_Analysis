@@ -9,6 +9,7 @@
 - 250 日 SMR 相对强度（同板块百分位排名，维度④主指标）
 - RSI(50) 中期动量（维度④备选指标）
 - MA50 / MA200 及量能（技术面止损校验，独立否决项）
+- ATR(14) 与动态止损价（GARP 框架「第三部分·五」高波动科技股动态跟踪止损）
 
 输出 `tech` 子结构字段名与打分引擎 `trend_tech_screen.TechData` 精确对齐
 （`close_above_ma50` / `close_above_ma200` / `volume_above_1_5x`），可直接喂给打分引擎。
@@ -20,6 +21,11 @@ Usage:
     res = momentum.compute_momentum(closes, volumes, peer_pcts=peer_pcts)
     # res["smr_percentile"]  # 同板块百分位（0-100）
     # res["tech"]            # {"close_above_ma50": bool, ...}
+
+    # ATR 动态止损（供 stock_quote --momentum 与 P4-6 风控编排复用）
+    atr14 = momentum.atr(highs, lows, closes)
+    stop = momentum.stop_price(highs, lows, closes, entry_price=100.0)
+    # stop == {"atr14": ..., "stop_price": ..., "stop_pct": ...}
 """
 
 from __future__ import annotations
@@ -225,3 +231,131 @@ def compute_momentum(closes: List[_NUM], volumes: Optional[List[_NUM]] = None,
         "smr_percentile": smr_percentile,
         "tech": tech,
     }
+
+
+def _true_range(high: _NUM, low: _NUM, prev_close: _NUM) -> Optional[float]:
+    """计算单根 K 线的真实波幅（TR）。
+
+    TR 定义为当日振幅与两个跳空幅度三者的最大值：
+    ``max(最高−最低, |最高−昨收|, |最低−昨收|)``。
+
+    Args:
+        high: 当日最高价。
+        low: 当日最低价。
+        prev_close: 前一根 K 线收盘价（昨收）。
+
+    Returns:
+        真实波幅（float）；任一输入为 None 时返回 None。
+    """
+    if None in (high, low, prev_close):
+        return None
+    return max(float(high) - float(low),
+               abs(float(high) - float(prev_close)),
+               abs(float(low) - float(prev_close)))
+
+
+def _atr_raw(highs: List[_NUM], lows: List[_NUM], closes: List[_NUM],
+             period: int = 14, method: str = "wilder") -> Optional[float]:
+    """计算当前（最新一期）ATR 的全精度值（不做四舍五入）。
+
+    与 ``atr()`` 的区别在于返回未经 ``round`` 的原始浮点值，供 ``stop_price()``
+    在计算止损价时复用，避免「先 round ATR 再乘倍数」带来的中间舍入误差。
+
+    Args:
+        highs: 最高价序列（按时间升序）。
+        lows: 最低价序列（按时间升序）。
+        closes: 收盘价序列（按时间升序；同时用于「昨收」计算）。
+        period: ATR 周期（默认 14）。
+        method: 平滑方法，'wilder'（默认）或 'sma'。
+
+    Returns:
+        全精度 ATR（float）；数据不足或方法非法时返回 None。
+    """
+    n = len(highs)
+    if period <= 0 or n < period + 1:
+        return None
+
+    trs: List[float] = []
+    for i in range(1, n):
+        tr = _true_range(highs[i], lows[i], closes[i - 1])
+        if tr is not None:
+            trs.append(tr)
+
+    if len(trs) < period:
+        return None
+
+    if method == "sma":
+        return sum(trs[-period:]) / period
+    if method != "wilder":
+        # 仅支持 'wilder' 与 'sma' 两种口径，其余静默降级
+        return None
+
+    # Wilder 平滑：初始简单平均 + 递归平滑
+    avg = sum(trs[:period]) / period
+    for i in range(period, len(trs)):
+        avg = (avg * (period - 1) + trs[i]) / period
+    return avg
+
+
+def atr(highs: List[_NUM], lows: List[_NUM], closes: List[_NUM],
+        period: int = 14, method: str = "wilder") -> Optional[float]:
+    """计算当前（最新一期）ATR（平均真实波幅）。
+
+    逐根计算 TR 后，按所选方法平滑：
+
+    - ``'wilder'``（默认，行业标准）：初始为前 ``period`` 个 TR 的简单平均，
+      之后按 ``(avg×(period−1)+tr)/period`` 递归平滑（与 Wilder/主流软件一致）。
+    - ``'sma'``：最近 ``period`` 个 TR 的简单平均（框架字面「平均真实波幅」）。
+
+    Args:
+        highs: 最高价序列（按时间升序）。
+        lows: 最低价序列（按时间升序）。
+        closes: 收盘价序列（按时间升序；同时用于「昨收」计算）。
+        period: ATR 周期（默认 14）。
+        method: 平滑方法，'wilder'（默认）或 'sma'。
+
+    Returns:
+        最新一期 ATR（float，2 位小数）；数据不足或方法非法时返回 None。
+    """
+    raw = _atr_raw(highs, lows, closes, period=period, method=method)
+    return None if raw is None else round(raw, 2)
+
+
+def stop_price(highs: List[_NUM], lows: List[_NUM], closes: List[_NUM],
+               entry_price: float, multiplier: float = 2.0,
+               period: int = 14, method: str = "wilder") -> dict:
+    """计算 ATR 动态止损价与止损幅度。
+
+    止损价 = 买入价 − multiplier × ATR(period)；
+    止损幅度 = (买入价 − 止损价) / 买入价 × 100。
+
+    注意本函数仅输出「原始」止损幅度，不做 20% 底仓容忍度封顶，也不做
+    8%~10% 硬止损与仓位状态分档——该类判断由上层编排（P4-6）完成。
+
+    Args:
+        highs: 最高价序列（按时间升序）。
+        lows: 最低价序列（按时间升序）。
+        closes: 收盘价序列（按时间升序）。
+        entry_price: 买入价。
+        multiplier: ATR 倍数（框架取 2~3，默认 2.0）。
+        period: ATR 周期（默认 14）。
+        method: 平滑方法，'wilder'（默认）或 'sma'。
+
+    Returns:
+        dict: 仅含 ``{'atr14', 'stop_price', 'stop_pct'}`` 三字段（2 位小数）；
+              数据不足或非法输入时对应字段为 None。
+    """
+    raw_atr = _atr_raw(highs, lows, closes, period=period, method=method)
+    atr14 = None if raw_atr is None else round(raw_atr, 2)
+
+    # 护栏：非法输入静默降级为 None，不抛异常
+    if raw_atr is None or entry_price is None or float(entry_price) <= 0 \
+            or multiplier is None or float(multiplier) <= 0:
+        return {"atr14": atr14, "stop_price": None, "stop_pct": None}
+
+    entry = float(entry_price)
+    mult = float(multiplier)
+    # 用全精度 ATR 计算止损价，最后才 round，避免中间舍入误差
+    stop = round(entry - mult * raw_atr, 2)
+    stop_pct = round((entry - stop) / entry * 100, 2)
+    return {"atr14": atr14, "stop_price": stop, "stop_pct": stop_pct}

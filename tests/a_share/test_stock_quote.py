@@ -46,6 +46,7 @@ from tools.a_share.stock_quote import (
     _DEFAULT_DAYS,
 )
 from tools.a_share import stock_quote as stock_quote_module
+from tools.common.momentum import atr as momentum_atr
 
 # 工具文件路径（用于 CLI 子进程测试）
 TOOL_PATH = os.path.join(PROJECT_ROOT, "tools", "a_share", "stock_quote.py")
@@ -493,6 +494,26 @@ def _fake_records(n=260):
             for i in range(n)]
 
 
+def _make_ohlc_series(n=20):
+    """构造三价齐全且非对称的 K 线序列（供 ATR 对齐与接线测试）。
+
+    high/low 与 close 的差额按序号错位波动，使 high/lows 序列交换后 ATR
+    结果不同，从而能检验接线是否按 high/low/close 正确顺序传递。
+    """
+    closes = [100.0 + i * 0.5 for i in range(n)]
+    highs = [c + 2.0 + (i % 3) * 0.5 for i, c in enumerate(closes)]
+    lows = [c - 1.0 - (i % 2) * 0.5 for i, c in enumerate(closes)]
+    return highs, lows, closes
+
+
+def _fake_ohlc_records(n=20):
+    """构造含 high/low/close 三价的伪 records（供 cmd_momentum 接线测试）。"""
+    highs, lows, closes = _make_ohlc_series(n)
+    return [{"date": i, "high": highs[i], "low": lows[i],
+             "close": closes[i], "volume": 1_000_000.0}
+            for i in range(n)]
+
+
 class TestMomentum(unittest.TestCase):
     """--momentum 计算与命令行分发测试。"""
 
@@ -559,6 +580,67 @@ class TestMomentum(unittest.TestCase):
         self.assertIn("sector:refresh", out["meta"]["peers_source"])
         self.assertEqual(out["meta"]["peers_industry"], "通信设备")
         self.assertIsNotNone(out["data"]["smr_percentile"])
+
+    def test_extract_ohlc_aligned_filters_missing(self):
+        """三价任意一项缺失的行被跳过，返回的三价序列等长且对齐。"""
+        rows = [
+            {"high": 10, "low": 9, "close": 9.5},
+            {"high": None, "low": 8, "close": 9.0},   # 缺 high
+            {"high": 11, "low": None, "close": 10.0},  # 缺 low
+            {"high": 12, "low": 11, "close": 11.5},
+            {"high": 12, "low": 11, "close": None},   # 缺 close
+        ]
+        highs, lows, closes = stock_quote_module._extract_ohlc_aligned(rows)
+        self.assertEqual(highs, [10.0, 12.0])
+        self.assertEqual(lows, [9.0, 11.0])
+        self.assertEqual(closes, [9.5, 11.5])
+
+    def test_momentum_atr14_with_ohlc(self):
+        """传入三价齐全序列时 atr14 等于 momentum.atr()，且非 None。"""
+        highs, lows, ohlc_closes = _make_ohlc_series(20)
+        res = stock_quote_module._momentum_from_series(
+            ohlc_closes, None, None,
+            highs=highs, lows=lows, atr_closes=ohlc_closes)
+        self.assertEqual(res["atr14"], momentum_atr(highs, lows, ohlc_closes))
+        self.assertIsNotNone(res["atr14"])
+
+    def test_momentum_atr14_none_without_ohlc(self):
+        """未提供 highs/lows/atr_closes 时 atr14 为 None。"""
+        res = stock_quote_module._momentum_from_series(
+            _make_uptrend_closes(260), None, None)
+        self.assertIsNone(res["atr14"])
+
+    def test_momentum_atr14_none_on_length_mismatch(self):
+        """三价序列长度不一致时 atr14 静默降级为 None（不抛异常）。"""
+        highs, lows, ohlc_closes = _make_ohlc_series(20)
+        res = stock_quote_module._momentum_from_series(
+            ohlc_closes, None, None,
+            highs=highs, lows=lows, atr_closes=ohlc_closes[:-1])
+        self.assertIsNone(res["atr14"])
+
+    def test_cmd_momentum_atr14_with_ohlc_records(self):
+        """三价 records 接线：cmd_momentum 输出的 atr14 与 momentum.atr() 一致。"""
+        records = _fake_ohlc_records(20)
+        highs, lows, closes = _make_ohlc_series(20)
+        with patch.object(stock_quote_module, "get_quote_eastmoney",
+                          return_value={"records": records, "count": 20}):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                stock_quote_module.cmd_momentum("300502", None)
+        out = json.loads(buf.getvalue())
+        self.assertTrue(out["success"])
+        self.assertEqual(out["data"]["atr14"], momentum_atr(highs, lows, closes))
+
+    def test_cmd_momentum_atr14_none_without_ohlc_records(self):
+        """无三价 records 时 cmd_momentum 输出 atr14=None（无回归）。"""
+        with patch.object(stock_quote_module, "get_quote_eastmoney",
+                          return_value={"records": _fake_records(), "count": 260}):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                stock_quote_module.cmd_momentum("300502", None)
+        out = json.loads(buf.getvalue())
+        self.assertTrue(out["success"])
+        self.assertIsNone(out["data"]["atr14"])
 
 
 def _make_index_df():

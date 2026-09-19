@@ -12,6 +12,8 @@
   5. TestAvgVolume      — 成交量均值
   6. TestTechCheck      — 技术面止损布尔项（与打分引擎 TechData 对齐）
   7. TestComputeMomentum— 汇总计算
+  8. TestAtr            — ATR(14) 真实波幅（TR 三分支 / Wilder / SMA / 数据不足）
+  9. TestStopPrice      — ATR 动态止损价与止损幅度（倍数 / 全精度 / 护栏降级）
 
 运行方式:
     F:\\Anaconda3\\envs\\Python_3_12_3\\python.exe -m pytest tests/common/test_momentum.py -v
@@ -226,12 +228,145 @@ class TestComputeMomentum(unittest.TestCase):
         self.assertIsNone(res["ma200"])
 
 
+class TestAtr(unittest.TestCase):
+    """ATR（平均真实波幅）测试。"""
+
+    def _make_constant_tr(self, n: int) -> tuple:
+        """构造 n 根 K 线（high=110, low=100, close=105），每根 TR=10。"""
+        return [110.0] * n, [100.0] * n, [105.0] * n
+
+    def _make_nonconstant(self) -> tuple:
+        """构造 TR = [10]×13 + [30] + [10] 的 16 根 K 线（15 个 TR）。"""
+        highs = [110.0] + [110.0] * 13 + [135.0, 140.0]
+        lows = [100.0] + [100.0] * 13 + [125.0, 130.0]
+        closes = [105.0] + [105.0] * 13 + [130.0, 135.0]
+        return highs, lows, closes
+
+    def test_true_range_gap_and_range(self) -> None:
+        """TR 三分支：振幅最大 / 高跳空最大 / 低跳空最大，任一 None 降级。"""
+        self.assertEqual(momentum._true_range(110.0, 100.0, 105.0), 10.0)
+        self.assertEqual(momentum._true_range(135.0, 125.0, 105.0), 30.0)
+        self.assertEqual(momentum._true_range(105.0, 95.0, 110.0), 15.0)
+        self.assertIsNone(momentum._true_range(None, 100.0, 105.0))
+
+    def test_atr_constant_tr_wilder(self) -> None:
+        """恒定 TR=10，Wilder 与 SMA 均为 10。"""
+        highs, lows, closes = self._make_constant_tr(15)
+        self.assertAlmostEqual(momentum.atr(highs, lows, closes), 10.0, places=2)
+
+    def test_atr_constant_tr_sma(self) -> None:
+        """恒定 TR=10，SMA 口径同为 10。"""
+        highs, lows, closes = self._make_constant_tr(15)
+        self.assertAlmostEqual(
+            momentum.atr(highs, lows, closes, method="sma"), 10.0, places=2)
+
+    def test_atr_wilder_vs_sma_nonconstant(self) -> None:
+        """非恒定 TR 下 Wilder(11.33) 与 SMA(11.43) 存在差异。"""
+        highs, lows, closes = self._make_nonconstant()
+        self.assertAlmostEqual(momentum.atr(highs, lows, closes), 11.33, places=2)
+        self.assertAlmostEqual(
+            momentum.atr(highs, lows, closes, method="sma"), 11.43, places=2)
+
+    def test_atr_insufficient_data(self) -> None:
+        """13 根 K 线（有效 TR=12 < 14）返回 None。"""
+        highs, lows, closes = self._make_constant_tr(13)
+        self.assertIsNone(momentum.atr(highs, lows, closes))
+
+    def test_atr_invalid_period(self) -> None:
+        """period<=0 返回 None。"""
+        highs, lows, closes = self._make_constant_tr(20)
+        self.assertIsNone(momentum.atr(highs, lows, closes, period=0))
+
+    def test_atr_invalid_method(self) -> None:
+        """非法 method 静默降级为 None。"""
+        highs, lows, closes = self._make_constant_tr(20)
+        self.assertIsNone(momentum.atr(highs, lows, closes, method="foo"))
+
+
+class TestStopPrice(unittest.TestCase):
+    """ATR 动态止损价与止损幅度测试。"""
+
+    def _make_constant_tr(self, n: int) -> tuple:
+        """构造 n 根 K 线（high=110, low=100, close=105），每根 TR=10。"""
+        return [110.0] * n, [100.0] * n, [105.0] * n
+
+    def _make_nonconstant(self) -> tuple:
+        """构造 TR = [10]×13 + [30] + [10] 的 16 根 K 线（15 个 TR）。"""
+        highs = [110.0] + [110.0] * 13 + [135.0, 140.0]
+        lows = [100.0] + [100.0] * 13 + [125.0, 130.0]
+        closes = [105.0] + [105.0] * 13 + [130.0, 135.0]
+        return highs, lows, closes
+
+    def test_stop_price_mult2(self) -> None:
+        """倍数 2.0：stop_price=80.0、stop_pct=20.0。"""
+        highs, lows, closes = self._make_constant_tr(15)
+        out = momentum.stop_price(highs, lows, closes, 100.0)
+        self.assertAlmostEqual(out["atr14"], 10.0, places=2)
+        self.assertAlmostEqual(out["stop_price"], 80.0, places=2)
+        self.assertAlmostEqual(out["stop_pct"], 20.0, places=2)
+
+    def test_stop_price_mult3(self) -> None:
+        """倍数 3.0：stop_price=70.0、stop_pct=30.0（不封顶 20%）。"""
+        highs, lows, closes = self._make_constant_tr(15)
+        out = momentum.stop_price(highs, lows, closes, 100.0, multiplier=3.0)
+        self.assertAlmostEqual(out["atr14"], 10.0, places=2)
+        self.assertAlmostEqual(out["stop_price"], 70.0, places=2)
+        self.assertAlmostEqual(out["stop_pct"], 30.0, places=2)
+
+    def test_stop_price_full_precision(self) -> None:
+        """非恒定 TR 用全精度 ATR 反算止损，避免中间舍入误差。"""
+        highs, lows, closes = self._make_nonconstant()
+        out = momentum.stop_price(highs, lows, closes, 100.0, multiplier=2.0)
+        self.assertAlmostEqual(out["atr14"], 11.33, places=2)
+        self.assertAlmostEqual(out["stop_price"], 77.35, places=2)
+        self.assertAlmostEqual(out["stop_pct"], 22.65, places=2)
+
+    def test_stop_price_insufficient_data(self) -> None:
+        """13 根 K 线：三字段均为 None。"""
+        highs, lows, closes = self._make_constant_tr(13)
+        out = momentum.stop_price(highs, lows, closes, 100.0)
+        self.assertIsNone(out["atr14"])
+        self.assertIsNone(out["stop_price"])
+        self.assertIsNone(out["stop_pct"])
+
+    def test_stop_price_invalid_entry(self) -> None:
+        """entry<=0：atr14 保留，其余为 None。"""
+        highs, lows, closes = self._make_constant_tr(15)
+        out = momentum.stop_price(highs, lows, closes, 0.0)
+        self.assertAlmostEqual(out["atr14"], 10.0, places=2)
+        self.assertIsNone(out["stop_price"])
+        self.assertIsNone(out["stop_pct"])
+
+    def test_stop_price_invalid_multiplier(self) -> None:
+        """multiplier<=0：atr14 保留，其余为 None。"""
+        highs, lows, closes = self._make_constant_tr(15)
+        out = momentum.stop_price(highs, lows, closes, 100.0, multiplier=0.0)
+        self.assertAlmostEqual(out["atr14"], 10.0, places=2)
+        self.assertIsNone(out["stop_price"])
+        self.assertIsNone(out["stop_pct"])
+
+    def test_stop_price_none_entry(self) -> None:
+        """entry=None：atr14 保留，其余为 None。"""
+        highs, lows, closes = self._make_constant_tr(15)
+        out = momentum.stop_price(highs, lows, closes, None)
+        self.assertAlmostEqual(out["atr14"], 10.0, places=2)
+        self.assertIsNone(out["stop_price"])
+        self.assertIsNone(out["stop_pct"])
+
+    def test_stop_price_keys_only_three(self) -> None:
+        """返回字典仅含 atr14 / stop_price / stop_pct 三键。"""
+        highs, lows, closes = self._make_constant_tr(15)
+        out = momentum.stop_price(highs, lows, closes, 100.0)
+        self.assertEqual(set(out.keys()), {"atr14", "stop_price", "stop_pct"})
+
+
 def run_tests():
     """以 unittest 方式运行全部测试。"""
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
     for cls in (TestSma, TestRsi, TestPctChange, TestPercentileRank,
-                TestAvgVolume, TestTechCheck, TestComputeMomentum):
+                TestAvgVolume, TestTechCheck, TestComputeMomentum,
+                TestAtr, TestStopPrice):
         suite.addTests(loader.loadTestsFromTestCase(cls))
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)

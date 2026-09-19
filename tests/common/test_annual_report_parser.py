@@ -30,12 +30,14 @@ sys.path.insert(0, PROJECT_ROOT)
 
 from tools.common.annual_report_parser import (
     _extract_employees,
+    _extract_governance,
     _extract_subsidiaries,
     _extract_rd_section,
     _extract_revenue_segments,
     _first_number_after,
     _num,
     _pct,
+    _pct_after,
     _text_excerpt,
     parse_markdown_file,
     parse_markdown_text,
@@ -397,6 +399,161 @@ class TestParseMarkdown(unittest.TestCase):
             self.assertEqual(res["employees"]["total_employees"], 7389.0)
         finally:
             os.unlink(tmp_path)
+
+
+# ---------------------------------------------------------------------------
+# 8. 治理字段
+# ---------------------------------------------------------------------------
+class TestGovernancePledge(unittest.TestCase):
+    """大股东质押率抽取。"""
+
+    def test_pledge_ratio_high(self):
+        lines = ["|控股股东张三|累计质押 10,000 万股，占其所持股份比例 28.75%|"]
+        res = _extract_governance(lines)
+        self.assertEqual(res["pledge_ratio"]["holder_name"], "控股股东")
+        self.assertAlmostEqual(res["pledge_ratio"]["pledge_ratio"], 0.2875)
+        self.assertEqual(res["pledge_ratio"]["confidence"], "high")
+
+    def test_pledge_ratio_medium_no_number(self):
+        lines = ["|控股股东张三|存在股份质押|"]
+        res = _extract_governance(lines)
+        self.assertEqual(res["pledge_ratio"]["confidence"], "medium")
+        self.assertIsNone(res["pledge_ratio"]["pledge_ratio"])
+
+    def test_pledge_ratio_low_when_absent(self):
+        res = _extract_governance(["无关内容"])
+        self.assertEqual(res["pledge_ratio"]["confidence"], "low")
+        self.assertIsNone(res["pledge_ratio"]["pledge_ratio"])
+        self.assertIsNone(res["pledge_ratio"]["holder_name"])
+
+
+class TestGovernanceShareholding(unittest.TestCase):
+    """管理层持股抽取。"""
+
+    def test_shareholding_ratio_high(self):
+        lines = ["公司董事、监事、高级管理人员合计持股比例占公司总股本 3.15%"]
+        res = _extract_governance(lines)
+        self.assertAlmostEqual(
+            res["management_shareholding"]["holding_ratio"], 0.0315)
+        self.assertEqual(res["management_shareholding"]["confidence"], "high")
+
+    def test_shareholding_excerpt_medium(self):
+        lines = ["管理层持股情况已披露，详情见下表。"]
+        res = _extract_governance(lines)
+        self.assertEqual(res["management_shareholding"]["confidence"], "medium")
+        self.assertIsNone(res["management_shareholding"]["holding_ratio"])
+        self.assertIsNotNone(res["management_shareholding"]["excerpt"])
+
+    def test_shareholding_low_when_absent(self):
+        res = _extract_governance(["无关内容"])
+        self.assertEqual(res["management_shareholding"]["confidence"], "low")
+
+
+class TestGovernanceDividendBuyback(unittest.TestCase):
+    """分红/回购抽取。"""
+
+    def test_dividend_ratio_high(self):
+        lines = ["公司现金分红占归母净利润比例 35.00%"]
+        res = _extract_governance(lines)
+        self.assertAlmostEqual(
+            res["dividend_buyback"]["dividend_payout_ratio"], 0.35)
+        self.assertEqual(res["dividend_buyback"]["confidence"], "high")
+
+    def test_buyback_excerpt(self):
+        lines = ["公司实施股份回购方案。"]
+        res = _extract_governance(lines)
+        self.assertIsNotNone(res["dividend_buyback"]["buyback_excerpt"])
+        self.assertEqual(res["dividend_buyback"]["confidence"], "medium")
+
+    def test_dividend_low_when_absent(self):
+        res = _extract_governance(["无关内容"])
+        self.assertEqual(res["dividend_buyback"]["confidence"], "low")
+        self.assertIsNone(res["dividend_buyback"]["dividend_payout_ratio"])
+
+
+class TestGovernanceSales(unittest.TestCase):
+    """销售组织抽取。"""
+
+    def test_selling_expense_ratio_and_distributor(self):
+        lines = [
+            "|销售费用率 分产品|11.48%|",
+            "|经销商数量（家）||120|",
+        ]
+        res = _extract_governance(lines)
+        self.assertAlmostEqual(
+            res["sales_organization"]["selling_expense_ratio"], 0.1148)
+        self.assertEqual(res["sales_organization"]["distributor_count"], 120.0)
+        self.assertEqual(res["sales_organization"]["confidence"], "high")
+
+    def test_sales_medium_when_only_keyword(self):
+        res = _extract_governance(["公司自有经销商体系完善。"])
+        self.assertEqual(res["sales_organization"]["confidence"], "medium")
+        self.assertIsNone(res["sales_organization"]["selling_expense_ratio"])
+
+    def test_sales_low_when_absent(self):
+        res = _extract_governance(["无关内容"])
+        self.assertEqual(res["sales_organization"]["confidence"], "low")
+
+
+class TestGovernanceEsg(unittest.TestCase):
+    """ESG 摘录抽取。"""
+
+    def test_esg_found_high(self):
+        lines = ["公司发布 ESG 报告，披露环境、社会及治理信息。"]
+        res = _extract_governance(lines)
+        self.assertTrue(res["esg"]["found"])
+        self.assertTrue(res["esg"]["excerpts"])
+        self.assertEqual(res["esg"]["confidence"], "high")
+
+    def test_esg_low_when_absent(self):
+        res = _extract_governance(["无关内容"])
+        self.assertFalse(res["esg"]["found"])
+        self.assertEqual(res["esg"]["confidence"], "low")
+        self.assertEqual(res["esg"]["excerpts"], [])
+
+
+class TestGovernanceDefaultsAndWarnings(unittest.TestCase):
+    """治理字段缺省与 warnings 追加。"""
+
+    def test_all_low_confidence_when_absent(self):
+        res = _extract_governance(["与治理无关的内容"])
+        for field in ("pledge_ratio", "management_shareholding",
+                      "dividend_buyback", "sales_organization", "esg"):
+            self.assertEqual(res[field]["confidence"], "low", field)
+
+    def test_parse_adds_governance_warnings(self):
+        res = parse_markdown_text("只有一行无关文本")
+        governance_warnings = [w for w in res["warnings"]
+                               if any(k in w for k in ("质押", "持股", "分红", "销售组织", "ESG"))]
+        self.assertTrue(governance_warnings)
+
+    def test_parse_governance_json_type(self):
+        import json
+        res = parse_markdown_text("只有一行无关文本")
+        payload = json.loads(json.dumps(res, ensure_ascii=False))
+        self.assertIn("governance", payload)
+        self.assertEqual(
+            set(payload["governance"]),
+            {"pledge_ratio", "management_shareholding",
+             "dividend_buyback", "sales_organization", "esg"},
+        )
+
+
+class TestPctAfter(unittest.TestCase):
+    """_pct_after 辅助函数。"""
+
+    def test_pct_after_anchor(self):
+        line = "占其所持股份比例 28.75%"
+        self.assertAlmostEqual(
+            _pct_after(line, ("占其所持股份", "占公司总股本")), 0.2875)
+
+    def test_pct_after_no_anchor(self):
+        self.assertIsNone(_pct_after("无可匹配锚点", ("占其所持股份",)))
+
+    def test_pct_after_skips_plain_number(self):
+        line = "累计质押 1000 万股，占其所持股份比例 28.75%"
+        self.assertAlmostEqual(
+            _pct_after(line, ("占其所持股份",)), 0.2875)
 
 
 # ---------------------------------------------------------------------------

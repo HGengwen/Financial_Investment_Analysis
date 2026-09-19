@@ -277,13 +277,17 @@ def get_stock_daily_kline(symbol: str, start_date: str = None, end_date: str = N
 _MOMENTUM_LOOKBACK_DAYS = 400
 
 
-def _momentum_from_series(closes, volumes, peers):
+def _momentum_from_series(closes, volumes, peers,
+                          highs=None, lows=None, atr_closes=None):
     """由收盘价/成交量序列计算动量与技术面指标（纯计算，便于单测）。
 
     Args:
         closes: 收盘价序列（按时间升序，最新在末尾）。
         volumes: 成交量序列（与 closes 对齐，可为空/缺失）。
         peers: 同板块成分 250 日涨幅百分比列表（SMR 截面；None 表示不提供）。
+        highs: 最高价序列（三价齐全对齐，供 momentum.atr；缺省 None）。
+        lows: 最低价序列（三价齐全对齐，供 momentum.atr；缺省 None）。
+        atr_closes: 与 highs/lows 等长对齐的收盘价序列（供 momentum.atr 的「昨收」基准）。
 
     Returns:
         可 JSON 序列化的动量指标字典；数据不足字段为 None，不抛异常。
@@ -292,6 +296,12 @@ def _momentum_from_series(closes, volumes, peers):
         return {"error": "momentum 模块未安装，无法计算动量指标"}
     m = _momentum.compute_momentum(
         closes, volumes or None, uplift_period=250, rsi_period=50, peer_pcts=peers)
+
+    # 复用 P1-8 的 momentum.atr()，仅当三价序列均非空且等长时调用
+    atr14 = None
+    if highs and lows and atr_closes and len(highs) == len(lows) == len(atr_closes):
+        atr14 = _momentum.atr(highs, lows, atr_closes)
+
     ret = {
         "close": m["close"],
         "return_250d_pct": round(m["return_250d_pct"], 2) if m["return_250d_pct"] is not None else None,
@@ -301,6 +311,7 @@ def _momentum_from_series(closes, volumes, peers):
         "ma200": round(m["ma200"], 4) if m["ma200"] is not None else None,
         "tech": m["tech"],
         "data_points": len(closes),
+        "atr14": atr14,
     }
     if not peers:
         ret["note"] = "未提供板块截面(--peers)，smr_percentile 为 None"
@@ -327,6 +338,37 @@ def _extract_series_from_df(df):
     volumes = ([float(v) if v == v else 0.0 for v in vols_col.tolist()]
                if vols_col is not None else [])
     return closes, volumes
+
+
+def _extract_ohlc_for_atr(df):
+    """从 yfinance 历史K线 DataFrame 中提取三价齐全对齐的 highs/lows/closes。
+
+    ATR 需要 high/low/close 三价序列等长且按时间对齐。本函数用三列 notna 布尔
+    联乘得到掩码，仅保留三价均非空的行，与 `_extract_series_from_df` 刻意解耦，
+    避免改变既有 closes/volumes 的提取口径。
+
+    Args:
+        df: yf.download 返回的 DataFrame（含 High/Low/Close 列，多级列已拍平）。
+
+    Returns:
+        (highs, lows, closes) 三元组；任一列缺失时返回空列表。
+    """
+    def _col(df, *names):
+        for n in names:
+            if n in df.columns:
+                return df[n]
+        return None
+    highs_col = _col(df, "High", "high")
+    lows_col = _col(df, "Low", "low")
+    closes_col = _col(df, "Close", "close")
+    if highs_col is None or lows_col is None or closes_col is None:
+        return [], [], []
+
+    mask = highs_col.notna() & lows_col.notna() & closes_col.notna()
+    highs = [float(v) for v in highs_col[mask].tolist()]
+    lows = [float(v) for v in lows_col[mask].tolist()]
+    closes = [float(v) for v in closes_col[mask].tolist()]
+    return highs, lows, closes
 
 
 def _parse_peers(raw):
@@ -372,7 +414,9 @@ def cmd_momentum(symbol, peers, auto_peers=False):
         if not result.get("success"):
             raise RuntimeError(result.get("error", "获取历史K线失败"))
         closes, volumes = _extract_series_from_df(result["raw_data"])
-        out = _momentum_from_series(closes, volumes, peers)
+        highs, lows, atr_closes = _extract_ohlc_for_atr(result["raw_data"])
+        out = _momentum_from_series(closes, volumes, peers,
+                                    highs=highs, lows=lows, atr_closes=atr_closes)
         if peers_source is not None:
             out["peers_source"] = peers_source
         output = {

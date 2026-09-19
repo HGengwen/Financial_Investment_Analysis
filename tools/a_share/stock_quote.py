@@ -202,13 +202,40 @@ def get_quote_sina(symbol: str, start_date: str, end_date: str, adjust: str = ""
 _MOMENTUM_LOOKBACK_DAYS = 400
 
 
-def _momentum_from_series(closes, volumes, peers):
+def _extract_ohlc_aligned(rows):
+    """从 K 线记录中提取三价齐全且对齐的 highs/lows/closes。
+
+    ATR 需要 high/low/close 三价序列等长且按时间对齐。本函数仅保留三价均非
+    None 的记录，被跳过的行不影响其余序列的对齐关系。
+
+    Args:
+        rows: 按日期升序排列的 K 线记录列表（dict，含 high/low/close 键）。
+
+    Returns:
+        (highs, lows, closes) 三元组，三者等长且按行对齐。
+    """
+    highs, lows, closes = [], [], []
+    for r in rows:
+        high, low, close = r.get("high"), r.get("low"), r.get("close")
+        if high is None or low is None or close is None:
+            continue
+        highs.append(float(high))
+        lows.append(float(low))
+        closes.append(float(close))
+    return highs, lows, closes
+
+
+def _momentum_from_series(closes, volumes, peers,
+                          highs=None, lows=None, atr_closes=None):
     """由收盘价/成交量序列计算动量与技术面指标（纯计算，便于单测）。
 
     Args:
         closes: 收盘价序列（按时间升序，最新在末尾）。
         volumes: 成交量序列（与 closes 对齐，可为空/缺失）。
         peers: 同板块成分 250 日涨幅百分比列表（SMR 截面；None 表示不提供）。
+        highs: 最高价序列（三价齐全对齐，供 momentum.atr；缺省 None）。
+        lows: 最低价序列（三价齐全对齐，供 momentum.atr；缺省 None）。
+        atr_closes: 与 highs/lows 等长对齐的收盘价序列（供 momentum.atr 的「昨收」基准）。
 
     Returns:
         可 JSON 序列化的动量指标字典；数据不足字段为 None，不抛异常。
@@ -217,6 +244,12 @@ def _momentum_from_series(closes, volumes, peers):
         return {"error": "momentum 模块未安装，无法计算动量指标"}
     m = _momentum.compute_momentum(
         closes, volumes or None, uplift_period=250, rsi_period=50, peer_pcts=peers)
+
+    # 复用 P1-8 的 momentum.atr()，仅当三价序列均非空且等长时调用
+    atr14 = None
+    if highs and lows and atr_closes and len(highs) == len(lows) == len(atr_closes):
+        atr14 = _momentum.atr(highs, lows, atr_closes)
+
     ret = {
         "close": m["close"],
         "return_250d_pct": round(m["return_250d_pct"], 2) if m["return_250d_pct"] is not None else None,
@@ -226,6 +259,7 @@ def _momentum_from_series(closes, volumes, peers):
         "ma200": round(m["ma200"], 4) if m["ma200"] is not None else None,
         "tech": m["tech"],
         "data_points": len(closes),
+        "atr14": atr14,
     }
     if not peers:
         ret["note"] = "未提供板块截面(--peers)，smr_percentile 为 None"
@@ -282,7 +316,9 @@ def cmd_momentum(code, peers, auto_peers=False):
         rows = sorted(result["records"], key=lambda r: r.get("date"))
         closes = [float(r["close"]) for r in rows if r.get("close") is not None]
         volumes = [float(r["volume"]) if r.get("volume") is not None else 0.0 for r in rows]
-        out = _momentum_from_series(closes, volumes, peers)
+        highs, lows, atr_closes = _extract_ohlc_aligned(rows)
+        out = _momentum_from_series(closes, volumes, peers,
+                                    highs=highs, lows=lows, atr_closes=atr_closes)
         meta = {
             "tool": "stock_quote",
             "command": "momentum",
