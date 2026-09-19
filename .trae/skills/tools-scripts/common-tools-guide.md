@@ -60,8 +60,8 @@ disable-model-invocation: true
 
 | 编号 | 缺陷 | 登记落点 | 处置 |
 | --- | --- | --- | --- |
-| **P23-E1** | `governance_data.py` 三子命令 `--help` 全部崩溃（argparse `%` 未转义；父级 `--help` 正常） | [garp-governance-tools.md](./garp-governance-tools.md) | **已于 P5-2 §4.4 修复**（12 处 `%(` → `%%(`，四条 `--help` 退出码 0）；详见 [garp-governance-tools.md](./garp-governance-tools.md) |
-| **P23-A4** | `geo_policy_screen.py scan` 直连抛 `ModuleNotFoundError` | [garp-geo-policy-tools.md](./garp-geo-policy-tools.md) | **已于 P5-2 §4.5 修复**（注入项目根到 `sys.path`，`python x.py` 与 `python -m x` 双形态均可调用）；详见 [garp-geo-policy-tools.md](./garp-geo-policy-tools.md) |
+| **P23-E1** | `governance_data.py` 三子命令 `--help` 全部崩溃（argparse `%` 未转义；父级 `--help` 正常） | [garp-governance-tools.md](./garp-governance-tools.md) | **已于 P5-2 §4.4 修复**（12 处 `%(` → `%%(`，四条 `--help` 退出码 0） |
+| **P23-A4** | `geo_policy_screen.py scan` 直连抛 `ModuleNotFoundError` | [garp-geo-policy-tools.md](./garp-geo-policy-tools.md) | **已于 P5-2 §4.5 修复**（注入项目根到 `sys.path`，`python x.py` 与 `python -m x` 双形态均可调用） |
 | **P23-A3** | 0.3 矩阵各场景**无量化系数**（框架仅定性「投资含义」） | [garp-geo-policy-tools.md](./garp-geo-policy-tools.md) | 运行期采「**定性档位 + 闸门**」，**不得发明系数** |
 | **P23-B3** | `fx_rate.py` **跨币种折算不可用** | [garp-valuation-tools.md](./garp-valuation-tools.md) | 声明「**仅取汇率**」，折算由 `financial_rigor.py calc` 显式完成并**标注汇率时点**；工具侧补折算**未实施**（P5-2 转办不修） |
 
