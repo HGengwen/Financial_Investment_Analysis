@@ -1,0 +1,18 @@
+{
+  "verdict": "PASS",
+  "pass_count": 12,
+  "warn_count": 1,
+  "fail_count": 0,
+  "total": 13,
+  "fail_items": [],
+  "warn_items": [
+    {
+      "id": 36,
+      "label": "2025 毛利率 · 误差",
+      "reported": 0.01,
+      "unit": "%",
+      "diff1_pct": 7.96,
+      "diff2_pct": null
+    }
+  ]
+}
