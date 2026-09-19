@@ -13,7 +13,7 @@
 | 工具文件                      | 功能                     | 命令示例                                                     |
 | ----------------------------- | ------------------------ | ------------------------------------------------------------ |
 | `stock_info.py`             | A股信息查询（含 `--profile` 完整画像）              | `python tools/a_share/stock_info.py --search 新易盛`       |
-| `stock_quote.py`            | A股行情数据（含 `--realtime` 实时快照、`--momentum`/`--auto-peers` 动量）              | `python tools/a_share/stock_quote.py --realtime 300502`     |
+| `stock_quote.py`            | A股行情数据（含 `--realtime` 实时快照、`--momentum`/`--auto-peers` 动量（含 `ATR(14)`））              | `python tools/a_share/stock_quote.py --realtime 300502`     |
 | `stock_financial.py`        | A股财务指标（含 `--advanced` 高级科目）              | `python tools/a_share/stock_financial.py --code 300502`    |
 | `stock_financial_batch.ps1` | 批量查询多只股票财务指标 | `powershell -File tools/a_share/stock_financial_batch.ps1` |
 | `stock_screen.py`           | 质量筛选7条指标          | `python tools/a_share/stock_screen.py --code 300502`       |
@@ -23,7 +23,7 @@
 
 | 工具文件               | 功能                              | 命令示例                                                           |
 | ---------------------- | --------------------------------- | ------------------------------------------------------------------ |
-| `financial_rigor.py` | 精确金融计算（PE、ROE、市值校验；含五维估值 `peg`/`ps-g`/`pe-percentile`/`implied-growth`） | `python tools/common/financial_rigor.py verify-valuation --help` |
+| `financial_rigor.py` | 精确金融计算（PE、ROE、市值校验；含五维估值 `peg`/`ps-g`/`pe-percentile`/`implied-growth` 与 GARP 计算核心 `roic`/`incremental-roic`/`wacc`/`rule-of-40`/`ev-sales`/`adjusted-peg`/`dcf`） | `python tools/common/financial_rigor.py verify-valuation --help` |
 | `terminal_value.py` | 长期折现估值（十年尺度：终值PE、十年IRR、r/ROIC/g三输入、三条硬约束audit） | `python tools/common/terminal_value.py audit --currency CNY --r 0.08 --roic 0.20 --g 0.005,0.02,0.03` |
 | `report_audit.py`    | 研究报告审核                      | `python tools/common/report_audit.py --help`                     |
 
@@ -31,10 +31,10 @@
 
 | 工具文件               | 功能                              | 命令示例                                                           |
 | ---------------------- | --------------------------------- | ------------------------------------------------------------------ |
-| `annual_report_parser.py` | 年报 markdown 结构化抽取（员工/子公司/研发/收入分部/新品/供应链） | `python tools/common/annual_report_parser.py {年报md} --output-json` |
+| `annual_report_parser.py` | 年报 markdown 结构化抽取（员工/子公司/研发/收入分部/新品/供应链/治理） | `python tools/common/annual_report_parser.py {年报md} --output-json` |
 | `trend_tech_screen.py` | 景气趋势五维打分引擎（打分+地缘修正+技术面止损+**R8在研评分**+评级+反证清单） | `python tools/specialized/trend_tech_screen.py score --name A --cycle 需求爆发期 --dims '{...}' --r8 '{...}'` |
 | `in_research_scan.py` | 在研项目多渠道扫描（gov/patent/bidding/academic/investor/website/research），供 R8 评分卡 | `python tools/specialized/in_research_scan.py scan "{公司}" --market sz --official-site {官网} --annual-report {年报md}` |
-| `--momentum`/`--auto-peers` | `stock_quote.py` 动量与同板块 SMR 截面 | `python tools/a_share/stock_quote.py --code 300502 --momentum --auto-peers` |
+| `--momentum`/`--auto-peers` | `stock_quote.py` 动量与同板块 SMR 截面（含 `ATR(14)`） | `python tools/a_share/stock_quote.py --code 300502 --momentum --auto-peers` |
 | `--advanced` | `stock_financial.py` 高级财务科目 | `python tools/a_share/stock_financial.py --code 300502 --advanced 合同负债,存货,研发费用,员工总数` |
 | `--profile` | `stock_info.py` 完整画像（总市值/流通市值/机构覆盖） | `python tools/a_share/stock_info.py --code 300502 --profile` |
 
@@ -249,14 +249,14 @@ python tools/a_share/stock_quote.py --code 300502 --source sina
 #### 5. 动量与技术面（--momentum，mid-trend-tech-screen 阶段三）
 
 ```bash
-# 计算 250日 SMR 相对强度（同板块百分位）、RSI(50)、MA50/MA200、量能
+# 计算 250日 SMR 相对强度（同板块百分位）、RSI(50)、MA50/MA200、量能、ATR(14)
 python tools/a_share/stock_quote.py --code 300502 --momentum
 
 # 自动获取申万一级行业成分做 SMR 截面排名
 python tools/a_share/stock_quote.py --code 300502 --momentum --auto-peers
 ```
 
-**说明**：SMR 百分位按"同板块"口径计算。申万一级行业成分映射（`sw_index_first_info` + `index_component_sw`）一次性构建全市场"代码→行业"映射并缓存至 `data/a_share/sector/sw_industry_map.json`（覆盖 5000+ 只）；成分 250 日涨幅距 `stock_zh_a_daily`（新浪）优先、`stock_zh_a_hist`（东财）回退批量。该输出为景气趋势筛选的动量维度与技术面止损校验数据源。
+**说明**：SMR 百分位按"同板块"口径计算。申万一级行业成分映射（`sw_index_first_info` + `index_component_sw`）一次性构建全市场"代码→行业"映射并缓存至 `data/a_share/sector/sw_industry_map.json`（覆盖 5000+ 只）；成分 250 日涨幅距 `stock_zh_a_daily`（新浪）优先、`stock_zh_a_hist`（东财）回退批量。该输出为景气趋势筛选的动量维度与技术面止损校验数据源。其中 `atr14` 为 Wilder 口径 ATR(14)（2 位小数），供 GARP 框架高波动科技股动态跟踪止损使用。
 
 #### 6. 当日实时快照（--realtime，news-pulse / mid-news-pulse 实时取价）
 
@@ -607,7 +607,7 @@ python tools/a_share/stock_equity.py --code 601899 --download-report --report-di
 
 ### 功能说明
 
-提供精确的金融计算功能，包括PE、ROE、市值校验、三情景估值等。所有计算结果经过精确算术验证，避免LLM心算错误。
+提供精确的金融计算功能，包括PE、ROE、市值校验、三情景估值、五维估值，以及 GARP 计算核心（ROIC、增量ROIC、WACC、Rule of 40、EV/Sales、调整后PEG、DCF）等。所有计算结果经过精确算术验证，避免LLM心算错误。
 
 ### 使用方法
 
@@ -675,6 +675,43 @@ python tools/common/financial_rigor.py implied-growth \
   --ttm-revenue 130 --guidance-growth 0.35
 ```
 
+#### 7. GARP 计算核心命令（Phase 1 新增）
+
+```bash
+# ROIC 投入资本回报率（GARP 支柱二核心口径；--wacc 可选，百分点输入）
+python tools/common/financial_rigor.py roic --nopat 120 --invested-capital 800 --wacc 8
+
+# 增量 ROIC（增量口径；Δ投入资本 ≤ 0 时降级为 N/A）
+python tools/common/financial_rigor.py incremental-roic \
+  --nopat-from 100 --invested-capital-from 700 \
+  --nopat-to 120 --invested-capital-to 800 \
+  --period-from 2023 --period-to 2024
+
+# WACC 加权平均资本成本（cost-equity/cost-debt 百分点，tax-rate 小数）
+python tools/common/financial_rigor.py wacc \
+  --equity-value 600 --debt-value 400 \
+  --cost-equity 10 --cost-debt 5 --tax-rate 0.25
+
+# Rule of 40 成长质量判定（--profit-margin 与 --fcf-margin 二选一，百分点）
+python tools/common/financial_rigor.py rule-of-40 --revenue-growth 30 --fcf-margin 12
+
+# EV/Sales 企业价值营收倍数（四参数同货币单位）
+python tools/common/financial_rigor.py ev-sales \
+  --market-cap 500 --debt 80 --cash 30 --revenue 130
+
+# 调整后 PEG（研发费用加回口径；--growth 百分点）
+python tools/common/financial_rigor.py adjusted-peg \
+  --market-cap 500 --core-operating-profit 45 --rnd-expense 15 --growth 30
+
+# 简化三阶段 DCF（增速/折现率/无风险利率均百分点）
+python tools/common/financial_rigor.py dcf \
+  --fcf 60 --g-high 10 --years-high 5 --years-fade 5 \
+  --g-terminal 2 --r 9 --shares 95 --market-cap 500 \
+  --currency CNY --rf 3 --discrete-risks "地缘制裁:情景"
+```
+
+> **百分点 vs 小数约定**：WACC、股权/债务成本、营收增速、利润/FCF 利润率、增速、折现率、无风险利率一律**百分点输入**（如 8 表示 8%）；企业所得税税率、净利率、指引增速（`implied-growth` 命令）一律**小数输入**（如 0.25 表示 25%）。
+
 ### 应用场景
 
 - 估值数据验证
@@ -683,6 +720,7 @@ python tools/common/financial_rigor.py implied-growth \
 - 三情景估值分析
 - 精确算术计算
 - 景气趋势筛选五维估值（PEG/PSG/PE 分位/市值倒推）
+- GARP 计算核心（ROIC/增量ROIC/WACC/Rule of 40/EV-Sales/调整后PEG/DCF）
 
 ---
 
@@ -2295,10 +2333,11 @@ python tools/common/fx_rate.py --code USDCNY --start 2026-07-20 --end 2026-08-01
 
 ---
 
-**文档版本**: v2.5
-**更新日期**: 2026-08-10
+**文档版本**: v2.6
+**更新日期**: 2026-09-14
 **变更记录**:
 
+- v2.6 (2026-09-14): Phase 1 计算核心扩展同步——`stock_quote.py` 补 `--momentum` 输出 `ATR(14)`（Wilder 口径、2 位小数，供 GARP 高波动科技股动态跟踪止损）；`financial_rigor.py` 补 GARP 计算核心七子命令（`roic`/`incremental-roic`/`wacc`/`rule-of-40`/`ev-sales`/`adjusted-peg`/`dcf`）及「百分点 vs 小数」输入约定
 - v2.5 (2026-08-10): 搜索工具章节按重要性重排（anysearch 升首、doubao 第二、exa 第三、tavily 新增专章、web_search 降级兜底）；第13章选型对比全量重写为 5 工具 × 市场矩阵（含角色定位总览、参数速查、市场 × 场景矩阵、通用规范、实测结论、决策流程图、实战推荐表）；网络搜索工具表格更新角色定位；原 13~22 章节顺延为 14~23
 - v2.4 (2026-08-09): 新增 anysearch.py 工具说明章节（AnySearch 全域结构化搜索，23 大垂直数据库 + tag 定向），更新网络搜索工具表格与搜索工具选型对比；原十一~二十一章节顺延为十二~二十二
 - v2.3 (2026-08-07): 新增 fx_rate.py 汇率工具说明章节（国际主要货币汇率，Akshare优先/yfinance回退），新增常见使用场景9；原十四~二十章节顺延为十五~二十一
