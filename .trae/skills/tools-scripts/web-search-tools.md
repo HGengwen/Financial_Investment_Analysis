@@ -17,7 +17,7 @@ disable-model-invocation: true
 
 | 工具                 | 角色定位                            | 关键能力                                                                                             | 免费额度                 | 国内稳定性   |
 | -------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------ | ------------ |
-| `anysearch.py`     | **A股投研首选**               | 23 类垂直数据库（财报/研报/公告/判例/专利）、多源交叉验证、tag 定向                                  | 每日 1000 次（0 点重置） | 直连 0.4s    |
+| `anysearch.py`     | **A股投研首选**               | 23 类垂直数据库（财报/研报/公告/判例/专利）、多源交叉验证、tag 定向（**tag 须「大类.子域」两级，金融子标签必填 params**，见 §一.2） | 每日 1000 次（0 点重置） | 直连 0.4s    |
 | `doubao_search.py` | **实时资讯/舆情首选**         | `--finance` 权威信源、`--sites` 定向、`--need-content` 正文、`--export` 导出、跨市场综合检索 | 每月 500 次              | 直连 0.45s   |
 | `exa_search.py`    | **美股深度研究首选**          | SEC filings、27K+ 美股全栈数据、外文论文、`--type deep` 深度档                                     | 注册 $20 + 月赠 $10      | 海外，波动大 |
 | `tavily_search.py` | **港美股深度内容辅源**        | 管理层讨论、分析师点评（中文弱、国内网络不稳，不作主源）                                             | 每月 1000 次             | 海外，波动大 |
@@ -27,11 +27,48 @@ disable-model-invocation: true
 
 | 工具                 | 关键参数                                                                                                                       |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `anysearch.py`     | `--count`、`--zone cn/intl`、`--language zh-CN/en`、`--export`（`--tag` 垂直库需额外参数 symbol/type/cn_code，裸用 HTTP 400，见下方警告） |
+| `anysearch.py`     | `--count`、`--zone cn/intl`、`--language zh-CN/en`、`--export`、`--tag`、`--params`、`--symbol`、`--type`、`--cn-code`、`--list-tags` |
 | `doubao_search.py` | `--finance`、`--sites`、`--block-hosts`、`--need-content`、`--export`、`--time-range`、`--industry`、`--count` |
 | `exa_search.py`    | `--type instant/fast/auto/deep-lite/deep`、`--highlights`、`--max-results`、`--max-characters`、`--no-autoprompt`    |
 | `tavily_search.py` | `--max-results`（1-20）、搜索深度（advanced）、`--json`                                                                    |
 | `web_search.py`    | `--num`、`--json`、`--api-key`                                                                                           |
+
+### AnySearch tag 规则（必读，2026-09-20 修复后口径）
+
+**两条硬性规则**（服务端强制，违反即 `HTTP 400`）：
+
+1. **tag 必须是「大类.子域」两级格式**。`finance`、`legal` 之类**一级标签是非法值**（语义歧义）。
+   合法示例：`finance.fundamental`、`finance.quote`、`finance.macro`、`finance.calendar`、`legal.case`、`code.doc`、`academic.search`。
+2. **金融类子标签强制要求 `params`**（缺参直接 400）：
+
+| tag | 必填 params | 含义 |
+| --- | --- | --- |
+| `finance.fundamental` | `symbol` + `type` + `cn_code` | 财务报表 |
+| `finance.quote` | `type` | 实时行情 |
+| `finance.macro` | `type` | 宏观经济 |
+| `finance.calendar` | `type` | 财报日程 |
+
+> 其余大类（`code.*` / `legal.*` / `academic.*` / `ip.global` / `security.*` 等）本地不作 params 强制。
+
+**官方无 tag 清单接口**（`GET /v1/tags`、`/v1/capabilities` 实测均 404），合法子标签与必填参数以**本地目录**为准：
+
+```bash
+python tools/common/anysearch.py --list-tags      # 打印 20 个合法 tag + 各自必填 params，不发请求
+```
+
+**正确调用形态**（个股财报定向）：
+
+```bash
+python tools/common/anysearch.py "贵州茅台 财务报表" --tag finance.fundamental --symbol 600519 --type income --cn-code 600519
+```
+
+**通用检索形态**（行业 / 主题 / 政策级，不带 tag）：
+
+```bash
+python tools/common/anysearch.py "创新药 行业政策" --count 10 --zone cn
+```
+
+**工具侧已内置拦截**（v3.1.0）：tag 非法或金融子标签缺参时，**在发出网络请求之前**即抛 `ValueError`，错误信息会列出候选子标签或可直接复制的正确命令；不会再到服务端换回一个裸 `HTTP 400`。
 
 ---
 
@@ -75,7 +112,7 @@ disable-model-invocation: true
 
 - **anysearch 港股覆盖**：通用搜索模式已实测通过（腾讯 00700 返回 5 条权威财经媒体结果含精确财务数据；港交所 00388 返回 3 条含精确业绩数据）
 - **anysearch 美股覆盖**：`--zone intl --language en` 已实测通过（NVDA 返回 $130.5B revenue, $2.94 EPS）
-- **anysearch 垂直库警告**：`--tag finance` 垂直库**需额外参数**（`symbol` / `type` / `cn_code`），裸用返回 `HTTP 400 [Missing required params for tag 'finance.fundamental']`（2026-09-19 实测）；**改用通用检索 + `--count`** 即可正常返回（实测 5 条 / 1540ms）。本文件所有 `anysearch` 示例均已按此更正。
+- **anysearch tag 根因与修复**（2026-09-20）：旧形态 `--tag finance` 返回 `HTTP 400` 的根因有两条——① `finance` 是**一级歧义标签**，tag 必须为「大类.子域」两级；② 金融子标签**强制要求 `params`**（`finance.fundamental` 需 `symbol`/`type`/`cn_code`）。旧代码曾把 `finance` 静默映射为 `finance.fundamental`，必然缺参 → 必定 400。**修复后**：别名已移除、两级校验与必填 params 预检已内置，`--list-tags` 可查全量目录；个股财报定向用 §一.2 的 `--tag finance.fundamental --symbol … --type … --cn-code …`（实测通过），行业/主题级用通用检索 `--count 10 --zone cn`。
 - **exa SEC filings**：搜索 "AAPL 10-K" 直接命中 SEC.gov 原文（aapl-20240928.htm）+ Apple IR + EDGAR，5 条结果全部高质量
 - **doubao**：实测正常
 
@@ -90,7 +127,8 @@ disable-model-invocation: true
   │
   ├─ 哪个市场？
   │   ├─ A股 ↓
-  │   │   ├─ 财报/研报/公告/判例/专利深查？ → anysearch 通用检索（--count）主 + doubao --finance 辅
+  │   │   ├─ 财报/研报/公告/判例/专利深查？ → anysearch 主 + doubao --finance 辅
+  │   │   │     （个股财报定向用 --tag finance.fundamental --symbol/--type/--cn-code；行业/主题级用通用检索 --count 10 --zone cn）
   │   │   ├─ 实时新闻/舆情/热点？ → doubao --finance 主 + anysearch 辅
   │   │   └─ 精确数值核验？ → financial_rigor.py（专用工具，不属搜索）
   │   ├─ 港股 ↓
@@ -114,14 +152,22 @@ disable-model-invocation: true
 ### AnySearch（A股投研首选）
 
 ```bash
-# 基本搜索
+# 基本搜索（通用全网，不带 tag）
 python tools/common/anysearch.py "紫金矿业 财报"
 
-# 垂直领域定向搜索（tag 垂直库需额外参数 symbol/type/cn_code，裸用 HTTP 400，改用通用检索）（tag）
-# 注意：--tag 垂直库需搭配合法参数，否则 HTTP 400（见下方警告）
+# 打印合法 tag 目录与各自必填 params（不发请求）
+python tools/common/anysearch.py --list-tags
+
+# 金融垂直库定向（individual 个股级，必填 params，缺参本地即拦截）
+python tools/common/anysearch.py "贵州茅台 财务报表" --tag finance.fundamental --symbol 600519 --type income --cn-code 600519
+python tools/common/anysearch.py "腾讯控股 实时行情" --tag finance.quote --type quote
+
+# 行业 / 主题级检索：走通用模式（不带 tag）
 python tools/common/anysearch.py "A股 半年报 业绩" --count 5
-python tools/common/anysearch.py "民法典 民间借贷 利率" --tag legal
-python tools/common/anysearch.py "carbon capture" --tag paper --zone intl
+
+# 非金融大类（tag 须两级；别名 legal / paper 会自动映射为 legal.case / academic.search）
+python tools/common/anysearch.py "民法典 民间借贷 利率" --tag legal.case
+python tools/common/anysearch.py "carbon capture" --tag academic.search --zone intl
 
 # 国际区域（美股/海外检索）
 python tools/common/anysearch.py "NVDA earnings" --zone intl --language en
@@ -225,8 +271,9 @@ python tools/common/web_search.py "腾讯控股 股价"
 
 ```bash
 # anysearch 通用检索（财报/研报）+ doubao 财经定向（权威信源 + 正文）
-# 注意：anysearch 的 --tag finance 垂直库需额外参数（symbol/type/cn_code），裸用会 HTTP 400
+# 如需金融垂直库定向，须用两级 tag + 必填 params（缺参本地即拦截，不会到服务端换 400）
 python tools/common/anysearch.py "紫金矿业 财报" --count 5
+# python tools/common/anysearch.py "紫金矿业 财务报表" --tag finance.fundamental --symbol 601899 --type income --cn-code 601899
 python tools/common/doubao_search.py "紫金矿业 2025年报" --finance --need-content --export
 ```
 
@@ -258,7 +305,7 @@ python tools/common/tavily_search.py "AAPL management discussion Q3 2026"
 
 ### 各工具角色定位说明
 
-- `anysearch.py`：A股投研首选，垂直数据库定向 + 每日 1000 次免费，适合财报/研报/判例/专利检索
+- `anysearch.py`：A股投研首选，垂直数据库定向（tag 两级 + 金融子标签必填 params，`--list-tags` 查目录）+ 每日 1000 次免费，适合财报/研报/判例/专利检索
 - `doubao_search.py`：实时资讯/舆情首选，权威信源 + 正文能力 + 跨市场综合检索
 - `exa_search.py`：美股深度研究首选，SEC filings 直接命中原文，适合研究型长文与专业领域查询
 - `tavily_search.py`：港美股深度内容辅源，适合管理层讨论、分析师点评（中文弱、国内网络不稳，不作主源）
@@ -273,11 +320,20 @@ python tools/common/tavily_search.py "AAPL management discussion Q3 2026"
 ```python
 from tools.common.anysearch import anysearch
 
-# 基本调用
+# 基本调用（通用全网）
 results = anysearch("黄金价格", max_results=5)
 
-# 垂直领域定向搜索（tag 垂直库需额外参数 symbol/type/cn_code，裸用 HTTP 400，改用通用检索）
-results = anysearch("紫金矿业 财报", max_results=5)
+# 金融垂直库定向（个股级）：tag 须两级 + 必填 params
+# 缺参在发请求前即抛 ValueError，不会换回一个裸 HTTP 400
+results = anysearch(
+    "贵州茅台 财务报表",
+    max_results=2,
+    tag="finance.fundamental",
+    params={"symbol": "600519", "type": "income", "cn_code": "600519"},
+)
+
+# 行业 / 主题级检索：走通用模式（不带 tag）
+results = anysearch("创新药 行业政策", max_results=10)
 
 for item in results:
     print(f"标题: {item['title']}")
@@ -377,8 +433,8 @@ asyncio.run(main())
 
 ## 版本信息
 
-- **版本**：3.0.0（五工具全量重写，新增 AnySearch 为 A股投研首选，Exa 升为美股深度研究首选，Tavily 定位为港美股深度内容辅源，WebSearch 降级为仅兜底）
+- **版本**：3.1.0（AnySearch tag 规则订正：tag 须「大类.子域」两级、金融子标签必填 params、新增 `--list-tags` 本地目录与 `--symbol/--type/--cn-code`）
 - **创建日期**：2026-07-31
-- **最后更新**：2026-08-10
+- **最后更新**：2026-09-20
 - **维护状态**：活跃维护
 - **策略依据**：[搜索服务选择策略重构方案 v2.0](../../../docs/搜索服务选择策略重构方案.md)

@@ -268,13 +268,15 @@
 
 | 工具文件                            | 角色定位                  | 命令示例                                                           |
 | ----------------------------------- | ------------------------- | ------------------------------------------------------------------ |
-| `tools/common/anysearch.py`       | **A 股投研首选**（23 类垂直库） | `python tools/common/anysearch.py "紫金矿业 财报" --tag finance` |
+| `tools/common/anysearch.py`       | **A 股投研首选**（23 类垂直库） | `python tools/common/anysearch.py "贵州茅台 财务报表" --tag finance.fundamental --symbol 600519 --type income --cn-code 600519` |
 | `tools/common/doubao_search.py`   | **实时资讯/舆情首选**（火山引擎） | `python tools/common/doubao_search.py "腾讯 财报" --finance`     |
 | `tools/common/exa_search.py`      | **美股深度研究首选**（SEC filings 直击原文） | `python tools/common/exa_search.py "AAPL 10-K" --type deep`      |
 | `tools/common/tavily_search.py`   | 港美股深度内容辅源          | `python tools/common/tavily_search.py "腾讯 财报"`               |
 | `tools/common/web_search.py`      | 仅阿里云生态/轻量验证兜底 | `python tools/common/web_search.py "搜索关键词"`                 |
 
 选型策略：A股财报/公告深查用 `anysearch`，实时舆情用 `doubao_search`，美股 SEC 用 `exa_search`，港美股内容辅源用 `tavily_search`。完整决策流程见 [web-search-tools.md](.trae/skills/tools-scripts/web-search-tools.md)。
+
+**AnySearch tag 硬性规则（违反即 HTTP 400）**：① `tag` 必须是「大类.子域」**两级**格式，`finance` / `legal` 之类一级标签为非法值（`legal` 等**已设别名**的除外，会自动映射）；② **金融类子标签强制要求 `params`**——`finance.fundamental` 需 `symbol` + `type` + `cn_code`，`finance.quote` / `finance.macro` / `finance.calendar` 需 `type`；③ 官方**无 tag 清单接口**（`GET /v1/tags` 实测 404），合法目录以 `python tools/common/anysearch.py --list-tags` 为准。工具侧已内置**发请求前拦截**（tag 非法或缺参抛 `ValueError`），行业/主题级检索走通用模式（不带 `tag`，加 `--count 10 --zone cn`）。
 
 #### 6. 专用工具
 
