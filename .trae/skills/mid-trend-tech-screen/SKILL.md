@@ -124,7 +124,7 @@ doubao_search.py --time-range month "{行业名} 资本开支 扩产 设备投�
 
 若三项均为"是" → 判断为科技通胀周期，触发①模块权重提升至42分。
 
-> *执行纪律：必须基于具体数据（如"某龙头发布涨价通知"、"行业库存已降至XX天"）做出判断，禁止仅凭新闻标题定性。若搜索返回结果过多噪声，可组合使用 `--tag finance` 参数过滤非财经类信息。*
+> *执行纪律：必须基于具体数据（如"某龙头发布涨价通知"、"行业库存已降至XX天"）做出判断，禁止仅凭新闻标题定性。若搜索返回结果过多噪声，可改用通用模式 `--count 10 --zone cn` 收敛；个股财报定向检索须用 `--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}`（tag 须两级且金融子标签必填 params）。*
 
 ### 第一层：前置硬性淘汰（一票否决）
 
@@ -497,7 +497,7 @@ doubao_search.py --finance "Coherent 最新季度 业绩 光模块 2026"
 | 估值  | `tools/common/financial_rigor.py`                           | 五维估值计算（peg / ps-g / pe-percentile / implied-growth），**禁止 LLM 心算** | `python tools/common/financial_rigor.py peg --pe 30 --growth 40`                                                         |
 | 年报  | `tools/common/annual_report_parser.py`                      | 年报 markdown 结构化抽取（员工/子公司/研发/收入分部/新品/供应链）                          | `python tools/common/annual_report_parser.py {年报md} --output-json`                                                       |
 | 打分  | `tools/specialized/trend_tech_screen.py`                    | 五维打分 + 地缘修正 + 技术面止损 + **R8在研项目评分**（+3/+5奖励/风险降级） + 评级 + 反证清单（聚合计算层，批量两轮）                       | `python tools/specialized/trend_tech_screen.py score --name A --cycle 需求爆发期 --dims '{...}' --geo '{...}' --tech '{...}' --r8 '{...}'` |
-| 搜索  | `tools/common/doubao_search.py`                             | 政策/订单/制裁/卡脖子/行业周期搜索                                               | `python tools/common/doubao_search.py --finance "{公司名} 产能利用率 排产" --tag finance`                                          |
+| 搜索  | `tools/common/doubao_search.py`                             | 政策/订单/制裁/卡脖子/行业周期搜索                                               | `python tools/common/doubao_search.py --finance "{公司名} 产能利用率 排产"`                                          |
 | 在研  | `tools/common/doubao_search.py`                             | 在研项目扫描（R8数据来源）：专利/招投标/学术社区/政府立项/投资者互动（步骤3-A）                       | `python tools/common/doubao_search.py --sites cpquery.cponline.cnipa.gov.cn,ccgp.gov.cn,arxiv.org --time-range year "{公司名} 发明 中标 在研"` |
 | 在研统一 | `tools/specialized/in_research_scan.py`                    | 步骤3-A 一键落地：多渠道批量扫描（gov/patent/bidding/academic/investor/website/research）+ 可选年报解析，聚合输出供 R8 评分卡 | `python tools/specialized/in_research_scan.py scan "{公司名}" --market sz --official-site {官网} --annual-report {年报md} --export` |
 | 地缘  | `tools/common/doubao_search.py`                             | 地缘政治风险评估（制裁/实体清单/国产化率搜索，替代 geo_political）                         | `python tools/common/doubao_search.py --sites gov.cn,news.cn --time-range month "{公司名} 制裁 实体清单 出口管制"`                    |

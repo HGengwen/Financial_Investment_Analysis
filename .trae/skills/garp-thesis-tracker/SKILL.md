@@ -418,7 +418,7 @@ GARP 健康度 = 10 - (⚫破裂假设 × 3) - (🔴受损假设 × 2) - (🟡�
 
 | 工具 | 角色 | 命令示例 |
 | --- | --- | --- |
-| `tools/common/anysearch.py` | A股投研首选（23 类垂直库） | `python tools/common/anysearch.py "{行业} 渗透率 订单" --tag finance` |
+| `tools/common/anysearch.py` | A股投研首选（23 类垂直库） | `python tools/common/anysearch.py "{行业} 渗透率 订单" --count 10 --zone cn` |
 | `tools/common/doubao_search.py` | 实时资讯 / 舆情首选 | `python tools/common/doubao_search.py "{公司名} 财报" --finance` |
 | `tools/common/exa_search.py` | 美股深度研究（SEC filings） | `python tools/common/exa_search.py "AAPL 10-K" --type deep` |
 | `tools/common/tavily_search.py` | 港美股深度内容辅源 | `python tools/common/tavily_search.py "{公司名} 财报"` |

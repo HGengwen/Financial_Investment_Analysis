@@ -303,7 +303,7 @@ C 级：未达门槛（TAM / 渗透率 / 国产化率）或业绩未兑现
 # 1) 日期基准（三日期标注）
 Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 
-# 2) 赛道 / 产业链 / 政策检索（A股首选；行业级检索用通用模式，勿加 --tag finance）
+# 2) 赛道 / 产业链 / 政策检索（A股首选；行业级检索用通用模式 --count 10 --zone cn；勿加裸 --tag finance——非法一级标签，tag 须两级且金融子标签必填 params，全量见 --list-tags）
 python tools/common/anysearch.py "{行业名} 产业链 政策" --count 10 --zone cn
 
 # 3) 实时资讯 / 舆情（时变项实时核验）
@@ -358,7 +358,7 @@ python tools/common/report_audit.py extract --report reports/industry/{行业名
 | 用途 | 工具 | 命令（权威形态） | 备注 |
 | --- | --- | --- | --- |
 | 日期基准 | PowerShell | `Get-Date -Format 'yyyy-MM-dd HH:mm:ss'` | 三日期标注 |
-| 赛道 / 产业链 / 政策检索 | `tools/common/anysearch.py` | `anysearch.py "{行业名} 产业链 政策" --count 10 --zone cn` | A股首选；**行业级检索走通用模式**，`--tag finance` 属个股级（须 `cn_code`/`symbol`/`type`，缺参 HTTP 400） |
+| 赛道 / 产业链 / 政策检索 | `tools/common/anysearch.py` | `anysearch.py "{行业名} 产业链 政策" --count 10 --zone cn` | A股首选；**行业级检索走通用模式**，裸 `--tag finance` 属非法一级标签（tag 须两级、金融子标签必填 `symbol`/`type`/`cn_code`，缺参 HTTP 400）；个股定向用 `--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}`，全量见 `--list-tags` |
 | 实时资讯 / 舆情 | `tools/common/doubao_search.py` | `doubao_search.py "{行业名} 最新 政策" --finance` | 时变项核验 |
 | 美股深度（SEC 原文） | `tools/common/exa_search.py` | `exa_search.py "{行业名} 10-K" --type deep` | 美股 |
 | 港美股深度辅源 | `tools/common/tavily_search.py` | `tavily_search.py "{行业名} 财报"` | 辅源 |

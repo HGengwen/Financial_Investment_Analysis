@@ -160,7 +160,7 @@ python tools/common/report_audit.py verdict --results '<verified JSON>' --report
 
 **未上市公司研究场景下的搜索选型**：
 - 国内未上市公司信息：`doubao --finance` 主（权威信源 + `--need-content` 抓正文）+ `anysearch` 辅（通用搜索）
-- A股对标公司：`anysearch --tag finance` 主（财报/研报/公告深查）+ `doubao --finance` 辅；双源 anysearch+doubao
+- A股对标公司：`anysearch --count 10 --zone cn` 主（财报/研报/公告深查）+ `doubao --finance` 辅；双源 anysearch+doubao
 - 港股对标公司：`doubao --sites hkexnews.hk` 主 + `tavily` 辅（管理层讨论）；双源 doubao+tavily
 - 美股对标公司：`exa --type deep` 主（SEC filings 深度检索）+ `doubao` 辅（新闻/舆情）；双源 exa+doubao
 - 深度研究报告：`exa_search.py --type deep`

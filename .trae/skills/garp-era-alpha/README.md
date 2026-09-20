@@ -211,7 +211,7 @@
 - 美股 SEC filings/10-K：`exa_search.py --type deep` 主 + `doubao_search.py --finance` 辅
 - 实时资讯/舆情：`doubao_search.py --finance`
 
-> **勘误**：A股检索使用 `anysearch.py --count 10 --zone cn`（**不使用** `--tag finance`，该参数返回 HTTP 400）。
+> **勘误**：A股行业/主题级检索用 `anysearch.py --count 10 --zone cn`；个股财报定向须 `--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}`（裸 `--tag finance` 属非法一级标签、金融子标签缺 params 均返回 HTTP 400，全量见 `--list-tags`）。
 
 **搜索规范**：时效性优先，`--time-range month/week` 限制时间范围，搜索结果须标注来源日期；双源验证；日韩台供应商**必搜**，避免英文偏好遗漏。
 

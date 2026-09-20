@@ -197,7 +197,7 @@ reports/mid-bottleneck/AI基础设施/
 ### 网络搜索工具
 
 禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合：
-- A股公司：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- A股公司：`anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅；个股财报定向须 `--count 10 --zone cn.fundamental --symbol {代码} --type income --cn-code {代码}`
 - 港股公司：`doubao --sites hkexnews.hk` 主 + `tavily` 辅（双源 doubao+tavily）
 - 美股公司：`exa --type deep` 主 + `doubao` 辅（双源 exa+doubao）
 - 实时瓶颈信号/缺货/产能/价格：`doubao --finance` 主 + `anysearch` 辅

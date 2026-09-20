@@ -218,7 +218,7 @@ python tools/common/report_audit.py verdict \
 - 国内未上市公司信息：`doubao_search.py --finance`（可加 `--need-content` 抓正文）
 - 港股对标：`doubao_search.py --sites hkexnews.hk` + `tavily_search.py`；美股对标：`exa_search.py --type deep` + `doubao_search.py --finance`
 - 定向检索监管文件：`--sites sec.gov` / `--sites hkexnews.hk`
-- A 股检索：`anysearch.py --count 10 --zone cn`（**勘误：`--tag finance` 会返回 HTTP 400，不得使用**）
+- A 股检索：`anysearch.py --count 10 --zone cn`（**勘误：裸 `--tag finance` 属非法一级标签、金融子标签缺 params 会返回 HTTP 400；个股定向用 `--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}`，全量见 `--list-tags`**）
 - 时效限制：`--time-range month/week`，禁止用过期数据描述现状
 - 一切算术：`python tools/common/financial_rigor.py ...`，禁止 LLM 心算；跨币种：`fx_rate.py --code USDCNY`（或 `HKDCNY`）
 
@@ -645,7 +645,7 @@ date
 | A 股 | `python tools/a_share/stock_info.py --search {公司名}`；`stock_financial.py --code {代码}`；`stock_quote.py --code {代码}`；`stock_equity.py --code {代码}` |
 | 港股 | `python tools/hk_stock/stock_info.py`；`stock_financial.py --financial {代码}`；`stock_quote.py --code {代码}` |
 | 美股 | `python tools/us_stock/stock_info.py --search {公司名}`；`stock_financial.py --indicators {代码}`；`stock_quote.py --code {代码}` |
-> **勘误**：美股财务工具的指标参数为 `--indicators`（**不是** `--code`）；A 股检索改用 `anysearch.py --count 10 --zone cn`（**不使用 `--tag finance`**，该参数会返回 HTTP 400）。
+> **勘误**：美股财务工具的指标参数为 `--indicators`（**不是** `--code`）；A 股行业/主题级检索用 `anysearch.py --count 10 --zone cn`，个股定向须 `--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}`（裸 `--tag finance` 属非法一级标签、金融子标签缺 params 均返回 HTTP 400，全量见 `--list-tags`）。
 
 ### 精确算术（禁用 LLM 心算，`GPC-11`）
 ```bash

@@ -209,7 +209,7 @@ Layer 4：
 **重要约束**：
 
 - 禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合（详见 [web-search-tools](../tools-scripts/web-search-tools.md)）；
-- A 股公司须 `anysearch --tag finance` 主 + `doubao --finance` 辅 双源验证（财报/研报/公告深查）；
+- A 股公司须 `anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅 双源验证（财报/研报/公告深查）；
 - 港股公司须 doubao + tavily 双源验证；美股公司须 exa + doubao 双源验证；
 - 使用 `--time-range month/week` 限制时间范围，优先获取最新信息；
 - 所有数据必须标注来源。
@@ -735,7 +735,7 @@ python tools/common/financial_rigor.py implied-growth \
 
 **供应链瓶颈猎手（中期版）场景下的搜索选型**：
 
-- A 股供应链公司（财报/研报/公告深查）：`anysearch --tag finance` 主 + `doubao --finance` 辅；
+- A 股供应链公司（财报/研报/公告深查）：`anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅；
 - 港股瓶颈公司（披露易/公告）：`doubao --sites hkexnews.hk` 主 + `tavily` 辅（双源 doubao+tavily）；
 - 美股瓶颈公司（SEC filings/财报/MD&A）：`exa --type deep` 主 + `doubao` 辅（双源 exa+doubao）；
 - 实时瓶颈信号/缺货/产能/价格新闻：`doubao --finance` 主 + `anysearch` 辅。

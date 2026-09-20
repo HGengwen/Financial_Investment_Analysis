@@ -113,7 +113,7 @@
 | 报告审核 | `tools/common/report_audit.py` |
 | 网络搜索 | `anysearch.py`、`doubao_search.py`、`exa_search.py`、`tavily_search.py`、`web_search.py` |
 
-> **失效形态禁用**：`doubao_search.py --tag …`、`anysearch.py --tag finance`（无 `--count`）、港股 / 美股 `stock_financial.py --code …`、`financial_rigor.py --price … --eps …` —— 一律采用 `SKILL.md`「工具使用指南」中的实测形态。
+> **失效形态禁用**：`doubao_search.py --tag …`、`anysearch.py --tag finance`（非法一级标签；tag 须两级、金融子标签必填 params）、港股 / 美股 `stock_financial.py --code …`、`financial_rigor.py --price … --eps …` —— 一律采用 `SKILL.md`「工具使用指南」中的实测形态。
 
 ---
 

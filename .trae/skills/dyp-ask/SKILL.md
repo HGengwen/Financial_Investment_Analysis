@@ -226,7 +226,7 @@ disable-model-invocation: true
 
 **段永平问答场景下的搜索选型**：
 - 本技能为问答型，通常不需要搜索；如需补充公司背景，按市场×场景矩阵选型
-- A股公司背景：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- A股公司背景：`anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅；个股财报定向须 `--count 10 --zone cn.fundamental --symbol {代码} --type income --cn-code {代码}`
 - 港股公司背景：`doubao --sites hkexnews.hk` 主 + `tavily` 辅（doubao+tavily 双源）
 - 美股公司背景：`exa --type deep` 主 + `doubao --finance` 辅（exa+doubao 双源）
 

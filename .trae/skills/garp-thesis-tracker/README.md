@@ -134,7 +134,7 @@ python tools/common/financial_rigor.py calc --expr "..."
 #    garp-exit（P4-6）五级定义
 
 # 5) 景气 / 渗透率
-python tools/common/anysearch.py "光模块 渗透率 订单" --tag finance
+python tools/common/anysearch.py "光模块 渗透率 订单" --count 10 --zone cn
 ```
 
 产出：`reports/新易盛/新易盛-garp-thesis.md`（核心论文五问 + 五大师假设清单 + 五级检查表 + 六档估值锚点 + 空追踪记录表）。

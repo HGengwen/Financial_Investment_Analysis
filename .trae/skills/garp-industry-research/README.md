@@ -139,7 +139,7 @@ reports/industry/{行业名}-garp-industry-{YYYYMMDD}.md
 # 0) 日期基准（三日期标注）
 Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 
-# 1) 赛道 / 产业链 / 政策检索（A股首选；行业级检索用通用模式，勿加 --tag finance）
+# 1) 赛道 / 产业链 / 政策检索（A股首选；行业级检索用通用模式 --count 10 --zone cn；勿加裸 --tag finance——非法一级标签，tag 须两级且金融子标签必填 params，全量见 --list-tags）
 python tools/common/anysearch.py "AI光模块 产业链 政策" --count 10 --zone cn
 
 # 2) 实时资讯 / 舆情（时变项实时核验）

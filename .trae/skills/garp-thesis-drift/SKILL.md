@@ -367,7 +367,7 @@ python tools/common/doubao_search.py "{标的} 关税 制裁 供应链" --financ
 python tools/common/report_audit.py extract --report reports/{标的}/{标的}-garp-drift-{YYYYMMDD}.md
 ```
 
-> **参数勘误（两处，登记于 §4.5 G3 / G4）**：① 美股 `stock_financial.py` 参数为 `--indicators`（非 `--code`）；② `anysearch.py` **不使用** `--tag finance`（返回 HTTP 400），改用 `--count 10 --zone cn`。
+> **参数勘误（两处，登记于 §4.5 G3 / G4）**：① 美股 `stock_financial.py` 参数为 `--indicators`（非 `--code`）；② `anysearch.py` 的 tag 须为「大类.子域」两级格式，裸 `--tag finance` 属非法一级标签；金融子标签必填 params（`finance.fundamental` 需 `symbol`/`type`/`cn_code`），缺参返回 HTTP 400。个股定向用 `--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}`，行业/主题级检索用 `--count 10 --zone cn`（全量见 `--list-tags`）。
 
 ### 9.2 关键约束
 

@@ -172,7 +172,7 @@
 
 **网络搜索（禁 Anthropic 官方 `WebSearch` / `WebFetch`）**：A 股用 `anysearch.py` **`--count 10 --zone cn`** 主 + `doubao_search.py --finance` 辅；港股用 `doubao_search.py --sites hkexnews.hk` + `tavily_search.py`；美股用 `exa_search.py --type deep` + `doubao_search.py`；实时瓶颈信号（缺货 / 产能 / 价格）用 `doubao_search.py --finance` + `anysearch.py` 并以 `--time-range month/week` 限时；`web_search.py` 兜底。另：必须搜索**日韩台**供应商（覆盖英文偏见盲区）；A 股 `stock_financial.py` 输出为完整 JSON，**禁止 PowerShell 管道 / 截断处理**（中文键会因 GBK 重编码报错），统一解析 `d['data']['indicators']`。
 
-> **两条勘误（必须遵守）**：① **`anysearch.py` 禁用 `--tag finance`**——该形态返回 HTTP 400，改用 **`--count 10 --zone cn`**；② **美股 `stock_financial.py` 参数为 `--indicators`**（**不是** `--code`）：`python tools/us_stock/stock_financial.py --indicators AAPL`。
+> **两条勘误（必须遵守）**：① **`anysearch.py` 的 tag 须为「大类.子域」两级格式，金融子标签必填 params**——裸 `--tag finance` 属非法一级标签、缺参均返回 HTTP 400；行业/主题级检索用 **`--count 10 --zone cn`**，个股财报定向用 `--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}`（全量目录见 `--list-tags`）；② **美股 `stock_financial.py` 参数为 `--indicators`**（**不是** `--code`）：`python tools/us_stock/stock_financial.py --indicators AAPL`。
 
 **联动技能（口径引用）**：`garp-industry-research`（P4-9，赛道六维与 Tier 分层前置输入）/ `garp-geo-policy`（P4-1，0.3 矩阵 + 国产化率四档定档，只读）/ `garp-valuation`（P4-5，估值六档唯一来源，只读）/ `garp-exit`（P4-6，五级卖出 + 补充机制唯一来源，只读）/ `garp-management`（P4-4，7+7+6 与科研转化 8+8+4，只读）/ `garp-macro`（P4-2，宏观 stage 只读透传）/ `garp-investment-checklist`（P4-3，买入前七关，后置不替代）/ `garp-industry-funnel`（P4-10）/ `garp-trend-tech-screen`（P4-11）/ `garp-portfolio-review`（P4-8，组合层仓位裁决）；复用技能 `qoq-accelerator` / `trend-momentum-scan`（**仅引用其现有输出数值**）。
 

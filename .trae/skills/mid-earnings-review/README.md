@@ -179,7 +179,7 @@
 禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
 **财报精读场景下的搜索选型**：
-- A股：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- A股：`anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅；个股财报定向须 `--count 10 --zone cn.fundamental --symbol {代码} --type income --cn-code {代码}`
 - 港股：`doubao --sites hkexnews.hk` 主 + `tavily` 辅；双源 doubao+tavily
 - 美股：`exa --type deep` 主 + `doubao` 辅；双源 exa+doubao
 

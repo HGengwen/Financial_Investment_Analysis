@@ -204,13 +204,13 @@ python tools/us_stock/stock_quote.py --code {股票代码}
 
 #### 网络信息获取
 
-按市场选用搜索主工具（A股 `anysearch --tag finance`+`doubao --finance`；港股 `doubao --sites hkexnews.hk`+`tavily`；美股 `exa --type deep`+`doubao`）。完整选型矩阵、搜索规范与多源验证详见下方"工具使用指南-网络搜索工具"及 [web-search-tools](../tools-scripts/web-search-tools.md)。
+按市场选用搜索主工具（A股 `anysearch --count 10 --zone cn`+`doubao --finance`；港股 `doubao --sites hkexnews.hk`+`tavily`；美股 `exa --type deep`+`doubao`）。完整选型矩阵、搜索规范与多源验证详见下方"工具使用指南-网络搜索工具"及 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
 **搜索示例**：
 
 ```bash
 # A股：获取最新财报和管理层变动
-python tools/common/anysearch.py "{公司名} 最新财报 管理层变动" --tag finance
+python tools/common/anysearch.py "{公司名} 最新财报 管理层变动" --count 10 --zone cn
 python tools/common/doubao_search.py "{公司名} 最新财报 管理层变动 监管政策" --finance --time-range month
 
 # 港股：披露易定向 + Tavily 补充
@@ -396,7 +396,7 @@ python tools/common/financial_rigor.py three-scenario \
 禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
 **投资论文追踪场景下的搜索选型**：
-- A股：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- A股：`anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅；个股财报定向须 `--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}`
 - 港股：`doubao --sites hkexnews.hk` 主 + `tavily` 辅；双源 doubao+tavily
 - 美股：`exa --type deep` 主 + `doubao` 辅；双源 exa+doubao
 
@@ -477,7 +477,7 @@ python tools/common/financial_rigor.py three-scenario \
 
 沿用长期模式 A0 的数据获取工具与解析规范（按上市地点选择 A股/港股/美股工具，完整 JSON 输出，禁止管道截断）。同时补充中期景气数据：
 
-- 渗透率/订单/行业数据：`python tools/common/anysearch.py "{行业} 渗透率 订单" --tag finance`
+- 渗透率/订单/行业数据：`python tools/common/anysearch.py "{行业} 渗透率 订单" --count 10 --zone cn`
 - 季报先行指标：`python tools/a_share/stock_financial.py --code {代码} --advanced`（合同负债/存货/研发费用等）
 - 若有已生成的 `/qoq-accelerator`、`/trend-momentum-scan` 输出，优先引用
 
@@ -562,7 +562,7 @@ python tools/common/financial_rigor.py three-scenario \
 沿用长期模式 B2 的数据获取工具与网络搜索规范，并补充：
 
 - 季报先行指标：`python tools/a_share/stock_financial.py --code {代码} --advanced`
-- 景气/渗透率数据：`python tools/common/anysearch.py "{行业} 渗透率 订单" --tag finance`
+- 景气/渗透率数据：`python tools/common/anysearch.py "{行业} 渗透率 订单" --count 10 --zone cn`
 - 引用 `/qoq-accelerator`、`/trend-momentum-scan` 的既有输出（若已生成）
 
 ### M-B3：逐条检查中期假设

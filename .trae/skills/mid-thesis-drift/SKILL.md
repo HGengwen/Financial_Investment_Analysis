@@ -186,7 +186,7 @@ python tools/common/financial_rigor.py implied-growth --market-cap {cap} --targe
 python tools/common/financial_rigor.py peg --price {p} --eps {eps} --growth {g}
 
 # 渗透率/订单/地缘信息（H1/H2/H6）
-python tools/common/anysearch.py "{公司名} 渗透率 订单 地缘" --tag finance --count 10 --zone cn --json --export
+python tools/common/anysearch.py "{公司名} 渗透率 订单 地缘" --count 10 --zone cn --json --export
 python tools/common/doubao_search.py "{公司名} 关税 制裁 供应链" --finance --time-range month --need-content --content-format markdown --json --export
 ```
 

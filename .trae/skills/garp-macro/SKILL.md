@@ -284,7 +284,7 @@ python tools/specialized/macro_calibrator.py calibrate \
 | 优先级 | 工具 | 用途 | 命令 |
 | --- | --- | --- | --- |
 | 1 | `exa_search` | 美联储 FOMC / 美财政部 / 美债原文（美股市场首选） | `python tools/common/exa_search.py "{关键词}" --type deep` |
-| 2 | `anysearch` | 利率 / 信用 / 政策文本与研报深查 | `python tools/common/anysearch.py "{关键词}" --tag finance` |
+| 2 | `anysearch` | 利率 / 信用 / 政策文本与研报深查 | `python tools/common/anysearch.py "{关键词}" --count 10 --zone cn` |
 | 3 | `doubao_search` | 实时宏观资讯与舆情 | `python tools/common/doubao_search.py "{关键词}" --finance` |
 | 4 | `tavily_search` / `web_search` | 辅源 / 兜底 | `python tools/common/tavily_search.py "{关键词}"` |
 

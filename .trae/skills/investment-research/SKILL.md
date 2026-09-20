@@ -373,7 +373,7 @@ python tools/common/report_audit.py verdict \
 禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
 **投资研究场景下的搜索选型**（按公司上市地点，引用 web-search-tools.md 矩阵）：
-- A股：财报/研报/公告深查 → `anysearch --tag finance` 主 + `doubao --finance` 辅；实时新闻/舆情 → `doubao --finance` 主 + `anysearch` 辅
+- A股：财报/研报/公告深查 → `anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅；实时新闻/舆情 → `doubao --finance` 主 + `anysearch` 辅；个股财报定向须 `--count 10 --zone cn.fundamental --symbol {代码} --type income --cn-code {代码}`
 - 港股：披露易/公告/回购 → `doubao --sites hkexnews.hk` 主 + `tavily` 辅；管理层讨论/分析师点评 → `tavily` 主 + `doubao` 辅；双源 doubao+tavily
 - 美股：SEC filings/财报/MD&A → `exa --type deep` 主 + `tavily` 辅；新闻/舆情 → `doubao` 主 + `anysearch --zone intl` 辅；双源 exa+doubao
 

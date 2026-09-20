@@ -129,7 +129,7 @@
 | 优先级 | 工具 | 用途 | 命令示例 |
 | --- | --- | --- | --- |
 | 1 | `scan`（本地编排） | 地缘风险 + 政策基金结构化检索与快照 | `python -m tools.specialized.geo_policy_screen scan --industry {行业}` |
-| 2 | `anysearch` | A股投研首选（垂直库），政策文本 / 公告 / 制裁清单深查 | `python tools/common/anysearch.py "{关键词}" --tag finance` |
+| 2 | `anysearch` | A股投研首选（垂直库），政策文本 / 公告 / 制裁清单深查 | `python tools/common/anysearch.py "{关键词}" --count 10 --zone cn` |
 | 3 | `doubao_search` | 实时资讯/舆情（政策发布、基金设立动态） | `python tools/common/doubao_search.py "{关键词}" --finance` |
 | 4 | `tavily_search` | 港美股深度内容辅源 | `python tools/common/tavily_search.py "{关键词}"` |
 | 5 | `exa_search` | SEC filings 原文（美股标的的地缘披露） | `python tools/common/exa_search.py "{关键词}" --type deep` |

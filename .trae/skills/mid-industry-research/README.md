@@ -125,7 +125,7 @@
 
 | 用途 | 工具 | 关键参数 |
 |------|------|---------|
-| 行业/产业链/地缘搜索 | `common/anysearch.py` | `--tag finance --zone cn` |
+| 行业/产业链/地缘搜索 | `common/anysearch.py` | `--count 10 --zone cn` |
 | 实时资讯/舆情 | `common/doubao_search.py` | `--finance --need-content` |
 | 美股深度研究 | `common/exa_search.py` | `--type deep` |
 | 港美股辅源 | `common/tavily_search.py` | — |

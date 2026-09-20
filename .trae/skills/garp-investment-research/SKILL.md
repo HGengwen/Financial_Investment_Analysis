@@ -832,7 +832,7 @@ python tools/common/report_audit.py verdict --results '<填好的JSON>' --report
 
 > **失效形态禁用（出现即视为执行错误）**：
 > - `doubao_search.py --tag …` —— **该参数不存在**
-> - `anysearch.py --tag finance`（无 `--count`）
+> - `anysearch.py --tag finance`（非法一级标签；tag 须两级、金融子标签必填 params）
 > - 港股 `stock_financial.py --code …` —— **不存在**
 > - 美股 `stock_financial.py --code …` —— **不存在**
 > - `financial_rigor.py --price … --eps …` 组合形态 —— **不存在**

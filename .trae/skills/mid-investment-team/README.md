@@ -153,7 +153,7 @@
 
 禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合：
 
-- **A股**：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- **A股**：`anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅；个股财报定向须 `--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}`
 - **港股**：`doubao --sites hkexnews.hk` 主 + `tavily` 辅
 - **美股**：`exa --type deep` 主 + `tavily` 辅；新闻/舆情 → `doubao` 主
 

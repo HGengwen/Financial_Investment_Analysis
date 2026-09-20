@@ -812,7 +812,7 @@ python tools/common/commodity_price.py --code cu,GC,CL
 | 禁用形态 | 原因 | 正确形态 |
 | --- | --- | --- |
 | `doubao_search.py --tag …` | 该参数**不存在** | `--finance` / `--sites …` |
-| `anysearch.py --tag finance`（无 `--count`） | 无有效独立形态 | `--count 10 --zone cn` |
+| `anysearch.py --tag finance`（非法一级标签；tag 须两级、金融子标签必填 params） | 无有效独立形态 | `--count 10 --zone cn` |
 | 港股 `stock_financial.py --code` | 参数**不存在** | `--financial {代码}` / `--report {代码} --subject …` |
 | 美股 `stock_financial.py --code` | 参数**不存在** | `--indicators {代码}` / `--financials {代码}` |
 | `geo_policy_screen.py scan`（直连） | 抛 `ModuleNotFoundError` | `python -m tools.specialized.geo_policy_screen scan …` |

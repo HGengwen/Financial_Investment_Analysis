@@ -113,7 +113,7 @@
 | A股财务/行情 | `a_share/stock_financial.py`、`stock_quote.py` | `--code` |
 | 港股财务/行情 | `hk_stock/stock_financial.py`、`stock_quote.py` | `--financial`/`--code` |
 | 美股财务/行情 | `us_stock/stock_financial.py`、`stock_quote.py` | `--code` |
-| 一致预期增速 | `anysearch.py` / `doubao_search.py` / `exa_search.py` | `--tag finance` / `--finance` / `--type deep` |
+| 一致预期增速 | `anysearch.py` / `doubao_search.py` / `exa_search.py` | `--count 10 --zone cn` / `--finance` / `--type deep` |
 
 ### 关键约束
 

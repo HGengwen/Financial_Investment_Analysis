@@ -322,7 +322,7 @@ python tools/specialized/geo_policy_screen.py scan --industry {行业}
 | 港股 | `python tools/hk_stock/stock_financial.py --financial {代码}`；`python tools/hk_stock/stock_quote.py --code {代码}` |
 | 美股 | `python tools/us_stock/stock_info.py --search {公司名}`；`python tools/us_stock/stock_financial.py --indicators {代码}`；`python tools/us_stock/stock_quote.py --code {代码}` |
 
-> **勘误**：美股财务工具的指标参数为 `--indicators`（**不是** `--code`）；A 股检索工具使用 `--count 10 --zone cn`（**不使用** `--tag finance`，该参数会返回 HTTP 400）。
+> **勘误**：美股财务工具的指标参数为 `--indicators`（**不是** `--code`）；A 股行业/主题级检索用 `--count 10 --zone cn`，个股财报定向须 `--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}`（裸 `--tag finance` 属非法一级标签、金融子标签缺 params 均返回 HTTP 400）。
 
 ### 精确算术（禁用 LLM 心算）
 

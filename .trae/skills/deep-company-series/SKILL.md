@@ -159,7 +159,7 @@ disable-model-invocation: true
    - 美股公司：使用 `tools/us_stock/stock_financial.py` 获取财务数据；使用 `tools/common/exa_search.py` 主 + `tools/common/doubao_search.py` 辅（exa+doubao 双源）搜索年报信息
 
 2. **阅读至少 3 份独立卖方研报**（找共识 + 反共识）
-   - 使用 `tools/common/doubao_search.py --finance` 搜索券商研报，或 `tools/common/anysearch.py --tag finance` 检索垂直库
+   - 使用 `tools/common/doubao_search.py --finance` 搜索券商研报，或 `tools/common/anysearch.py --count 10 --zone cn` 检索垂直库
    - 或用户提供研报材料
 
 3. **使用 `/quality-screen` 先生成内部筛选底稿**
@@ -279,7 +279,7 @@ grep -r "<本机用户名>\|/Users/\|<个人身份信息>" reports/ | head
 禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。完整角色定位、市场×场景选型矩阵、命令速查、多源验证示例见 [web-search-tools](../tools-scripts/web-search-tools.md)。
 
 **深度公司研究场景下的搜索选型**：
-- A股：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- A股：`anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅；个股财报定向须 `--count 10 --zone cn.fundamental --symbol {代码} --type income --cn-code {代码}`
 - 港股：`doubao --sites hkexnews.hk` 主 + `tavily` 辅；双源 doubao+tavily
 - 美股：`exa --type deep` 主 + `doubao` 辅；双源 exa+doubao
 

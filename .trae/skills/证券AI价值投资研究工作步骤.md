@@ -516,7 +516,7 @@
 
 | 市场 | 财报/研报/公告深查                                               | 实时新闻/舆情                                | 双源验证                        |
 | ---- | ---------------------------------------------------------------- | -------------------------------------------- | ------------------------------- |
-| A 股 | `anysearch --tag finance` 主 + `doubao --finance` 辅         | `doubao --finance` 主 + `anysearch` 辅   | `anysearch` + `doubao` 双主 |
+| A 股 | `anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅         | `doubao --finance` 主 + `anysearch` 辅   | `anysearch` + `doubao` 双主 |
 | 港股 | `doubao --sites hkexnews.hk --need-content` 主 + `tavily` 辅 | `doubao` 主 + `anysearch` 辅             | `doubao` + `tavily`         |
 | 美股 | `exa --type deep` 主 + `tavily` 辅                           | `doubao` 主 + `anysearch --zone intl` 辅 | `exa` + `doubao`            |
 

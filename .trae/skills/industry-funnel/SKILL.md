@@ -430,7 +430,7 @@ A = 数据充分可信；B = 部分缺失但不影响主结论；C = 缺失较�
    - 美股：`tools/us_stock/`（yfinance，免费无需 token）
 2. **5 条硬指标数据须精确验算**：使用 `financial_rigor.py` 验算 PE/ROE/市值等，禁止 LLM 心算
 3. **重要分析须按市场选用搜索主工具（详见 [web-search-tools](../tools-scripts/web-search-tools.md)）**：
-   - **A股**：优先使用 `anysearch.py`（`--tag finance` 财报/研报/公告深查）为主，`doubao_search.py`（`--finance`）为辅
+   - **A股**：优先使用 `anysearch.py`（`--count 10 --zone cn` 财报/研报/公告深查）为主，`doubao_search.py`（`--finance`）为辅；个股财报定向须 `--count 10 --zone cn.fundamental --symbol {代码} --type income --cn-code {代码}`
    - **港股**：优先使用 `doubao_search.py` 为主（`--sites hkexnews.hk` 定向披露易、`--need-content` 抓正文、`--export` 导出），`tavily_search.py` 为辅
    - **美股**：优先使用 `exa_search.py` 为主（`--type deep` 深度档、SEC filings 直击原文），`doubao_search.py`（`--finance`）为辅
    - 双源验证按市场矩阵执行：A股 `anysearch`+`doubao`；港股 `doubao`+`tavily`；美股 `exa`+`doubao`
@@ -453,7 +453,7 @@ python tools/common/exa_search.py "AI semiconductor 10-K" --type deep --max-resu
 python tools/common/doubao_search.py "AI算力 行业地位 竞争格局" --finance --need-content
 
 # A股双主验证：anysearch（垂直检索）+ doubao（财经定向 + 正文）
-python tools/common/anysearch.py "AI算力 财报" --tag finance
+python tools/common/anysearch.py "AI算力 财报" --count 10 --zone cn
 python tools/common/doubao_search.py "AI算力 行业地位 竞争格局" --finance --need-content
 ```
 

@@ -656,7 +656,7 @@ python tools/common/report_audit.py verdict \
 
 **1~3年景气投资研究场景下的搜索选型**（按公司上市地点）：
 
-- **A股**：财报/研报/公告深查 → `anysearch --tag finance` 主 + `doubao --finance` 辅；实时景气新闻 → `doubao --finance` 主
+- **A股**：财报/研报/公告深查 → `anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅；实时景气新闻 → `doubao --finance` 主
 - **港股**：披露易/公告/回购 → `doubao --sites hkexnews.hk` 主 + `tavily` 辅；管理层讨论/分析师点评 → `tavily` 主 + `doubao` 辅
 - **美股**：SEC filings/财报/MD&A → `exa --type deep` 主 + `tavily` 辅；新闻/舆情 → `doubao` 主 + `anysearch --zone intl` 辅
 

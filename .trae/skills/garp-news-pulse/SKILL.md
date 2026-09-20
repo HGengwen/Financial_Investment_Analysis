@@ -397,7 +397,7 @@ disable-model-invocation: true
 - **港股异动**：披露易 / 公告 → `doubao_search.py --sites hkexnews.hk` 为主 + `tavily_search.py` 为辅；双源 `doubao` + `tavily`
 - **美股异动**：新闻 / 舆情 → `doubao_search.py` 为主 + `anysearch.py --zone intl` 为辅；双源 `exa` + `doubao`
 - **宏观金融与地缘政策（美国官方为主）**：美联储 / 美财政部 / 美经济数据 / 美国监管 → `exa_search.py --type deep` 直击官方原文为主 + `doubao_search.py` 为辅；国际地缘 → `doubao_search.py` 为主 + `tavily_search.py` 为辅；避险情绪 → `commodity_price.py --code GC,CL` 佐证；汇率 → `fx_rate.py --code USDCNY/HKDCNY`
-- **A 股检索勘误**：`anysearch.py` 使用 `--count 10 --zone cn`，**不使用 `--tag finance`**（该参数返回 HTTP 400）
+- **A 股检索勘误**：`anysearch.py` 行业/主题级检索用 `--count 10 --zone cn`；个股财报定向须 `--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}`。裸 `--tag finance` 属非法一级标签、金融子标签缺 params 均返回 HTTP 400，全量见 `--list-tags`
 
 **搜索规范**：
 

@@ -431,7 +431,7 @@ pdftoppm -png cninfo_reports/601899_2025年报.pdf cninfo_reports/601899_2025年
 
 ```bash
 # A股双主验证（anysearch 垂直检索 + doubao 财经定向正文）
-python tools/common/anysearch.py "紫金矿业 财报" --tag finance
+python tools/common/anysearch.py "紫金矿业 财报" --count 10 --zone cn
 python tools/common/doubao_search.py "紫金矿业 商业模式 护城河" --finance --need-content --export
 
 # 港股双源验证（doubao 披露易定向 + tavily 管理层讨论深度内容）

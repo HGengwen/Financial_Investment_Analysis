@@ -405,7 +405,7 @@ python tools/specialized/governance_data.py esg \
 2. **PowerShell 下负号开头的表达式须加引号**：`--expr="-3+12"`，否则被误解析为参数。
 3. **`roic` / `incremental-roic` 子命令不支持 `--as-of`**（实测报 `unrecognized arguments`）——数据截止日期须写在报告而非命令中。
 4. **`governance_data.py` 三子命令可直接以脚本形式调用**（与 `geo_policy_screen.py scan` 不同，后者须 `-m` 模块形式）。
-5. **`anysearch.py` 的 `--tag finance` 需要额外参数**（`symbol` / `type` / `cn_code`），否则报 HTTP 400；直接不带 `--tag` 或改用 `doubao_search.py`。
+5. **`anysearch.py` 的 tag 须为「大类.子域」两级格式**：裸 `--tag finance` 属非法一级标签；金融子标签必填 params（`finance.fundamental` 需 `symbol` / `type` / `cn_code`），缺参报 HTTP 400。个股定向用 `--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}`，行业/主题级检索用 `--count 10 --zone cn`，全量目录见 `python tools/common/anysearch.py --list-tags`。
 
 ### `governance_data.py` 输出要点
 

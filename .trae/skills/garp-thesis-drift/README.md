@@ -234,7 +234,7 @@ H7 命中诚信闸门 → **一级 · 诚信否决**，**不参与计数**、直
 | 治理取证（H7） | `specialized/governance_data.py` | `esg` |
 | 地缘取证（H6） | `specialized/geo_policy_screen.py` | `scan` |
 | 宏观 stage | `specialized/macro_calibrator.py` | `data`（只呈现，不择时） |
-| 渗透率 / 订单 / 地缘资讯 | `common/anysearch.py` / `doubao_search.py` | **禁 `--tag finance`**，用 `--count 10 --zone cn` |
+| 渗透率 / 订单 / 地缘资讯 | `common/anysearch.py` / `doubao_search.py` | **禁裸 `--tag finance`**（非法一级标签；tag 须两级、金融子标签必填 params），行业级用 `--count 10 --zone cn`，个股定向 `--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}` |
 | 报告审核 | `common/report_audit.py` | `extract --report ...` |
 
 ---

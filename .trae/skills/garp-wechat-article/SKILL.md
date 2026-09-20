@@ -199,7 +199,7 @@ disable-model-invocation: true
 
 研究 Agent 收集素材时，统一使用本地五工具组合（详见 [web-search-tools](../tools-scripts/web-search-tools.md)）。工具选型按主题涉及的市场参照矩阵：
 
-- **A股主题**：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- **A股主题**：`anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅；个股财报定向须 `--count 10 --zone cn.fundamental --symbol {代码} --type income --cn-code {代码}`
 - **港股/美股/国际主题**：港股 `doubao --sites hkexnews.hk` + `tavily`（双源）；美股 `exa --type deep` + `doubao`（双源）
 - **技术 / 论文主题**：英文文献优先 `exa --type deep`，中文资讯用 `doubao`，多源互补
 - 使用 `--time-range month/week` 限制时间范围，优先获取最新信息
@@ -585,7 +585,7 @@ python tools/common/report_audit.py verdict \
 
 **公众号文章场景下的搜索选型**：
 
-- A股主题：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- A股主题：`anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅；个股财报定向须 `--count 10 --zone cn.fundamental --symbol {代码} --type income --cn-code {代码}`
 - 港股主题：`doubao --sites hkexnews.hk` 主 + `tavily` 辅（双源 doubao+tavily）
 - 美股/国际主题：`exa --type deep` 主 + `doubao` 辅（双源 exa+doubao）
 - 技术主题：英文文献 `exa --type deep`，中文资讯 `doubao`，多源互补

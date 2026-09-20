@@ -199,7 +199,7 @@ python tools/common/annual_report_parser.py reports/pdf/{年报}.md --output-jso
 
 | 市场 | 首选 | 辅源 | 备注 |
 |------|------|------|------|
-| A股 | `anysearch.py` | `doubao_search.py --finance` | **`anysearch.py` 须用 `--count 10 --zone cn`**；`--tag finance` 会返回 HTTP 400 |
+| A股 | `anysearch.py` | `doubao_search.py --finance` | **行业/主题级检索用 `--count 10 --zone cn`**；裸 `--tag finance` 属非法一级标签，金融子标签必填 params（个股定向：`--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}`） |
 | 港股 | `doubao_search.py --sites hkexnews.hk` | `tavily_search.py` | 双源验证 |
 | 美股 | `exa_search.py --type deep` | `doubao_search.py` | SEC filings 直击原文 |
 
@@ -952,7 +952,7 @@ python tools/common/report_audit.py verdict
 
 | 市场 | 数据工具 | 搜索工具 |
 |------|---------|---------|
-| A 股 | `stock_info.py` / `stock_financial.py` / `stock_quote.py --momentum` / `stock_equity.py --download-report` | `anysearch.py`（**须用 `--count 10 --zone cn`；`--tag finance` 会 HTTP 400**） |
+| A 股 | `stock_info.py` / `stock_financial.py` / `stock_quote.py --momentum` / `stock_equity.py --download-report` | `anysearch.py`（**行业/主题级用 `--count 10 --zone cn`；裸 `--tag finance` 属非法一级标签、金融子标签缺 params 会 HTTP 400；个股定向用 `--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}`**） |
 | 港股 | `hk_stock/stock_info.py` / `stock_financial.py` / `stock_quote.py` | `doubao_search.py --finance` / `tavily_search.py` |
 | 美股 | `us_stock/stock_info.py` / `stock_financial.py --indicators` / `stock_quote.py` | `exa_search.py --type deep`（SEC 原文） |
 

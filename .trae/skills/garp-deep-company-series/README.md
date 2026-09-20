@@ -407,7 +407,7 @@ grep -r "<本机用户名>\|/Users/\|<个人身份信息>" reports/ | head
 
 **深度公司系列（GARP 版）场景下的搜索选型**：
 
-- A股公司（年报/研报/公告深查）：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- A股公司（年报/研报/公告深查）：`anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅；个股财报定向须 `--count 10 --zone cn.fundamental --symbol {代码} --type income --cn-code {代码}`
 - 港股公司（披露易/公告/研报深度）：`doubao --sites hkexnews.hk` 主 + `tavily` 辅（doubao+tavily 双源）
 - 美股公司（SEC filings/财报/MD&A）：`exa --type deep` 主 + `doubao` 辅（exa+doubao 双源）
 

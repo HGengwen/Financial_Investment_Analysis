@@ -127,7 +127,7 @@ pdftoppm -png cninfo_reports/002465_2025年报.pdf cninfo_reports/002465_2025年
 | A股数据          | `tools/a_share/stock_info.py`、`stock_financial.py`、`stock_quote.py`、`stock_equity.py` | `python tools/a_share/stock_financial.py --code 601899`                                                                |
 | 港股数据         | `tools/hk_stock/stock_financial.py`、`stock_quote.py`                                        | `python tools/hk_stock/stock_financial.py --financial 00700`                                                           |
 | 美股数据         | `tools/us_stock/stock_info.py`、`stock_financial.py`、`stock_quote.py`                     | `python tools/us_stock/stock_financial.py --code AAPL`                                                                 |
-| 网络搜索（A股）  | `anysearch --tag finance` 主 + `doubao --finance` 辅                                         | `python tools/common/doubao_search.py "{公司名} 最新财报" --finance --need-content --time-range month`                 |
+| 网络搜索（A股）  | `anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅                                         | `python tools/common/doubao_search.py "{公司名} 最新财报" --finance --need-content --time-range month`                 |
 | 网络搜索（港股） | `doubao --sites hkexnews.hk` 主 + `tavily` 辅（doubao+tavily 双源）                          | `python tools/common/doubao_search.py "{公司名} 财报" --finance --sites hkexnews.hk --need-content --time-range month` |
 | 网络搜索（美股） | `exa --type deep` 主 + `doubao --finance` 辅（exa+doubao 双源）                              | `python tools/common/exa_search.py "{TICKER} 10-K earnings" --type deep`                                               |
 
@@ -393,7 +393,7 @@ python tools/common/report_audit.py verdict \
 
 **财报精读场景下的搜索选型**：
 
-- A股：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- A股：`anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅；个股财报定向须 `--count 10 --zone cn.fundamental --symbol {代码} --type income --cn-code {代码}`
 - 港股：`doubao --sites hkexnews.hk` 主 + `tavily` 辅；双源 doubao+tavily
 - 美股：`exa --type deep` 主 + `doubao` 辅；双源 exa+doubao
 

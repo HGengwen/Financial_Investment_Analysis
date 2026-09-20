@@ -281,7 +281,7 @@ C 级：未达门槛（TAM/渗透率）或业绩未兑现
 date
 
 # 搜索赛道/产业链/地缘信息（A股财经首选）
-python tools/common/anysearch.py "{行业名} 产业链 渗透率 TAM" --tag finance --count 10 --zone cn --json --export
+python tools/common/anysearch.py "{行业名} 产业链 渗透率 TAM" --count 10 --zone cn --json --export
 
 # 实时资讯/舆情（火山引擎）
 python tools/common/doubao_search.py "{行业名} 景气 订单 渗透率" --finance --time-range month --need-content --content-format markdown --json --export

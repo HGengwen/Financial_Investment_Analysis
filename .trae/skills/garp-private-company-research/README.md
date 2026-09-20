@@ -277,7 +277,7 @@ A 级信息下，重点转为**降噪与交叉验证**：招股书 / 监管文�
 - **深度内容辅源**：`tavily_search.py`；**轻量兜底**：`web_search.py`
 - **A 股定向检索**：`anysearch.py --count 10 --zone cn`
 
-> **⚠️ 工具勘误**：`anysearch.py --tag finance` 会返回 HTTP 400，改用 `--count 10 --zone cn`；美股 `us_stock/stock_financial.py` 的代码参数用 `--indicators`。
+> **⚠️ 工具勘误**：`anysearch.py` 的 tag 须两级（裸 `--tag finance` 属非法一级标签），金融子标签必填 params，缺参返回 HTTP 400；个股定向用 `--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}`，行业/主题级检索用 `--count 10 --zone cn`（全量见 `--list-tags`）；美股 `us_stock/stock_financial.py` 的代码参数用 `--indicators`。
 
 ### 引用不重建（核心约束）
 | 结论类型 | 权威出口（**只读**） |

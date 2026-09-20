@@ -1120,7 +1120,7 @@ python tools/common/report_audit.py verdict \
 - 禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合（详见 [web-search-tools](../tools-scripts/web-search-tools.md)）
 - 搜索未上市公司信息优先使用 `doubao_search.py`（火山引擎，支持 `--finance` 金融定向和 `--need-content` 正文抓取）
 - **对标上市公司按市场分述**：
-  - **A股对标公司**：优先使用 `anysearch.py --tag finance`（财报/研报/公告深查）为主，`doubao_search.py --finance` 为辅，双源验证 `anysearch` + `doubao`
+  - **A股对标公司**：优先使用 `anysearch.py --count 10 --zone cn`（财报/研报/公告深查）为主，`doubao_search.py --finance` 为辅，双源验证 `anysearch` + `doubao`
   - **港股对标公司**：优先使用 `doubao_search.py --sites hkexnews.hk`（港交所披露易定向）为主，`tavily_search.py` 为辅，双源验证 `doubao` + `tavily`
   - **美股对标公司**：优先使用 `exa_search.py --type deep`（深度档，SEC filings 直击原文）为主，`doubao_search.py --finance` 为辅，双源验证 `exa` + `doubao`
 - 定向检索招股书/监管文件：`doubao_search.py --sites sec.gov`（SEC）或 `--sites hkexnews.hk`（港交所披露易）

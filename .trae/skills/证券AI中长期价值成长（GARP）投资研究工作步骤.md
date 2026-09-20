@@ -505,7 +505,7 @@ GARP 链在复用项目通用工具生态的基础上，另有 **9 项专用工�
 
 | 市场 | 主源 | 辅源 |
 | --- | --- | --- |
-| A 股 | `tools/common/anysearch.py`（`--tag finance/legal/patent`） | `tools/common/doubao_search.py`（`--finance`） |
+| A 股 | `tools/common/anysearch.py`（行业/主题级 `--count 10 --zone cn`；判例 / 专利定向 `--tag legal.case` / `--tag ip.global`；金融子标签须两级 + 必填 params） | `tools/common/doubao_search.py`（`--finance`） |
 | 港股 | `tools/common/doubao_search.py`（`--sites hkexnews.hk`） | `tools/common/tavily_search.py` |
 | 美股 | `tools/common/exa_search.py`（`--type deep`） | `tools/common/doubao_search.py` |
 

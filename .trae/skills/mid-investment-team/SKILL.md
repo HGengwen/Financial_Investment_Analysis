@@ -436,7 +436,7 @@ python tools/common/report_audit.py verdict \
 
 禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合：
 
-- **A股**：财报/研报/公告深查 → `anysearch --tag finance` 主 + `doubao --finance` 辅；实时景气新闻 → `doubao --finance` 主
+- **A股**：财报/研报/公告深查 → `anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅；实时景气新闻 → `doubao --finance` 主
 - **港股**：披露易/公告/回购 → `doubao --sites hkexnews.hk` 主 + `tavily` 辅
 - **美股**：SEC filings/财报/MD&A → `exa --type deep` 主 + `tavily` 辅；新闻/舆情 → `doubao` 主
 

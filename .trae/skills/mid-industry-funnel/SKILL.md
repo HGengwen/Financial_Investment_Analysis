@@ -282,7 +282,7 @@ python tools/a_share/stock_quote.py --code {code} --momentum --auto-peers
 python tools/common/financial_rigor.py peg --price {p} --eps {eps} --growth {g}
 
 # 搜索赛道/公司/地缘信息（A股财经首选）
-python tools/common/anysearch.py "{公司名} 财报 管理层" --tag finance --count 10 --zone cn --json --export
+python tools/common/anysearch.py "{公司名} 财报 管理层" --count 10 --zone cn --json --export
 
 # 实时资讯/舆情（火山引擎）
 python tools/common/doubao_search.py "{公司名} 景气 订单" --finance --time-range month --need-content --content-format markdown --json --export

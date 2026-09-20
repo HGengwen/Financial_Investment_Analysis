@@ -296,7 +296,7 @@ reports/{公司名}/
 
 | 市场 | 主源 | 辅源 |
 | --- | --- | --- |
-| A 股 | `tools/common/anysearch.py`（**须用 `--count 10 --zone cn`；`--tag finance` 会 HTTP 400**） | `tools/common/doubao_search.py --finance` |
+| A 股 | `tools/common/anysearch.py`（**行业/主题级用 `--count 10 --zone cn`；裸 `--tag finance` 属非法一级标签、金融子标签缺 params 会 HTTP 400；个股定向用 `--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}`**） | `tools/common/doubao_search.py --finance` |
 | 港股 | `tools/common/doubao_search.py --finance` | `tools/common/tavily_search.py`（双源 doubao + tavily） |
 | 美股 | `tools/common/exa_search.py --type deep`（SEC 原文） | `tools/common/doubao_search.py --finance` |
 | 兜底 | `tools/common/web_search.py` | — |

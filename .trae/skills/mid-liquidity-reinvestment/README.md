@@ -167,8 +167,8 @@ python tools/common/report_audit.py verdict --results '<verified JSON>' --report
 
 **流动性质量与再投资能力场景下的搜索选型**：
 
-- FCF/资本开支/并购回购/股权稀释线索：A股 `anysearch --tag finance` 主 + `doubao --finance` 辅；美股 `exa --type deep` 主 + `doubao --finance` 辅
-- 现金流失真/应收账款异常线索：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- FCF/资本开支/并购回购/股权稀释线索：A股 `anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅；美股 `exa --type deep` 主 + `doubao --finance` 辅；个股财报定向须 `--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}`
+- 现金流失真/应收账款异常线索：`anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅；个股财报定向须 `--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}`
 - 资本配置动作（回购/并购/增发公告）：`doubao --finance` 主 + 交易所官方披露确认
 - 管理层诚信/治理/造假线索（P0 判断）：`anysearch --tag legal` 主 + `doubao --finance` 辅
 

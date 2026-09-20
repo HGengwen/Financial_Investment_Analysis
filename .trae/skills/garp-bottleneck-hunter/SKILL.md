@@ -192,7 +192,7 @@ Layer 4：临床试验（患者/基地/CRO）；冷链物流；人才（生物�
 对确认趋势执行类似拆解，用本地五工具搜索 `"{趋势} supply chain bottleneck"` / `"{趋势} shortage critical component"` / `"{趋势} capacity constraint"` / `"{趋势} sole source supplier"`。
 
 - **禁 Anthropic 官方 WebSearch / WebFetch**（geo-blocking 不可用），统一用本地五工具；
-- A 股：`anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅（**勘误：不用 `--tag finance`**）；
+- A 股：`anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅（**勘误：裸 `--tag finance` 属非法一级标签；tag 须两级且金融子标签必填 params，个股定向用 `--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}`，全量见 `--list-tags`**）；
 - 港股：doubao + tavily；美股：exa + doubao；实时信号：`doubao --finance` 主 + anysearch 辅；
 - 用 `--time-range month/week` 限时；**必须搜日韩台供应商**；数据标注来源。
 
@@ -518,7 +518,7 @@ python tools/specialized/in_research_scan.py pipeline-npv …
 python tools/specialized/trend_tech_screen.py score --dims '{…}' --geo '{…}' --tech '{…}' --r8 '{…}'  # 排序辅助
 
 # 取数五工具（禁 Anthropic 官方 WebSearch / WebFetch）
-python tools/common/anysearch.py "{公司} 产能" --count 10 --zone cn   # 勘误：不用 --tag finance（HTTP 400）
+python tools/common/anysearch.py "{公司} 产能" --count 10 --zone cn   # 勘误：裸 --tag finance 属非法一级标签（HTTP 400）；tag 须两级且金融子标签必填 params，见 --list-tags
 python tools/common/doubao_search.py "{趋势} 供应链 短缺" --finance --time-range month
 python tools/common/exa_search.py "{公司} 10-K supply chain" --type deep
 python tools/common/tavily_search.py "{公司} 财报"
@@ -529,7 +529,7 @@ python tools/common/report_audit.py extract --report reports/xxx.md   # 准出�
 
 ### 两条勘误（必须遵守）
 
-1. **`anysearch.py` 禁用 `--tag finance`**：该形态返回 HTTP 400，改用 **`--count 10 --zone cn`**。
+1. **`anysearch.py` 的 tag 须为「大类.子域」两级格式**：裸 `--tag finance` 属非法一级标签，金融子标签必填 params（`finance.fundamental` 需 `symbol`/`type`/`cn_code`），缺参返回 HTTP 400。行业/主题级检索改用 **`--count 10 --zone cn`**，个股定向用 `--tag finance.fundamental --symbol {代码} --type income --cn-code {代码}`；全量目录见 `--list-tags`。
 2. **美股 `stock_financial.py` 参数为 `--indicators`**（**不是** `--code`）：`python tools/us_stock/stock_financial.py --indicators AAPL`。
 
 ### 引用不重建表（口径出口，只读）

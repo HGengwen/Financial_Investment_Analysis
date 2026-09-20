@@ -351,7 +351,7 @@ python tools/common/report_audit.py verdict \
 
 **公众号文章场景下的搜索选型**：
 
-- A股主题：`anysearch --tag finance` 主 + `doubao --finance` 辅
+- A股主题：`anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅；个股财报定向须 `--count 10 --zone cn.fundamental --symbol {代码} --type income --cn-code {代码}`
 - 港股主题：`doubao --sites hkexnews.hk` 主 + `tavily` 辅（双源 doubao + tavily）
 - 美股 / 国际主题：`exa --type deep` 主 + `doubao` 辅（双源 exa + doubao）
 - 技术主题：英文文献 `exa --type deep`，中文资讯 `doubao`，多源互补

@@ -860,7 +860,7 @@ python tools/common/web_search.py "{关键词}"
 | 失效形态 | 实测结果 | 正确形态 |
 | --- | --- | --- |
 | `doubao_search.py --tag …` | 该参数**不存在** | 用 `--finance` / `--time-range` / `--sites` |
-| `anysearch.py --tag finance`（无 `--count`） | 组合不成立 | `--count 10 --zone cn` |
+| `anysearch.py --tag finance`（非法一级标签；金融子标签须两级 + 必填 params） | 组合不成立 | `--count 10 --zone cn` |
 | 港股 `stock_financial.py --code …` | 参数**不存在** | `--financial 00700` / `--report 00700 --subject …` |
 | 美股 `stock_financial.py --code …` | 参数**不存在** | `--indicators AAPL` / `--financials AAPL` |
 

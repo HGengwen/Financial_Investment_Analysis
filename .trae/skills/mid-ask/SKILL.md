@@ -407,7 +407,7 @@ python tools/common/financial_rigor.py calc --expr "(未来第2年EPS/当前TTM 
 
 **mid-ask 场景下的搜索选型**：
 
-- A股财报/公告深查：`anysearch.py --tag finance` 主 + `doubao_search.py --finance` 辅
+- A股财报/公告深查：`anysearch.py --count 10 --zone cn` 主 + `doubao_search.py --finance` 辅；个股财报定向须 `--count 10 --zone cn.fundamental --symbol {代码} --type income --cn-code {代码}`
 - 实时舆情（卖出 P0/P5 判断）：`doubao_search.py --finance`
 - 美股 SEC 原文：`exa_search.py --type deep` 主 + `doubao_search.py --finance` 辅
 - 港美股内容辅源：`tavily_search.py`

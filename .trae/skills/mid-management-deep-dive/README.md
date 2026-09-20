@@ -131,7 +131,7 @@ python tools/common/report_audit.py verdict \
 禁止使用 Anthropic 官方 WebSearch/WebFetch（中国大陆不可用），统一使用本地五工具组合。
 
 **管理层研究场景下的搜索选型**（按公司上市地点）：
-- A股：管理层背景/公开发言/治理结构 → `anysearch --tag finance` 主 + `doubao --finance` 辅；员工评价/客户反馈 → `doubao` 主
+- A股：管理层背景/公开发言/治理结构 → `anysearch --count 10 --zone cn` 主 + `doubao --finance` 辅；员工评价/客户反馈 → `doubao` 主
 - 港股：管理层讨论/分析师点评 → `tavily` 主 + `doubao` 辅；公告/回购/薪酬 → `doubao --sites hkexnews.hk` 主 + `tavily` 辅
 - 美股：SEC filings/CEO 发言/治理结构 → `exa --type deep` 主 + `tavily` 辅；新闻/舆情 → `doubao` 主 + `anysearch --zone intl` 辅
 

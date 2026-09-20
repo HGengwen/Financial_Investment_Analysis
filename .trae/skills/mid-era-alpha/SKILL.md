@@ -200,7 +200,7 @@ python tools/common/financial_rigor.py pe-percentile --help
 
 ### 网络搜索选型（中期景气·时代α场景）
 
-- **A股** 财报/研报/公告深查：`python tools/common/anysearch.py "{关键词}" --tag finance` 主 + `doubao_search.py --finance` 辅
+- **A股** 财报/研报/公告深查：`python tools/common/anysearch.py "{关键词}" --count 10 --zone cn` 主 + `doubao_search.py --finance` 辅；个股财报定向须 `--count 10 --zone cn.fundamental --symbol {代码} --type income --cn-code {代码}`
 - **港股** 披露易/公告/回购：`python tools/common/doubao_search.py "{关键词}" --sites hkexnews.hk --need-content` 主 + `tavily_search.py` 辅
 - **美股** SEC filings/10-K 深查：`python tools/common/exa_search.py "{关键词}" --type deep` 主 + `doubao_search.py --finance` 辅
 - **实时资讯/舆情**：`python tools/common/doubao_search.py "{关键词}" --finance`
