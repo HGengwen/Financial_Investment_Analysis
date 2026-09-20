@@ -14,6 +14,8 @@ Tavily、火山引擎豆包搜索的并行方案，返回结构化搜索结果�
 6. 支持导出 Markdown 格式搜索报告。
 7. 内置客户端 QPS 限流（线程安全），避免触发服务端 429。
 8. 支持匿名调用（无 API Key），但额度极少，建议注册账号。
+9. 内置 tag 两级格式校验与金融子标签必填 params 预检：缺参在**发请求前**拦截，
+   不再以 HTTP 400 形式暴露；--list-tags 可打印本地 tag 目录与必填参数。
 
 依赖库:
 pip install requests python-dotenv
@@ -22,8 +24,9 @@ pip install requests python-dotenv
 python tools/common/anysearch.py "搜索关键词"
 python tools/common/anysearch.py "紫金矿业 财报" --count 10
 python tools/common/anysearch.py "黄金价格走势" --json
-python tools/common/anysearch.py "腾讯控股" --tag finance.fundamental --export
+python tools/common/anysearch.py "贵州茅台 财务报表" --tag finance.fundamental --symbol 600519 --type income --cn-code 600519
 python tools/common/anysearch.py "民法典 判例" --tag legal.case
+python tools/common/anysearch.py --list-tags
 """
 
 import argparse
@@ -76,7 +79,9 @@ DEFAULT_FORMAT = "json"
 DEFAULT_TIMEOUT = 30
 
 # 垂直领域 Tag 分类映射（常用快捷别名 → 官方 tag）
-# 完整 tag 列表参见官方文档，此处仅提供常用快捷映射
+# 完整 tag 列表见 TAG_CATALOG（官方无 tag 清单接口，GET /v1/tags 实测 404）
+# 注意：别名本身允许单级（如 code / legal），映射结果必须为「大类.子域」两级；
+#       歧义一级标签（如 finance）**不设别名**，由 _normalize_tag 报错并列出候选子标签。
 TAG_ALIASES = {
     # 通用
     "general": "general.general",
@@ -89,8 +94,8 @@ TAG_ALIASES = {
     "doc": "code.doc",
     "snippet": "code.snippet",
     "github": "code.snippet",
-    # 金融
-    "finance": "finance.fundamental",
+    # 金融（不设 "finance" 别名：它对应 4 个语义不同的子标签，静默映射到
+    #       finance.fundamental 会因缺 params 直接 HTTP 400）
     "stock": "finance.quote",
     "quote": "finance.quote",
     "fundamental": "finance.fundamental",
@@ -116,8 +121,63 @@ TAG_ALIASES = {
     "social": "social_media.social",
 }
 
+# 官方 tag 目录（大类.子域 两级）
+# 背景：AnySearch 未提供 tag 清单查询端点（GET /v1/tags、/v1/capabilities 实测均 404），
+#       合法子标签与必填 params 只能由本目录承载，供校验与 --list-tags 输出。
+# params: 服务端强制要求的必填扩展参数（已实测核实的才登记，未收录者以 () 表示「本地不作强制」）。
+TAG_CATALOG: dict[str, dict[str, Any]] = {
+    # 通用
+    "general.general": {"desc": "通用全网检索", "params": ()},
+    # 学术
+    "academic.search": {"desc": "学术论文", "params": ()},
+    "academic.preprint": {"desc": "预印本", "params": ()},
+    # 代码
+    "code.doc": {"desc": "代码文档", "params": ()},
+    "code.snippet": {"desc": "代码片段", "params": ()},
+    # 金融（四个子标签均强制要求 params，缺参直接 HTTP 400——已实测核实）
+    "finance.fundamental": {"desc": "财务报表", "params": ("symbol", "type", "cn_code")},
+    "finance.quote": {"desc": "实时行情", "params": ("type",)},
+    "finance.macro": {"desc": "宏观经济", "params": ("type",)},
+    "finance.calendar": {"desc": "财报日程", "params": ("type",)},
+    # 法律
+    "legal.case": {"desc": "司法判例", "params": ()},
+    "legal.statute": {"desc": "法律法规", "params": ()},
+    "legal.legislation": {"desc": "立法文件", "params": ()},
+    # 专利
+    "ip.global": {"desc": "全球专利", "params": ()},
+    # 安全
+    "security.vuln": {"desc": "漏洞库", "params": ()},
+    "security.intel": {"desc": "威胁情报", "params": ()},
+    # 其他
+    "agriculture.agriculture": {"desc": "农业", "params": ()},
+    "energy.energy": {"desc": "能源", "params": ()},
+    "health.health": {"desc": "医疗健康", "params": ()},
+    "travel.flight": {"desc": "航班", "params": ()},
+    "social_media.social": {"desc": "社交媒体", "params": ()},
+}
+
+# 缺参提示所用的示例值（仅用于拼出可直接复制的命令，不参与任何计算）
+_PARAM_PLACEHOLDER: dict[str, str] = {
+    "symbol": "600519",
+    "type": "income",
+    "cn_code": "600519",
+}
+
+# 完整调用示例（缺参时按 tag 拼出，供用户直接复制）
+_PARAM_SAMPLE: dict[str, dict[str, str]] = {
+    "finance.fundamental": {"symbol": "600519", "type": "income", "cn_code": "600519"},
+    "finance.quote": {"type": "quote"},
+    "finance.macro": {"type": "gdp"},
+    "finance.calendar": {"type": "report"},
+}
+
+
 # HTTP 错误码到中文说明的映射
 ERROR_CODE_MAP = {
+    400: {
+        "invalid_tag": "tag 非法：须为「大类.子域」两级格式",
+        "missing_required_params": "该 tag 缺少必填 params（金融类子标签强制要求）",
+    },
     402: {
         "daily_free_quota_exhausted": "匿名 IP 当日免费额度耗尽",
         "user_daily_quota_exhausted": "注册账号每日免费额度用完，次日 0 点重置",
@@ -232,9 +292,11 @@ class AnySearchClient:
         Args:
             query: 搜索关键词或自然语言问题（建议不超过 300 字符）。
             max_results: 返回结果数量（1-20），默认 10。
-            tag: 垂直领域标签，如 "code.doc"、"legal.case"、"finance.fundamental"，
-                支持快捷别名（见 TAG_ALIASES），不填则通用全网搜索。
-            params: tag 扩展筛选参数，如 {"library": "golang"}、{"ticker": "AAPL"}。
+            tag: 垂直领域标签，须为「大类.子域」两级，如 "code.doc"、"legal.case"、
+                "finance.fundamental"；支持快捷别名（见 TAG_ALIASES），不填则通用全网搜索。
+            params: tag 扩展筛选参数。**金融类子标签为服务端强制**：finance.fundamental
+                需 symbol/type/cn_code，finance.quote / macro / calendar 需 type；
+                缺参在本地即被拦截（抛 ValueError），不会发出网络请求。
             zone: 区域，"cn" 国内 / "intl" 国际，默认 cn。
             language: 语言，"zh-CN" / "en"，默认 zh-CN。
             format: 返回格式，"json" / "markdown"，默认 json。
@@ -255,8 +317,9 @@ class AnySearchClient:
             ValueError: 当 API 返回业务错误（code != 0）时抛出。
             requests.RequestException: 当 HTTP 请求失败时抛出。
         """
-        # 参数规范化：tag 别名映射
+        # 参数规范化与前置校验（均在发请求之前完成，避免无谓的 HTTP 400）
         normalized_tag = self._normalize_tag(tag)
+        self._validate_tag_params(normalized_tag, params)
 
         # 构建请求体
         payload: dict[str, Any] = {
@@ -345,21 +408,65 @@ class AnySearchClient:
 
     @staticmethod
     def _normalize_tag(tag: Optional[str]) -> Optional[str]:
-        """将 tag 别名映射为官方 tag。
+        """将 tag 别名映射为官方 tag，并校验「大类.子域」两级格式。
 
-        支持传入快捷别名（如 "code"、"legal"）或完整官方 tag
-        （如 "code.doc"、"legal.case"），统一输出官方 tag。
+        所有入口（search / search_simple / 模块接口 / CLI）均先经本方法，
+        非法 tag 在**发出网络请求之前**即被拦截，不再以 HTTP 400 形式暴露。
 
         Args:
-            tag: 原始 tag 或别名。
+            tag: 原始 tag 或别名（别名允许单级，如 "code"、"legal"）。
 
         Returns:
-            映射后的官方 tag，输入为空则返回 None。
+            映射后的官方 tag；输入为空则返回 None。
+
+        Raises:
+            ValueError: tag 非法（非两级格式、一级歧义标签、空白段）。
         """
         if not tag:
             return None
-        # 先查别名映射，找不到则原样返回（允许直接传官方 tag）
-        return TAG_ALIASES.get(tag.lower(), tag)
+
+        raw = tag.strip()
+        # 1) 快捷别名映射（别名本身允许单级，映射结果必须为两级）
+        mapped = TAG_ALIASES.get(raw.lower(), raw)
+
+        # 2) 必须为「大类.子域」两级格式
+        parts = mapped.split(".")
+        if len(parts) != 2 or not all(parts):
+            raise ValueError(_build_tag_error(mapped))
+
+        # 3) 目录内未知子标签：大类已知但子域未收录，放行并提示（兼容官方新增）
+        if mapped not in TAG_CATALOG:
+            known = [t for t in TAG_CATALOG if t.startswith(parts[0] + ".")]
+            if known:
+                logger.warning(
+                    "tag '%s' 不在本地目录；该大类已知子标签为：%s。若接口返回 400，"
+                    "请改用上述子标签（--list-tags 查看完整目录）。",
+                    mapped, "、".join(known),
+                )
+        return mapped
+
+    @staticmethod
+    def _validate_tag_params(
+        tag: Optional[str], params: Optional[dict[str, Any]]
+    ) -> None:
+        """校验 tag 的必填 params，缺参在发请求前拦截。
+
+        金融类子标签的 params 为**服务端强制**，缺参将直接返回 HTTP 400；
+        在此前置校验并给出可直接复制的正确调用示例。
+
+        Args:
+            tag: 已规范化的官方 tag（可为 None）。
+            params: 调用方传入的扩展参数。
+
+        Raises:
+            ValueError: 缺少必填 params（错误信息附正确调用示例）。
+        """
+        if not tag:
+            return
+        required = (TAG_CATALOG.get(tag) or {}).get("params") or ()
+        missing = [key for key in required if not (params or {}).get(key)]
+        if missing:
+            raise ValueError(_build_param_error(tag, missing, params or {}))
 
     @staticmethod
     def _raise_http_error(response: requests.Response) -> None:
@@ -401,6 +508,114 @@ class AnySearchClient:
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """退出上下文时自动关闭会话。"""
         self.close()
+
+
+# ==================== tag 校验辅助 ====================
+
+
+def _major_categories() -> list[str]:
+    """返回目录中出现过的大类（去重、保序）。
+
+    Returns:
+        大类名称列表，如 ["general", "academic", "finance", ...]。
+    """
+    seen: list[str] = []
+    for tag in TAG_CATALOG:
+        major = tag.split(".")[0]
+        if major not in seen:
+            seen.append(major)
+    return seen
+
+
+def _describe_tag(tag: str) -> str:
+    """将目录条目格式化为单行说明。
+
+    Args:
+        tag: 官方 tag（须存在于 TAG_CATALOG）。
+
+    Returns:
+        形如 "finance.quote  实时行情  必填 params: type" 的单行文本。
+    """
+    meta = TAG_CATALOG[tag]
+    required = meta.get("params") or ()
+    req_text = "、".join(required) if required else "—"
+    return f"{tag}（{meta.get('desc', '')}，必填 params: {req_text}）"
+
+
+def _build_tag_error(bad_tag: str) -> str:
+    """构造 tag 非法错误说明（含合法值清单与查目录命令）。
+
+    Args:
+        bad_tag: 触发错误的 tag。
+
+    Returns:
+        多行中文错误说明，可直接作为 ValueError 的消息。
+    """
+    lines = [f"tag '{bad_tag}' 非法：官方 tag 必须是「大类.子域」两级格式。"]
+
+    # 一级且为已知大类（如 finance）：列出该大类下全部子标签，消解歧义
+    children = [t for t in TAG_CATALOG if t.startswith(bad_tag + ".")]
+    if children:
+        lines.append(f"  '{bad_tag}' 下含 {len(children)} 个子标签，一次只能指定一个：")
+        lines.extend(f"    - {_describe_tag(t)}" for t in children)
+    else:
+        lines.append("  合法大类：" + "、".join(_major_categories()))
+
+    lines.append("  查看全部合法 tag 与必填参数：python tools/common/anysearch.py --list-tags")
+    return "\n".join(lines)
+
+
+def _build_param_error(tag: str, missing: list[str], provided: dict[str, Any]) -> str:
+    """构造缺参错误说明（含 CLI 与 JSON 两种可复制形态）。
+
+    Args:
+        tag: 官方 tag。
+        missing: 缺失的必填参数名列表。
+        provided: 调用方已提供的参数。
+
+    Returns:
+        多行中文错误说明，可直接作为 ValueError 的消息。
+    """
+    sample = dict(_PARAM_SAMPLE.get(tag, {}))
+    sample.update({k: v for k, v in provided.items() if v})  # 已有值沿用
+    for key in missing:
+        sample.setdefault(key, _PARAM_PLACEHOLDER.get(key, f"<{key}>"))
+
+    flags = " ".join(f"--{k.replace('_', '-')} {v}" for k, v in sample.items())
+    as_json = json.dumps(sample, ensure_ascii=False)
+
+    return "\n".join([
+        f"tag '{tag}' 缺少必填 params: {', '.join(missing)}",
+        "  该 tag 的 params 为服务端强制要求，缺参将直接返回 HTTP 400。",
+        "  正确调用示例（CLI）：",
+        f'    python tools/common/anysearch.py "<搜索词>" --tag {tag} {flags}',
+        "  等价 JSON 形态：",
+        f"    --params '{as_json}'",
+    ])
+
+
+def format_tag_catalog() -> str:
+    """将官方 tag 目录格式化为可读清单（供 --list-tags 输出）。
+
+    AnySearch 未提供 tag 清单查询端点（GET /v1/tags、/v1/capabilities 实测均 404），
+    本函数即本地目录的对外呈现，用于替代「只能靠试错」的取数方式。
+
+    Returns:
+        多行中文清单文本。
+    """
+    lines = [
+        "AnySearch 合法 tag 目录（须为「大类.子域」两级）",
+        "=" * 72,
+    ]
+    for tag, meta in TAG_CATALOG.items():
+        required = meta.get("params") or ()
+        req_text = "、".join(required) if required else "—"
+        lines.append(f"  {tag:<24}{meta.get('desc', ''):<12}必填 params: {req_text}")
+    lines.append("=" * 72)
+    lines.append("  说明：接口无 tag 清单端点（GET /v1/tags 实测 404），本目录由官方文档与实测整理。")
+    lines.append("  金融类子标签强制要求 params：finance.fundamental 需 symbol/type/cn_code；")
+    lines.append("  finance.quote / finance.macro / finance.calendar 需 type。缺参一律 HTTP 400。")
+    return "\n".join(lines)
 
 
 # ==================== 结果格式化输出 ====================
@@ -655,9 +870,14 @@ def anysearch(
     Args:
         query: 搜索关键词（建议不超过 300 字符）。
         max_results: 返回结果数量（1-20），默认 10。
-        tag: 垂直领域标签或快捷别名，如 "code"、"legal"、"finance.fundamental"。
-            完整别名列表见 TAG_ALIASES，不填则通用全网搜索。
+        tag: 垂直领域标签或快捷别名，**须为「大类.子域」两级**，如 "code.doc"、
+            "legal.case"、"finance.fundamental"；完整别名见 TAG_ALIASES。
+            注意：歧义一级标签（如 "finance"）不设别名，直接传入会抛 ValueError，
+            并列出该大类下的候选子标签。不填则通用全网搜索。
         params: tag 扩展筛选参数，如 {"library": "golang"}。
+            **金融类子标签为服务端强制**：finance.fundamental 需 symbol/type/cn_code，
+            finance.quote / macro / calendar 需 type；缺参在本地即被拦截（抛 ValueError），
+            不会发出网络请求。
         zone: 区域，"cn" / "intl"，默认 cn。
         language: 语言，"zh-CN" / "en"，默认 zh-CN。
         format: 返回格式，"json" / "markdown"，默认 json。
@@ -666,7 +886,7 @@ def anysearch(
         标准化的搜索结果列表，每项包含 title、url、snippet、content 字段。
 
     Raises:
-        ValueError: 当 API 返回业务错误时抛出。
+        ValueError: tag 非法、缺少必填 params，或 API 返回业务错误时抛出。
         requests.RequestException: 当 HTTP 请求失败时抛出。
 
     Example:
@@ -676,6 +896,14 @@ def anysearch(
         ...     print(f"标题: {r['title']}")
         ...     print(f"链接: {r['url']}")
         ...     print(f"摘要: {r['snippet'][:100]}...")
+
+        >>> # 金融类子标签必须带 params，否则服务端直接返回 HTTP 400
+        >>> results = anysearch(
+        ...     "贵州茅台 财务报表",
+        ...     max_results=2,
+        ...     tag="finance.fundamental",
+        ...     params={"symbol": "600519", "type": "income", "cn_code": "600519"},
+        ... )
     """
     api_key = os.getenv("ANYSEARCH_API_KEY", "")
     base_url = os.getenv("ANYSEARCH_BASE_URL", API_BASE_URL)
@@ -782,8 +1010,10 @@ def main() -> None:
   python tools/common/anysearch.py "紫金矿业 财报"
   python tools/common/anysearch.py "黄金价格走势 2026" --count 10
   python tools/common/anysearch.py "腾讯控股" --json
-  python tools/common/anysearch.py "A股 半年报" --tag finance --export
+  python tools/common/anysearch.py "A股 半年报 业绩" --count 10 --zone cn
+  python tools/common/anysearch.py "贵州茅台 财务报表" --tag finance.fundamental --symbol 600519 --type income --cn-code 600519
   python tools/common/anysearch.py "民法典 民间借贷" --tag legal.case
+  python tools/common/anysearch.py --list-tags
   python tools/common/anysearch.py "FastAPI 教程" --tag code --zone intl
 
 常用 tag 快捷别名:
@@ -801,11 +1031,17 @@ def main() -> None:
         """,
     )
 
-    parser.add_argument("query", help="搜索关键词（建议不超过 300 字符）")
+    parser.add_argument("query", nargs="?",
+                        help="搜索关键词（建议不超过 300 字符；配合 --list-tags 时可省略）")
     parser.add_argument("--count", type=int, default=DEFAULT_COUNT,
                         help=f"返回结果条数（1-20，默认 {DEFAULT_COUNT}）")
-    parser.add_argument("--tag", help="垂直领域标签或快捷别名（如 code/legal/finance）")
-    parser.add_argument("--params", help='扩展参数 JSON，如 \'{{"library":"golang"}}\'')
+    parser.add_argument("--tag", help="垂直领域标签（须为「大类.子域」两级，如 code.doc / finance.fundamental）")
+    parser.add_argument("--params", help='扩展参数 JSON，如 \'{"library":"golang"}\'')
+    parser.add_argument("--symbol", help="金融 tag 必填：标的代码（如 600519 / 00700 / AAPL）")
+    parser.add_argument("--type", help="金融 tag 必填：数据类型（如 income / balance / cashflow）")
+    parser.add_argument("--cn-code", help="金融 tag 必填：中文代码（A 股为 6 位数字，常与 --symbol 相同）")
+    parser.add_argument("--list-tags", action="store_true",
+                        help="打印合法 tag 目录与必填参数后退出（不发请求）")
     parser.add_argument("--zone", choices=["cn", "intl"], default=DEFAULT_ZONE,
                         help=f"搜索区域（默认 {DEFAULT_ZONE}）")
     parser.add_argument("--language", choices=["zh-CN", "en"], default=DEFAULT_LANGUAGE,
@@ -820,20 +1056,41 @@ def main() -> None:
 
     args = parser.parse_args()
 
+    # --list-tags：仅打印本地 tag 目录，不构建客户端、不发请求
+    if args.list_tags:
+        print(format_tag_catalog())
+        return
+
+    # query 实为必填；改为可选仅为让 --list-tags 不触发 argparse 报错
+    if not args.query:
+        parser.error("缺少搜索关键词（用法见 --help 或 --list-tags）")
+
     # 构建客户端（命令行参数优先于环境变量）
     if args.api_key:
         client = AnySearchClient(api_key=args.api_key)
     else:
         client = _build_client_from_env()
 
-    # 解析扩展参数 JSON
-    params = None
+    # 组装扩展参数：--params JSON 打底，--symbol / --type / --cn-code 逐项覆盖
+    params: dict[str, Any] = {}
     if args.params:
         try:
-            params = json.loads(args.params)
+            parsed = json.loads(args.params)
         except json.JSONDecodeError as e:
             print(f"[错误] --params JSON 解析失败: {e}")
             sys.exit(1)
+        if not isinstance(parsed, dict):
+            print("[错误] --params 必须是 JSON 对象，如 '{\"type\":\"income\"}'")
+            sys.exit(1)
+        params.update(parsed)
+    for key, value in (
+        ("symbol", args.symbol),
+        ("type", args.type),
+        ("cn_code", args.cn_code),
+    ):
+        if value:
+            params[key] = value
+    params = params or None
 
     logger.info(f'正在搜索: "{args.query}" ...')
 

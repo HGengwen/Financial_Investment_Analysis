@@ -7,7 +7,7 @@ AnySearch 搜索工具测试
 测试内容:
 1. 限速器（RateLimiter）初始化与限流机制
 2. 搜索客户端（AnySearchClient）初始化与上下文管理
-3. tag 别名映射（_normalize_tag）
+3. tag 规范化与校验（_normalize_tag / _validate_tag_params / TAG_CATALOG / --list-tags）
 4. 结果格式化输出（ResultFormatter）
 5. Markdown 报告导出
 6. 标准化结果列表转换
@@ -15,6 +15,8 @@ AnySearch 搜索工具测试
 8. 模块导入接口（需要真实 API Key，可跳过）
 9. 命令行参数解析
 10. 错误处理
+11. 金融子标签必填 params 预检（缺参在发请求前拦截）
+12. --list-tags 本地 tag 目录打印
 
 用法:
 python tests/common/test_anysearch.py
@@ -50,9 +52,11 @@ from tools.common.anysearch import (
     RateLimiter,
     ResultFormatter,
     TAG_ALIASES,
+    TAG_CATALOG,
     anysearch,
     export_to_markdown,
     format_results_to_list,
+    format_tag_catalog,
     print_results,
 )
 
@@ -307,17 +311,16 @@ def test_client_context_manager() -> bool:
 
 
 def test_normalize_tag() -> bool:
-    """测试 tag 别名映射。"""
+    """测试 tag 规范化与「大类.子域」两级格式校验。"""
     print("\n" + "=" * 60)
-    print("测试6: tag 别名映射")
+    print("测试6: tag 规范化与两级格式校验")
     print("=" * 60)
 
     try:
-        # 别名映射
+        # 别名映射（别名本身允许单级，映射结果必须为两级）
         assert AnySearchClient._normalize_tag("code") == "code.doc"
         assert AnySearchClient._normalize_tag("legal") == "legal.case"
-        assert AnySearchClient._normalize_tag("finance") == "finance.fundamental"
-        assert AnySearchClient._normalize_tag("Finance") == "finance.fundamental", "应支持大小写不敏感"
+        assert AnySearchClient._normalize_tag("Code") == "code.doc", "应支持大小写不敏感"
         assert AnySearchClient._normalize_tag("paper") == "academic.search"
 
         # 完整官方 tag 原样返回
@@ -329,18 +332,40 @@ def test_normalize_tag() -> bool:
         assert AnySearchClient._normalize_tag(None) is None
         assert AnySearchClient._normalize_tag("") is None
 
-        # 未知 tag 原样返回
+        # 目录外的两级 tag 放行（兼容官方新增子标签）
         assert AnySearchClient._normalize_tag("unknown.tag") == "unknown.tag"
+
+        # 歧义一级标签 finance：必须报错
+        # （旧实现静默映射到 finance.fundamental，必然缺 params → HTTP 400）
+        assert "finance" not in TAG_ALIASES, "finance 为歧义一级标签，不得设别名"
+        try:
+            AnySearchClient._normalize_tag("finance")
+            assert False, "歧义一级标签 finance 应抛 ValueError"
+        except ValueError as e:
+            msg = str(e)
+            assert "两级" in msg, f"错误信息应说明两级格式要求，实际: {msg}"
+            for child in ("finance.fundamental", "finance.quote",
+                          "finance.macro", "finance.calendar"):
+                assert child in msg, f"错误信息应列出候选子标签 {child}"
+
+        # 非法格式：缺段 / 空段 / 多余层级
+        for bad in ("finance.", ".quote", "a.b.c", "   "):
+            try:
+                AnySearchClient._normalize_tag(bad)
+                assert False, f"非法 tag {bad!r} 应抛 ValueError"
+            except ValueError:
+                pass
 
         print(f"  别名 code → {TAG_ALIASES['code']}")
         print(f"  别名 legal → {TAG_ALIASES['legal']}")
-        print(f"  别名 finance → {TAG_ALIASES['finance']}")
-        print(f"  大小写不敏感: Finance → finance.fundamental")
+        print(f"  大小写不敏感: Code → code.doc")
         print(f"  完整 tag 原样返回: code.doc → code.doc")
-        print(f"  空值返回 None")
-        print(f"  未知 tag 原样返回")
+        print(f"  空值返回 None；目录外两级 tag 原样返回")
+        print(f"  歧义一级标签 finance → ValueError（列出 4 个候选子标签）")
+        print(f"  非法格式 finance. / .quote / a.b.c → ValueError")
+        print(f"  TAG_CATALOG 收录: {len(TAG_CATALOG)} 个官方 tag")
 
-        print("\n✅ 测试通过: tag 别名映射正常")
+        print("\n✅ 测试通过: tag 规范化与两级格式校验正常")
         return True
 
     except Exception as e:
@@ -539,6 +564,67 @@ def test_search_http_error(mock_post: MagicMock) -> bool:
         client.close()
 
         print("\n✅ 测试通过: HTTP 错误处理正常")
+        return True
+
+    except Exception as e:
+        print(f"\n❌ 测试失败: {e}")
+        return False
+
+
+@patch("tools.common.anysearch.requests.Session.post")
+def test_validate_tag_params(mock_post: MagicMock) -> bool:
+    """测试金融子标签必填 params 预检（缺参在发请求前拦截）。"""
+    print("\n" + "=" * 60)
+    print("测试11B: 金融子标签必填 params 预检")
+    print("=" * 60)
+
+    try:
+        # 目录内金融子标签的必填 params 声明
+        assert TAG_CATALOG["finance.fundamental"]["params"] == ("symbol", "type", "cn_code")
+        for tag in ("finance.quote", "finance.macro", "finance.calendar"):
+            assert TAG_CATALOG[tag]["params"] == ("type",), f"{tag} 必填 type"
+
+        # 缺参 → ValueError，且错误信息含可直接复制的调用示例
+        for tag, missing in (
+            ("finance.fundamental", ("symbol", "type", "cn_code")),
+            ("finance.quote", ("type",)),
+        ):
+            try:
+                AnySearchClient._validate_tag_params(tag, None)
+                assert False, f"{tag} 缺参应抛 ValueError"
+            except ValueError as e:
+                for key in missing:
+                    assert key in str(e), f"错误信息应含缺失参数 {key}"
+                assert "--" in str(e), "错误信息应含可复制的 CLI 示例"
+
+        # 参数齐备 → 放行
+        AnySearchClient._validate_tag_params("finance.fundamental", {
+            "symbol": "600519", "type": "income", "cn_code": "600519",
+        })
+        AnySearchClient._validate_tag_params("finance.quote", {"type": "quote"})
+
+        # 非金融 tag 无必填约束
+        AnySearchClient._validate_tag_params("code.doc", None)
+        AnySearchClient._validate_tag_params(None, None)
+
+        # 端到端：缺参搜索必须在发请求前被拦截（mock_post 不得被调用）
+        client = AnySearchClient(api_key="sk-test", qps=100)
+        try:
+            client.search("贵州茅台 财务报表", tag="finance.fundamental")
+            assert False, "缺参搜索应抛 ValueError"
+        except ValueError as e:
+            assert "symbol" in str(e)
+        finally:
+            client.close()
+        mock_post.assert_not_called()
+
+        print(f"  finance.fundamental 必填: {TAG_CATALOG['finance.fundamental']['params']}")
+        print(f"  finance.quote / macro / calendar 必填: {TAG_CATALOG['finance.quote']['params']}")
+        print(f"  缺参 → ValueError（附可复制示例）；齐备 → 放行")
+        print(f"  非金融 tag（code.doc）无必填约束")
+        print(f"  缺参搜索未发出任何网络请求（mock_post 调用数: 0）")
+
+        print("\n✅ 测试通过: 必填 params 预检正常")
         return True
 
     except Exception as e:
@@ -835,11 +921,21 @@ def test_constants() -> bool:
         # tag 别名映射关键项
         assert TAG_ALIASES["code"] == "code.doc"
         assert TAG_ALIASES["legal"] == "legal.case"
-        assert TAG_ALIASES["finance"] == "finance.fundamental"
+        assert "finance" not in TAG_ALIASES, "finance 为歧义一级标签，不得设别名"
         assert TAG_ALIASES["general"] == "general.general"
         assert TAG_ALIASES["github"] == "code.snippet"
 
+        # 官方 tag 目录：全部为「大类.子域」两级；金融四个子标签声明必填 params
+        assert TAG_CATALOG, "TAG_CATALOG 不得为空"
+        for tag in TAG_CATALOG:
+            assert len(tag.split(".")) == 2, f"{tag} 不是两级格式"
+        assert len(TAG_CATALOG["finance.fundamental"]["params"]) == 3
+        assert TAG_CATALOG["finance.quote"]["params"] == ("type",)
+
         # 错误码映射
+        assert 400 in ERROR_CODE_MAP
+        assert "invalid_tag" in ERROR_CODE_MAP[400]
+        assert "missing_required_params" in ERROR_CODE_MAP[400]
         assert 402 in ERROR_CODE_MAP
         assert 401 in ERROR_CODE_MAP
         assert 429 in ERROR_CODE_MAP
@@ -856,6 +952,7 @@ def test_constants() -> bool:
         print(f"  DEFAULT_FORMAT: {DEFAULT_FORMAT}")
         print(f"  DEFAULT_TIMEOUT: {DEFAULT_TIMEOUT}")
         print(f"  TAG_ALIASES 数量: {len(TAG_ALIASES)}")
+        print(f"  TAG_CATALOG 数量: {len(TAG_CATALOG)}")
         print(f"  ERROR_CODE_MAP 数量: {len(ERROR_CODE_MAP)}")
 
         print("\n✅ 测试通过: 常量配置正确")
@@ -942,13 +1039,54 @@ def test_cli_help() -> bool:
         assert "搜索关键词" in result.stdout, "应包含参数说明"
         assert "--tag" in result.stdout, "应包含 --tag 参数"
         assert "--export" in result.stdout, "应包含 --export 参数"
+        assert "--list-tags" in result.stdout, "应包含 --list-tags 参数"
+        assert "--symbol" in result.stdout, "应包含 --symbol 参数"
         assert "示例" in result.stdout, "应包含示例"
 
         print(f"  返回码: {result.returncode}")
         print(f"  输出长度: {len(result.stdout)} 字符")
-        print(f"  包含关键信息: AnySearch / 搜索关键词 / --tag / --export / 示例")
+        print(f"  包含关键信息: AnySearch / 搜索关键词 / --tag / --symbol / --list-tags / --export / 示例")
 
         print("\n✅ 测试通过: 命令行帮助信息正常")
+        return True
+
+    except Exception as e:
+        print(f"\n❌ 测试失败: {e}")
+        return False
+
+
+def test_cli_list_tags() -> bool:
+    """测试 --list-tags 打印本地 tag 目录（不发请求）。"""
+    print("\n" + "=" * 60)
+    print("测试22B: --list-tags 本地目录打印")
+    print("=" * 60)
+
+    try:
+        import subprocess
+
+        result = subprocess.run(
+            [sys.executable, str(PROJECT_ROOT / "tools" / "common" / "anysearch.py"),
+             "--list-tags"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+        assert result.returncode == 0, f"--list-tags 应返回 0，实际: {result.returncode}"
+        assert "合法 tag 目录" in result.stdout, "应输出目录标题"
+        assert "finance.fundamental" in result.stdout, "应含 finance.fundamental"
+        assert "symbol、type、cn_code" in result.stdout, "应标注必填 params"
+        assert "finance.quote" in result.stdout, "应含 finance.quote"
+
+        listed = [t for t in TAG_CATALOG if t in result.stdout]
+        assert len(listed) == len(TAG_CATALOG), \
+            f"目录应列出全部 {len(TAG_CATALOG)} 个 tag，实际: {len(listed)}"
+
+        print(f"  返回码: {result.returncode}")
+        print(f"  目录 tag 数: {len(listed)}/{len(TAG_CATALOG)}")
+        print(f"  仅打印本地目录，未发网络请求")
+
+        print("\n✅ 测试通过: --list-tags 正常")
         return True
 
     except Exception as e:
@@ -980,7 +1118,8 @@ def run_tests(skip_live: bool = False) -> int:
         ("限速器线程安全", test_rate_limiter_thread_safety),
         ("客户端初始化", test_client_init),
         ("客户端上下文管理器", test_client_context_manager),
-        ("tag 别名映射", test_normalize_tag),
+        ("tag 规范化与两级格式校验", test_normalize_tag),
+        ("金融子标签必填 params 预检", test_validate_tag_params),
         ("搜索成功（Mock）", test_search_success),
         ("带 tag 搜索（Mock）", test_search_with_tag),
         ("简化搜索（Mock）", test_search_simple),
@@ -997,6 +1136,7 @@ def run_tests(skip_live: bool = False) -> int:
         ("常量配置", test_constants),
         ("模块导入接口（在线）", lambda: test_module_interface_live(skip_live)),
         ("命令行帮助信息", test_cli_help),
+        ("--list-tags 本地目录打印", test_cli_list_tags),
     ]
 
     results = []
