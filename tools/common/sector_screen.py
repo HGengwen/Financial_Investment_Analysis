@@ -44,6 +44,30 @@ try:
 except ImportError:
     a_stock_cache = None
 
+# 东财请求闸门（方案 §4 #7）：东财回退源外包 guarded + 封禁即停整批
+try:
+    from tools.common import em_gate as _em_gate
+except ImportError:  # 闸门模块缺失时降级（fail-open）
+    _em_gate = None
+
+
+def _is_em_stop(exc: BaseException) -> bool:
+    """是否为「应立即停止整批拉取」的东财闸门 / 封禁信号。
+
+    方案 §4 #7：截面批量拉取是东财批量请求来源之一。命中熔断、预算耗尽或
+    封禁信号时，继续逐只尝试只会持续触碰同一主机的风控，故应**失败即停**，
+    由 ``get_sector_peers`` 统一降级旧缓存（stale）。
+
+    Args:
+        exc: 捕获到的异常。
+
+    Returns:
+        True 表示应停止整批拉取。
+    """
+    if _em_gate is None:
+        return False
+    return _em_gate.is_ban_signal(exc) or _em_gate.is_gate_error(exc)
+
 #: SMR 截面数据目录（数据/市场/sector）
 _DATA_DIR = Path(os.environ.get("DATA_DIR", str(_PROJECT_ROOT / "data")))
 _SECTOR_DIR = _DATA_DIR / "a_share" / "sector"
@@ -228,7 +252,8 @@ def fetch_peer_pct_250d(code: str) -> Optional[float]:
     """拉取单只成分的 250 日涨跌幅（百分比，前复权）。
 
     双源策略（规避东财批量拉取限流）：新浪 `stock_zh_a_daily` 优先（深沪稳定），
-    失败回退东财 `stock_zh_a_hist`。单只失败返回 None 不影响整批。
+    失败回退东财 `stock_zh_a_hist`（经闸门预算预检）。单只失败返回 None 不影响
+    整批；但东财**封禁 / 闸门拒绝信号不吞掉**，直接上抛以供批量调用方失败即停。
 
     Args:
         code: 6 位 A 股代码。
@@ -252,14 +277,23 @@ def fetch_peer_pct_250d(code: str) -> Optional[float]:
                 closes = [float(v) for v in df["close"].dropna().tolist()]
         except Exception:
             closes = None  # 新浪失败则回退东财
-    # 源2：东财回退
+    # 源2：东财回退（经闸门预算预检；封禁/闸门拒绝不吞掉，交由调用方失败即停）
     if not closes:
+        def _fetch_em_hist():
+            """东财日线回退拉取（无参，便于经闸门 ``guarded`` 包裹）。"""
+            return ak.stock_zh_a_hist(symbol=code, period="daily",
+                                      start_date=start, end_date=end,
+                                      adjust="qfq")
+
         try:
-            df = ak.stock_zh_a_hist(symbol=code, period="daily",
-                                    start_date=start, end_date=end, adjust="qfq")
+            fetch_hist = (_em_gate.guarded(_fetch_em_hist, api="ak.stock_zh_a_hist")
+                          if _em_gate is not None else _fetch_em_hist)
+            df = fetch_hist()
             if df is not None and not df.empty and "close" in df.columns:
                 closes = [float(v) for v in df["close"].dropna().tolist()]
-        except Exception:
+        except Exception as exc:  # noqa: BLE001 - 封禁需上抛，其余单只跳过
+            if _is_em_stop(exc):
+                raise
             closes = None
     return _pct_from_closes(closes) if closes else None
 
@@ -316,7 +350,8 @@ def get_sector_peers(industry: str, max_members: int = _DEFAULT_MAX_MEMBERS,
 
     Returns:
         dict: {industry, asof, status(hit/refresh/stale), peers: {code: pct},
-        skipped}, peers 为 250 日涨幅百分位映射。
+        skipped}, peers 为 250 日涨幅百分位映射。遇东财封禁中断时一律降级
+        （``stale`` 或空截面 + ``note``），**绝不写入截断截面**。
     """
     members = get_sector_members(industry)[:max_members]
     file = _sector_file(industry)
@@ -330,10 +365,20 @@ def get_sector_peers(industry: str, max_members: int = _DEFAULT_MAX_MEMBERS,
     # 刷新：批量拉取各成分 250 日涨幅
     peers: Dict[str, float] = {}
     skipped = 0
+    stopped_by_ban = False
     for code in members:
         if ak is None:
             break
-        pct = fetch_peer_pct_250d(code)
+        try:
+            pct = fetch_peer_pct_250d(code)
+        except Exception as exc:  # noqa: BLE001 - 封禁即停整批，其余单只跳过
+            if _is_em_stop(exc):
+                # 东财封禁/熔断：继续逐只拉取只会延长封禁 → 整批降级。
+                # 必须置标记而非仅 break——否则「前半程成功 + 后半程被封禁」会因
+                # 覆盖率恰好达标被判为正常 refresh，把**截断截面**写入缓存而掩盖封禁。
+                stopped_by_ban = True
+                break
+            pct = None
         if pct is not None:
             peers[code] = round(pct, 4)
         else:
@@ -341,16 +386,18 @@ def get_sector_peers(industry: str, max_members: int = _DEFAULT_MAX_MEMBERS,
 
     total = len(members)
     ok = len(peers)
-    # 有效成分比例过低（或全失败）视为整批拉取失败 → 降级旧缓存或返回空截面
+    # 整批拉取失败（封禁中断 / 有效成分比例过低 / 全失败）→ 降级旧缓存或返回空截面
     low_coverage = total > 0 and ok < _MIN_VALID_RATIO * total
-    if low_coverage or ok == 0:
+    if stopped_by_ban or low_coverage or ok == 0:
         if cached:
             cached.update({"status": "stale", "industry": industry})
             return cached
         return {"industry": industry, "asof": date.today().isoformat(),
                 "status": "refresh", "peers": {}, "skipped": skipped,
                 "members_total": total,
-                "note": "截面成分有效比例过低，无法生成 peers"}
+                "note": ("东财封禁/闸门拒绝中断，截面不完整，无法生成 peers"
+                         if stopped_by_ban else
+                         "截面成分有效比例过低，无法生成 peers")}
 
     data = {"industry": industry,
             "asof": date.today().isoformat(),

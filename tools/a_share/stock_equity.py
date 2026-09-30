@@ -53,9 +53,41 @@ from datetime import datetime, date
 from pathlib import Path
 from typing import Dict, List, Optional
 
+# 注入项目根目录到 sys.path，使 `from tools.common import em_gate` 在 CLI 直接运行时可用
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
 import akshare as ak
 import pandas as pd
 import requests
+
+# ---------------------------------------------------------------------------
+# 东财请求闸门（方案 §4 #5）：业务级 guarded 包裹 + 封禁信号区分重试
+# ---------------------------------------------------------------------------
+try:
+    from tools.common import em_gate as _em_gate
+except ImportError:  # 闸门模块缺失时降级为不装载（fail-open）
+    _em_gate = None
+
+#: 东财接口标识：``api_name`` 形如 ``ak.stock_gdfx_top_10_em(...)``。仅此类接口
+#: 纳入东财闸门的滑窗预算——巨潮资讯（``*_cninfo``）并非东财域名，不受其约束。
+_EM_API_MARK = "_em("
+
+
+def _install_em_gate() -> None:
+    """装载东方财富请求闸门（fail-open：装载失败不中断数据获取）。
+
+    闸门在 ``requests.sessions.Session.request`` 上装载 host 过滤 hook，使
+    akshare 内部的东财请求自动纳入跨进程最小间隔 / 滑窗预算 / 封禁熔断，
+    巨潮资讯等非东财域名完全透传。任何装载异常都只记一条 warning。
+    """
+    if _em_gate is None:
+        return
+    try:
+        _em_gate.install()
+    except Exception as exc:  # noqa: BLE001  闸门故障不得导致取数不可用
+        print(f"[warn] em_gate.install() 失败，已跳过东财闸门: {exc}", file=sys.stderr)
 
 
 class CustomJSONEncoder(json.JSONEncoder):
@@ -132,8 +164,12 @@ class StockEquityData:
         Returns:
             成功返回DataFrame，失败返回None
         """
+        # 东财接口纳入闸门预算预检（巨潮资讯接口不受东财预算约束）
+        call = func
+        if _em_gate is not None and _EM_API_MARK in api_name:
+            call = _em_gate.guarded(func, api=api_name)
         try:
-            result = func()
+            result = call()
             self.api_results.append({
                 'api_name': api_name,
                 'status': '成功',
@@ -390,8 +426,9 @@ class StockEquityData:
                              timeout: int = 25, retries: int = 3) -> requests.Response:
         """带重试的 HTTP GET 请求.
 
-        网络异常（连接失败/超时）与 5xx 服务端错误会自动重试（指数退避），
-        4xx 客户端错误不重试（重试无意义）。重试耗尽后抛出最后一次异常.
+        网络异常（连接失败/超时）与 5xx 服务端错误会自动重试（指数退避）；
+        4xx 客户端错误与**封禁信号**（东财 ``RemoteDisconnected`` / HTTP 403）
+        不重试（重试只会延长封禁）。重试耗尽后抛出最后一次异常.
 
         Args:
             url: 请求地址
@@ -414,6 +451,10 @@ class StockEquityData:
                 return resp
             except requests.RequestException as e:
                 last_exc = e
+                # 封禁信号（RemoteDisconnected / HTTP 403）：重试只会延长封禁，
+                # 立即抛出交由上层降级（方案 §4 #5）
+                if _em_gate is not None and _em_gate.is_ban_signal(e):
+                    raise
                 # 4xx 客户端错误不重试，直接抛出
                 if isinstance(e, requests.HTTPError) and e.response is not None \
                         and e.response.status_code < 500:
@@ -915,6 +956,8 @@ class CnInfoReportDownloader:
 
 def main():
     """命令行入口函数."""
+    _install_em_gate()
+
     # Windows GBK 控制台兼容：确保 emoji 和 Unicode 字符能正常输出
     if sys.stdout.encoding and sys.stdout.encoding.upper() not in ('UTF-8', 'UTF8'):
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')

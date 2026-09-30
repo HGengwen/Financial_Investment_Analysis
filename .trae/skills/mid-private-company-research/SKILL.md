@@ -133,6 +133,26 @@ disable-model-invocation: true
 
 该分级须告知每个 Agent，影响其搜索策略与置信度标注。
 
+### 并发前置：东财闸门自检（必做）
+
+启动并行 Agent **之前**，先执行：
+
+```bash
+python tools/common/em_gate.py status
+```
+
+输出为仓库统一三层信封，判定字段位于 `data.*`：
+
+| 字段 | 含义 | 处置 |
+| --- | --- | --- |
+| `data.allowed` | 当前是否放行东财请求 | `false` → **改为串行**或**延后到盘后** |
+| `data.circuit` | 熔断器状态（`closed` / `open`） | `open` → **停止并发**，改串行或延后盘后 |
+| `data.remaining_min` / `data.remaining_5min` | 剩余预算 | 偏低时优先读缓存、只对目标标的定向取数 |
+
+放行时可直接并行：东财请求由**跨进程闸门串行**排队，预期耗时 ≈ 东财请求数 × 1.2s，N 路 Agent **不会**叠加出 N 倍 QPS。
+
+> 依据：《AKShare东方财富反爬限流改进方案.md》§3.3 / §3.5 / §3.6。
+
 ### 第三步：启动 6 个并行 Agent
 
 使用 Task 工具同时启动 6 个 Agent（**必须在同一条消息中并行调用**）。

@@ -8,6 +8,8 @@ stock_financial 等）提供「代码/名称列表」与「最新季度业绩数
 1. 提升查询效率 —— 缓存命中时零网络调用，纯本地读取；
 2. 规避 akshare 限流 —— 大幅减少对 stock_info_a_code_name / stock_yjbb_em
    的调用次数（akshare 的 RemoteDisconnected 即服务端封禁信号）。
+3. 东财拉取经 tools/common/em_gate.py 闸门（滑窗预算 / 封禁熔断），且失败时
+   区分封禁与普通错误——封禁直接降级旧缓存（stale），普通错误短退避重试 1 次。
 
 设计要点：
 - 缓存文件位于工作区根目录 data/a_share/ 下（与 .env 同级）
@@ -38,10 +40,49 @@ Usage:
 
 import json
 import os
+import time
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
+
+# 东财请求闸门（方案 §4 #6）：东财拉取外包 guarded + 封禁/普通错误区分重试
+try:
+    from tools.common import em_gate as _em_gate
+except ImportError:  # 闸门模块缺失时降级为本地异常分类（fail-open）
+    _em_gate = None
+
+#: 东财拉取失败后的短退避（秒）：仅普通错误使用；封禁信号绝不重试
+_EM_RETRY_BACKOFF_S = 2.0
+
+
+def _fetch_em(fetch_fn, api: str):
+    """调用东财接口：闸门预算预检 → 封禁不重试 → 普通错误短退避重试 1 次。
+
+    方案 §4 #6：``stock_yjbb_em`` / ``stock_financial_analysis_indicator`` 是
+    东财批量请求来源，须纳入闸门；失败时**区分封禁与普通错误**——封禁期间
+    重试只会延长封禁，故直接抛出交由上层降级旧缓存（stale）；普通瞬时错误
+    短退避 ``_EM_RETRY_BACKOFF_S`` 秒后重试 1 次。
+
+    Args:
+        fetch_fn: 无参东财拉取函数。
+        api: 调用标识（如 ``"ak.stock_yjbb_em"``）。
+
+    Returns:
+        ``fetch_fn`` 的返回值。
+
+    Raises:
+        Exception: 封禁信号原样抛出（不重试）；普通错误重试 1 次仍失败则抛出。
+    """
+    call = fetch_fn if _em_gate is None else _em_gate.guarded(fetch_fn, api=api)
+    try:
+        return call()
+    except Exception as exc:  # noqa: BLE001 - 需分类后决定是否重试
+        if _em_gate is not None and _em_gate.is_ban_signal(exc):
+            raise  # 封禁：立即降级，绝不重试
+        time.sleep(_EM_RETRY_BACKOFF_S)
+        return call()
 
 try:
     from dotenv import load_dotenv
@@ -126,20 +167,24 @@ _financial_status: dict[str, str] = {}
 # 通用工具函数
 # ---------------------------------------------------------------------------
 
-def _is_cache_fresh(cache_file: Path) -> bool:
+def _is_cache_fresh(cache_file: Path, ttl_days: Optional[int] = None) -> bool:
     """判断缓存文件是否在 TTL 有效期之内。
 
     Args:
         cache_file: 缓存文件路径。
+        ttl_days: 有效期天数；为 None 时沿用 ``STOCK_CACHE_TTL_DAYS``
+            （代码列表 / 行业列表口径）。财务缓存另有 ``A_FINANCIAL_TTL_DAYS``，
+            必须显式传入，否则会被代码列表的 30 天口径覆盖。
 
     Returns:
         新鲜（未过期）返回 True；文件不存在或已过期返回 False。
     """
     if not cache_file.exists():
         return False
+    days = STOCK_CACHE_TTL_DAYS if ttl_days is None else ttl_days
     mtime = datetime.fromtimestamp(cache_file.stat().st_mtime)
     age = datetime.now() - mtime
-    return age.days < STOCK_CACHE_TTL_DAYS
+    return age.days < days
 
 
 def _atomic_write_csv(df: pd.DataFrame, cache_file: Path) -> None:
@@ -315,7 +360,9 @@ def _fetch_industry_data() -> tuple[dict, str]:
     last_error: Exception | None = None
     for date_str in date_candidates:
         try:
-            df = ak.stock_yjbb_em(date=date_str)
+            df = _fetch_em(
+                lambda d=date_str: ak.stock_yjbb_em(date=d), "ak.stock_yjbb_em"
+            )
             if len(df) > _INDUSTRY_MIN_ROWS:
                 # 检查行业字段是否有足够有效数据
                 valid = df[df["所处行业"].notna() & (df["所处行业"] != "")]
@@ -336,6 +383,9 @@ def _fetch_industry_data() -> tuple[dict, str]:
                     return result, date_str
         except Exception as e:  # noqa: BLE001 - 季度候选逐个重试，需捕获所有异常
             last_error = e
+            if _em_gate is not None and _em_gate.is_ban_signal(e):
+                # 封禁信号：更换季度候选仍是同一主机，继续尝试只会延长封禁
+                break
             continue
     raise RuntimeError(f"全部季度业绩数据获取失败: {date_candidates}；最近错误: {last_error}")
 
@@ -555,7 +605,7 @@ def _get_financial_json(code: str, cache_key: str, fetch_map_fn, ttl_days: int) 
     global _financial_status
     fpath = FINANCIAL_DIR / f"{code}_{cache_key}.json"
 
-    if _is_cache_fresh(fpath):
+    if _is_cache_fresh(fpath, ttl_days):
         data = _read_financial_json(fpath)
         if data is not None:
             _financial_status[cache_key] = "hit"
@@ -645,7 +695,12 @@ def get_analysis_indicator(code: str) -> dict:
     def _fetch():
         now = datetime.now()
         start_year = str(now.year - 6)
-        df = ak.stock_financial_analysis_indicator(symbol=code, start_year=start_year)
+        df = _fetch_em(
+            lambda: ak.stock_financial_analysis_indicator(
+                symbol=code, start_year=start_year
+            ),
+            "ak.stock_financial_analysis_indicator",
+        )
         return _statements_to_map(df)
 
     return _get_financial_json(code, "analysis_indicator", _fetch, A_FINANCIAL_TTL_DAYS)

@@ -20,6 +20,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pandas as pd
+import requests
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))))
@@ -190,6 +191,41 @@ class TestSectorPeers(BaseSectorTestCase):
             res = sector_screen.get_sector_peers("通信设备")
         self.assertEqual(res["status"], "stale")
         self.assertIn("peers", res)
+
+    def test_ban_stop_never_writes_truncated_section(self) -> None:
+        """拉取途中遇东财封禁：整批即停，绝不把截断截面写入缓存。
+
+        通信设备桩含 2 个成分：第 1 只成功、第 2 只抛封禁信号。此时覆盖率
+        50% 恰好达标，若不以标记显式记录「因封禁中断」，就会被误判为正常
+        refresh 并把仅含 1 个成分的截断截面落盘（**掩盖封禁**）。
+        """
+        ban = requests.exceptions.ConnectionError(
+            "Remote end closed connection without response")
+        with patch.object(sector_screen, "fetch_peer_pct_250d",
+                          side_effect=[12.5, ban]):
+            res = sector_screen.get_sector_peers("通信设备")
+
+        # 无旧缓存时返回既有「空截面 + note」契约（status 仍为 refresh，语义为
+        # 「已尝试刷新但无有效截面」）；关键是**不落盘任何截断截面**。
+        self.assertEqual(res["peers"], {})
+        self.assertNotIn("300502", res["peers"])  # 前半程的 1 个成分也不留
+        self.assertFalse(sector_screen._sector_file("通信设备").exists())
+        self.assertIn("封禁", res["note"])
+
+    def test_ban_stop_prefers_stale_cache(self) -> None:
+        """有旧缓存时，封禁中断的整批拉取降级为 stale 并保留旧截面完整。"""
+        with self._patch_ok():
+            sector_screen.get_sector_peers("通信设备")
+        self._backdate_cache("通信设备", days=10)
+
+        ban = requests.exceptions.ConnectionError(
+            "Remote end closed connection without response")
+        with patch.object(sector_screen, "fetch_peer_pct_250d",
+                          side_effect=[12.5, ban]):
+            res = sector_screen.get_sector_peers("通信设备")
+
+        self.assertEqual(res["status"], "stale")
+        self.assertIn("300503", res["peers"])  # 旧截面完整保留
 
     def test_empty_sector_without_cache_returns_empty(self) -> None:
         """无旧缓存且刷新无有效成分时返回空截面 + note，不抛错。"""

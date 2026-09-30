@@ -8,6 +8,8 @@
   2. TestDefaultDates       — 默认日期生成（_default_start / _default_end）
   3. TestGetQuoteEastmoney  — 东方财富行情获取（mock 逻辑 + 网络集成）
   4. TestGetQuoteSina       — 新浪行情获取（mock 逻辑 + 网络集成）
+  4b. TestGetQuoteTencent   — 腾讯行情获取（mock 逻辑 + 网络集成，方案 §6 回退源）
+  4c. TestSourceRouting     — 日线路由表口径（source_router 接入校验，方案 §6）
   5. TestCommandLineInterface — 命令行接口（--code/--start/--end/--adjust/--source）
   6. TestErrorHandling      — 错误处理（无效代码 / 网络错误 / 参数校验）
 
@@ -40,6 +42,7 @@ sys.path.insert(0, PROJECT_ROOT)
 from tools.a_share.stock_quote import (
     get_quote_eastmoney,
     get_quote_sina,
+    get_quote_tencent,
     _ensure_sina_symbol,
     _default_start,
     _default_end,
@@ -301,6 +304,138 @@ class TestGetQuoteSina(unittest.TestCase):
 
 
 # ===========================================================================
+# 4B. get_quote_tencent 测试（腾讯回退源，方案 §6）
+# ===========================================================================
+class TestGetQuoteTencent(unittest.TestCase):
+    """测试 get_quote_tencent 函数。
+
+    腾讯接口列名与东财 / 新浪**不同**：仅 date/open/close/high/low/amount 六列，
+    其中 ``amount`` 实为**成交量**（单位：手，经实测交叉验证），故本函数将其重命名为
+    ``volume`` 且不做 股->手 换算。
+    """
+
+    # ---- 使用 mock 的确定性测试（不依赖网络）----
+
+    @patch.object(stock_quote_module, "ak")
+    def test_empty_dataframe_returns_empty(self, mock_ak):
+        """空 DataFrame 返回 records=[] count=0。"""
+        mock_ak.stock_zh_a_hist_tx.return_value = pd.DataFrame()
+        result = get_quote_tencent("300502", "20260101", "20260728", "")
+        self.assertEqual(result["records"], [])
+        self.assertEqual(result["count"], 0)
+
+    @patch.object(stock_quote_module, "ak")
+    def test_amount_renamed_to_volume_kept_in_lots(self, mock_ak):
+        """amount 列重命名为 volume 且不换算（腾讯已以手为单位）；日期转字符串。"""
+        mock_ak.stock_zh_a_hist_tx.return_value = pd.DataFrame([{
+            "date": datetime(2026, 7, 10),
+            "open": 10.0,
+            "close": 11.004,
+            "high": 12.0,
+            "low": 9.0,
+            "amount": 17554.0,   # 实为成交量（手），非成交额
+        }])
+        result = get_quote_tencent("300502", "20260101", "20260728", "")
+        self.assertEqual(result["count"], 1)
+        record = result["records"][0]
+        # 字段集固定为六列：不含涨跌幅 / 涨跌额 / 振幅 / 换手率 / 成交额
+        self.assertEqual(set(record.keys()),
+                         {"date", "open", "close", "high", "low", "volume"})
+        self.assertEqual(record["date"], "2026-07-10")
+        self.assertEqual(record["volume"], 17554.0)   # 手，未再除以 100
+        self.assertEqual(record["close"], 11.0)        # 浮点四舍五入两位
+
+    @patch.object(stock_quote_module, "ak")
+    def test_symbol_prefix_used(self, mock_ak):
+        """沪 / 深 / 北交所代码经前缀转换后传入腾讯接口。"""
+        mock_ak.stock_zh_a_hist_tx.return_value = pd.DataFrame()
+        for code, expected in (("600519", "sh600519"),
+                               ("300502", "sz300502"),
+                               ("830799", "bj830799")):
+            get_quote_tencent(code, "20260101", "20260728", "")
+            called = mock_ak.stock_zh_a_hist_tx.call_args.kwargs["symbol"]
+            self.assertEqual(called, expected)
+
+    @patch.object(stock_quote_module, "ak")
+    def test_adjust_forwarded(self, mock_ak):
+        """adjust 参数原样透传腾讯接口。"""
+        mock_ak.stock_zh_a_hist_tx.return_value = pd.DataFrame()
+        get_quote_tencent("300502", "20260101", "20260728", "qfq")
+        self.assertEqual(
+            mock_ak.stock_zh_a_hist_tx.call_args.kwargs["adjust"], "qfq")
+
+    # ---- 网络集成测试（网络不可用时跳过）----
+
+    def test_network_valid_code(self):
+        """腾讯源获取有效代码行情（贵州茅台 600519）。"""
+        try:
+            result = get_quote_tencent("600519", "20260701", "20260728", "")
+            self.assertEqual(result["count"], len(result["records"]))
+            if result["count"] > 0:
+                record = result["records"][0]
+                self.assertIn("date", record)
+                self.assertIn("close", record)
+                self.assertIn("volume", record)
+        except Exception as e:
+            self.skipTest(f"网络不可用或数据源异常: {e}")
+
+
+# ===========================================================================
+# 4C. 日线路由表口径（source_router 接入校验，方案 §6）
+# ===========================================================================
+class TestSourceRouting(unittest.TestCase):
+    """校验 stock_quote 已接入 source_router，且日线路由口径为 东财→腾讯→新浪。"""
+
+    def test_source_router_imported(self):
+        """stock_quote 成功导入 source_router（非 None 时才启用路由）。"""
+        self.assertIsNotNone(stock_quote_module.source_router)
+
+    def test_a_share_daily_priority(self):
+        """a_share_daily 路由优先级为 eastmoney → tencent → sina。"""
+        route_spec = stock_quote_module.source_router.ROUTES["a_share_daily"]
+        self.assertEqual(route_spec.priority, ("eastmoney", "tencent", "sina"))
+
+    def test_fallback_cmd_points_to_sina(self):
+        """日线路由的替代命令指向新浪源且带代码（方案 §3.4）。"""
+        cmd = stock_quote_module.source_router.fallback_cmd(
+            "a_share_daily", code="300502")
+        self.assertIn("--source sina", cmd)
+        self.assertIn("300502", cmd)
+
+    def test_module_fallback_cmd_matches_router(self):
+        """模块内 _FALLBACK_CMD 与路由表模板渲染结果口径一致（防两处漂移）。"""
+        rendered = stock_quote_module.source_router.fallback_cmd(
+            "a_share_daily", code="300502")
+        self.assertEqual(
+            stock_quote_module._FALLBACK_CMD.replace("{symbol}", "300502"),
+            rendered)
+
+    def test_route_falls_back_with_attempt_trail(self):
+        """东财失败时路由自动回退腾讯，并留痕逐源尝试记录。"""
+        router = stock_quote_module.source_router
+        calls = []
+
+        def _fail():
+            calls.append("eastmoney")
+            raise ConnectionError("东财不可达")
+
+        def _ok():
+            calls.append("tencent")
+            return {"records": [], "count": 0}
+
+        outcome = router.route(
+            "a_share_daily",
+            {"eastmoney": _fail, "tencent": _ok},
+            tool="stock_quote",
+            params={"code": "300502"},
+        )
+        self.assertEqual(outcome.source, "tencent")
+        self.assertEqual(calls, ["eastmoney", "tencent"])
+        self.assertEqual([a.status for a in outcome.attempts], ["failed", "ok"])
+        self.assertEqual(outcome.as_dict()["source"], "tencent")
+
+
+# ===========================================================================
 # 5. 命令行接口测试
 # ===========================================================================
 class TestCommandLineInterface(unittest.TestCase):
@@ -322,6 +457,7 @@ class TestCommandLineInterface(unittest.TestCase):
         self.assertIn("--code", result.stdout)
         self.assertIn("--source", result.stdout)
         self.assertIn("--adjust", result.stdout)
+        self.assertIn("tencent", result.stdout)
 
     def test_code_required(self):
         """缺少 --code 参数时非零退出。"""
@@ -375,6 +511,17 @@ class TestCommandLineInterface(unittest.TestCase):
         except json.JSONDecodeError:
             self.skipTest("网络不可用或 stdout 非 JSON")
 
+    def test_source_tencent(self):
+        """--source tencent 被接受，meta.source 为 tencent。"""
+        result = self._run(["--code", "600519", "--source", "tencent",
+                            "--start", "20260701", "--end", "20260728"])
+        try:
+            output = json.loads(result.stdout)
+            if output.get("success"):
+                self.assertEqual(output["meta"]["source"], "tencent")
+        except json.JSONDecodeError:
+            self.skipTest("网络不可用或 stdout 非 JSON")
+
     def test_source_eastmoney_default(self):
         """不指定 --source 时默认 eastmoney。"""
         result = self._run(["--code", "300502", "--start", "20260701",
@@ -398,6 +545,23 @@ class TestCommandLineInterface(unittest.TestCase):
                             "end_date", "adjust", "count", "timestamp"]
                 for key in required:
                     self.assertIn(key, meta)
+        except json.JSONDecodeError:
+            self.skipTest("网络不可用或 stdout 非 JSON")
+
+
+    def test_meta_routing_fields_present(self):
+        """成功时 meta 追加 source_actual 与 routing（方案 §6 可观测性）。"""
+        result = self._run(["--code", "300502", "--start", "20260701",
+                            "--end", "20260728"])
+        try:
+            output = json.loads(result.stdout)
+            if output.get("success"):
+                meta = output["meta"]
+                self.assertIn("source_actual", meta)
+                routing = meta["routing"]
+                self.assertEqual(routing["kind"], "a_share_daily")
+                self.assertTrue(routing["attempts"])
+                self.assertEqual(routing["source"], meta["source_actual"])
         except json.JSONDecodeError:
             self.skipTest("网络不可用或 stdout 非 JSON")
 
@@ -471,6 +635,13 @@ class TestErrorHandling(unittest.TestCase):
         mock_ak.stock_zh_a_daily.side_effect = ConnectionError("网络中断")
         with self.assertRaises(ConnectionError):
             get_quote_sina("300502", "20260101", "20260728", "")
+
+    @patch.object(stock_quote_module, "ak")
+    def test_tencent_exception_propagates(self, mock_ak):
+        """腾讯接口抛异常时被 get_quote_tencent 向上传播（由路由层兜底）。"""
+        mock_ak.stock_zh_a_hist_tx.side_effect = ConnectionError("网络中断")
+        with self.assertRaises(ConnectionError):
+            get_quote_tencent("300502", "20260101", "20260728", "")
 
 
 # ===========================================================================

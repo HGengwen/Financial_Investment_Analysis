@@ -290,3 +290,47 @@ class TestIndustryMap(BaseCacheTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class TestFinancialCacheTtl(BaseCacheTestCase):
+    """财务缓存 TTL 口径测试（``A_FINANCIAL_TTL_DAYS``）。
+
+    回归背景：``_is_cache_fresh`` 曾只接受缓存路径并恒用 ``STOCK_CACHE_TTL_DAYS``，
+    使 ``_get_financial_json`` 的 ``ttl_days`` 形参完全失效——财务缓存（设计 7 天）
+    被代码列表的 30 天口径覆盖，跨季度财报发布后可能长期读到旧数字。
+    本组用例锁定该口径，防止回归。
+    """
+
+    def test_ttl_days_argument_overrides_stock_cache_ttl(self) -> None:
+        """显式传入 ttl_days 时以该值为准（10 天旧文件在 7 天口径下过期）。"""
+        fpath = Path(self.tmp_path) / "600519_analysis_indicator.json"
+        fpath.write_text("{}", encoding="utf-8")
+        self._backdate_file(str(fpath), days=10)
+
+        with patch.object(stock_cache, "STOCK_CACHE_TTL_DAYS", 30):
+            # 不传 ttl_days：沿用代码列表口径 30 天 → 仍视为新鲜
+            self.assertTrue(stock_cache._is_cache_fresh(fpath))
+            # 传入财务口径 7 天 → 10 天旧文件已过期
+            self.assertFalse(stock_cache._is_cache_fresh(fpath, 7))
+
+    def test_missing_file_is_never_fresh(self) -> None:
+        """文件不存在时，任何 TTL 口径都判定为不新鲜。"""
+        missing = Path(self.tmp_path) / "not_exists.json"
+        self.assertFalse(stock_cache._is_cache_fresh(missing))
+        self.assertFalse(stock_cache._is_cache_fresh(missing, 365))
+
+    def test_get_financial_json_passes_ttl_days(self) -> None:
+        """``_get_financial_json`` 须把 ``ttl_days`` 透传给新鲜度判定。"""
+        with patch.object(stock_cache, "FINANCIAL_DIR", Path(self.tmp_path)), \
+                patch.object(stock_cache, "A_FINANCIAL_TTL_DAYS", 7), \
+                patch.object(stock_cache, "STOCK_CACHE_TTL_DAYS", 30), \
+                patch.object(stock_cache, "_is_cache_fresh",
+                             return_value=True) as spy, \
+                patch.object(stock_cache, "_read_financial_json",
+                             return_value={"20251231": {"存货": 1}}):
+            data = stock_cache.get_analysis_indicator("600519")
+
+        # 命中分支直接返回缓存内容，不触发网络
+        self.assertEqual(data, {"20251231": {"存货": 1}})
+        spy.assert_called_once()
+        # 第 2 个位置参数必须是财务口径，而非代码列表的 30 天
+        self.assertEqual(spy.call_args.args[1], 7)

@@ -4,6 +4,8 @@
 > 盘点范围：`tools/a_share/`、`tools/hk_stock/`、`tools/us_stock/`、`tools/common/`、`tools/specialized/` 全部 akshare 调用点
 > 数据源归属依据：**逐一核对 akshare 安装包源码**（`F:\Anaconda3\envs\Python_3_12_3\Lib\site-packages\akshare\`），不按函数名后缀臆测
 > 注意：本文仅记录**现状**，不含改造方案
+> **状态更新（2026-09-21）**：§4「缺口」的 **#1 / #2 / #6** 已由《AKShare东方财富反爬限流改进方案.md》P0 步骤 1~3 兑现（新增 `tools/common/em_gate.py` 跨进程闸门 + 7 工具接入 + 批量脚本归位 + §3.4 统一降级语义）。
+> **状态更新（2026-09-28 · 收口）**：**#3 / #4 / #5 亦已兑现**——#3 / #4 由步骤 4（熔断器 + 异常分类迁出 + `stock_equity.py` / `a_stock_cache.py` / `sector_screen.py` 接入闸门）、#5 由步骤 5（统一 UA / Referer / keep-alive + 代理绕过 + 代理失败直连重试）完成。至此 §4 缺口 **#1~#6 全部覆盖**，方案 §9 路线图 P0 / P1 / P2 六项工作全部兑现（P3 多机 Redis 令牌桶保持预留）。下表已按方案 §4 迁移清单 **#12** 逐条加「覆盖情况」列；全过程见 [AKShare东方财富反爬限流改进完成报告.md](AKShare东方财富反爬限流改进完成报告.md)。**本文其余部分仍保持 2026-09-21 之前的现状快照原样，除下表按 #12 增加覆盖标注外不作改写。**
 
 ---
 
@@ -87,14 +89,14 @@
 
 ## 4. 缺口（当前**没有**防护的地方）
 
-| # | 缺口 | 证据 |
-| --- | --- | --- |
-| 1 | **A股四工具裸调 akshare，零重试、零间隔**：`stock_quote.py`、`stock_info.py`、`stock_financial.py`、`stock_screen.py` 除调用外无任何 `sleep` / 退避 / 重试 | 全仓 `tools/a_share/` 仅 `stock_equity.py` 有两处 sleep（`:422`、`:853`） |
-| 2 | **`stock_financial_batch.ps1` 批量脚本无调用间隔**：串行调用 `stock_financial.py`，脚本内无 `Start-Sleep`，多代码批量时对东财为连续突发 | `tools/a_share/stock_financial_batch.ps1` |
-| 3 | **`stock_equity.py` 的 `_safe_api_call` 不重试**：失败仅记入 `api_results` 并返回 `None`；重试只存在于其自建 HTTP 层，akshare 调用层无 | `tools/a_share/stock_equity.py:125-147` |
-| 4 | **`a_stock_cache` 刷新无重试**：`ak.stock_info_a_code_name()` / `stock_yjbb_em()` 直接调用，失败即降级 `stale` | `tools/common/a_stock_cache.py:264`、`:418` |
-| 5 | **无 UA 伪装 / 代理池 / Cookie 会话复用**（东财链路）：`fx_rate.py` 直连东财用 `requests.get` **不带任何 headers**，等同 akshare 默认 UA | `tools/common/fx_rate.py:342` |
-| 6 | **无全局并发闸门**：限流器为模块级单例，**跨进程不共享**；并发跑多个工具时对东财的实际 QPS 叠加 | `tools/common/fx_rate.py:175` |
+| # | 缺口 | 证据 | 覆盖情况（2026-09-28 收口） |
+| --- | --- | --- | --- |
+| 1 | **A股四工具裸调 akshare，零重试、零间隔**：`stock_quote.py`、`stock_info.py`、`stock_financial.py`、`stock_screen.py` 除调用外无任何 `sleep` / 退避 / 重试 | 全仓 `tools/a_share/` 仅 `stock_equity.py` 有两处 sleep（`:422`、`:853`） | **已覆盖**（方案 §3.2 进程外闸门 / §4 迁移清单 #3）：四工具 `main()` 挂载闸门，传输层强制限流 |
+| 2 | **`stock_financial_batch.ps1` 批量脚本无调用间隔**：串行调用 `stock_financial.py`，脚本内无 `Start-Sleep`，多代码批量时对东财为连续突发 | `tools/a_share/stock_financial_batch.ps1` | **已覆盖**（方案 §3.6 / §4 迁移清单 #8）：移除脚本层 sleep（节流唯一归闸门）+ `-MaxCodes` 软上限 + 盘后时段校验 |
+| 3 | **`stock_equity.py` 的 `_safe_api_call` 不重试**：失败仅记入 `api_results` 并返回 `None`；重试只存在于其自建 HTTP 层，akshare 调用层无 | `tools/a_share/stock_equity.py:125-147` | **已覆盖**（方案 §4 迁移清单 #5）：`_safe_api_call` 外包 `guarded`，`_http_get_with_retry` 的 4xx 短路改调 `is_ban_signal` |
+| 4 | **`a_stock_cache` 刷新无重试**：`ak.stock_info_a_code_name()` / `stock_yjbb_em()` 直接调用，失败即降级 `stale` | `tools/common/a_stock_cache.py:264`、`:418` | **已覆盖**（方案 §4 迁移清单 #6）：拉取函数外包 `guarded`，**区分封禁与普通错误**——封禁不重试直降 `stale`，普通错误短退避重试 1 次 |
+| 5 | **无 UA 伪装 / 代理池 / Cookie 会话复用**（东财链路）：`fx_rate.py` 直连东财用 `requests.get` **不带任何 headers**，等同 akshare 默认 UA | `tools/common/fx_rate.py:342` | **已覆盖**（方案 §1 架构「指纹 + 代理策略」/ §2.3 注入点 / §9 路线图 P1）：东财请求统一注入 `User-Agent` + `Referer` + `Connection: keep-alive` 且不覆盖调用方显式 headers；`EM_GATE_BYPASS_PROXY=1` 剥离 `HTTP(S)_PROXY`；代理失败仅对连接类错误直连重试 1 次 |
+| 6 | **无全局并发闸门**：限流器为模块级单例，**跨进程不共享**；并发跑多个工具时对东财的实际 QPS 叠加 | `tools/common/fx_rate.py:175` | **已覆盖**（方案 §3.2 / §4 迁移清单 #1）：新增 `filelock` 跨进程闸门，任一时刻**至多 1 个东财请求在途** |
 
 ---
 

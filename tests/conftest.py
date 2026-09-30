@@ -20,6 +20,12 @@
 import os
 import socket
 
+# 测试环境关闭东财请求闸门（tests 为集成式真实取数，非多子代理生产场景）：
+# 闸门会把每个东财请求节流至 >=1.2s，使全套测试由数分钟升至约 26 分钟；
+# 且每次全量测试产生约 1000 次东财请求（曾实测触发 28 次封禁信号）。
+# setdefault 保证外部显式设置的 EM_GATE_ENABLED 仍优先。
+os.environ.setdefault("EM_GATE_ENABLED", "0")
+
 # 兜底超时（秒）：任何被清零的 socket 超时都会退化为该值。
 _DEFAULT_SOCKET_TIMEOUT = 20.0
 

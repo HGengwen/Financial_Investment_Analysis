@@ -16,6 +16,42 @@ import json
 import sys
 import traceback
 from datetime import datetime
+from pathlib import Path
+
+# 注入项目根目录到 sys.path，使 `from tools.common import ...` 在 CLI 直接运行时可用
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+# ---------------------------------------------------------------------------
+# 东财请求闸门（方案 §4 #3）：装载 host 过滤 hook，业务逻辑零改写
+# ---------------------------------------------------------------------------
+try:
+    from tools.common import em_gate as _em_gate
+except ImportError:  # 闸门模块缺失时降级为不装载，工具仍可正常取数（fail-open）
+    _em_gate = None
+
+
+# 闸门拒绝时的替代命令（方案 §3.4：降级必须自带可执行的替代命令）。
+# ``{symbol}`` 由 em_gate 从命令行参数解析后替换，解析不到时替换为 <代码>。
+_FALLBACK_CMD = "python -c 'import json,sys;from tools.common import a_stock_cache as c;print(json.dumps(c.get_analysis_indicator(sys.argv[1]),ensure_ascii=False))' {symbol}"
+
+
+def _install_em_gate() -> None:
+    """装载东方财富请求闸门（fail-open：装载失败不中断数据获取）。
+
+    闸门是保护层（跨进程最小间隔 / 滑窗预算 / 封禁短路），并在闸门拒绝时输出
+    统一降级载荷（方案 §3.4：``success=false`` + ``meta.gate`` + 可执行
+    ``fallback_cmd``，绝不伪造 ``success=true``）；任何导入或装载异常都只打印
+    一条 warning，绝不影响业务取数与参数解析。
+    """
+    if _em_gate is None:
+        print("[warn] tools.common.em_gate 不可用，已跳过东财闸门装载", file=sys.stderr)
+        return
+    try:
+        _em_gate.install_cli(tool="stock_screen", fallback_cmd=_FALLBACK_CMD)
+    except Exception as exc:  # 闸门故障不得导致数据获取不可用（fail-open）
+        print(f"[warn] em_gate.install_cli() 失败，已跳过东财闸门: {exc}", file=sys.stderr)
 
 try:
     import akshare as ak
@@ -694,6 +730,8 @@ def screen_stock(code: str) -> dict:
 # ---------------------------------------------------------------------------
 
 def main():
+    # 首行装载东财闸门：跨进程限流 / 预算 / 封禁短路（fail-open，装载失败不阻断取数）
+    _install_em_gate()
     parser = argparse.ArgumentParser(
         description="A 股质量筛选工具 — 7 条去劣指标计算",
         formatter_class=argparse.RawDescriptionHelpFormatter,

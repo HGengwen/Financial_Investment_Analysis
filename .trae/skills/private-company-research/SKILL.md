@@ -78,6 +78,26 @@ disable-model-invocation: true
 | **tech-ip-analyst** | 技术栈/专利/研发能力/技术护城河 | "技术壁垒是真是假，能撑多久" |
 | **signal-miner** | 替代数据挖掘：招聘/专利/诉讼/App数据/供应链 | "常规信息之外，还有什么蛛丝马迹" |
 
+### 并发前置：东财闸门自检（必做）
+
+启动并行 Agent **之前**，先执行：
+
+```bash
+python tools/common/em_gate.py status
+```
+
+输出为仓库统一三层信封，判定字段位于 `data.*`：
+
+| 字段 | 含义 | 处置 |
+| --- | --- | --- |
+| `data.allowed` | 当前是否放行东财请求 | `false` → **改为串行**或**延后到盘后** |
+| `data.circuit` | 熔断器状态（`closed` / `open`） | `open` → **停止并发**，改串行或延后盘后 |
+| `data.remaining_min` / `data.remaining_5min` | 剩余预算 | 偏低时优先读缓存、只对目标标的定向取数 |
+
+放行时可直接并行：东财请求由**跨进程闸门串行**排队，预期耗时 ≈ 东财请求数 × 1.2s，N 路 Agent **不会**叠加出 N 倍 QPS。
+
+> 依据：《AKShare东方财富反爬限流改进方案.md》§3.3 / §3.5 / §3.6。
+
 ### 第二步：启动6个并行Agent
 
 使用 Task 工具同时启动6个Agent（**必须在同一条消息中并行调用**）。

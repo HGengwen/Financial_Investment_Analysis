@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """A 股行情数据查询工具（沪深京市场）。
 
-使用 akshare 库获取 A 股历史行情数据，支持东方财富和新浪两个数据源。
+使用 akshare 库获取 A 股历史行情数据。日线取数走**显式优先级路由**
+（`tools/common/source_router.py`，方案 §6）：东方财富 → 腾讯 → 新浪，逐源回退，
+并在 `meta.routing` 输出逐源尝试记录；`--source` 指定**起点源**，其后仍按路由表回退。
 本模块为 A 股专用工具，位于 tools/a_share/ 目录下，覆盖沪市（60/688 开头）、
 深市（00/30 开头）及北交所（4/8 开头）股票。
 
@@ -10,6 +12,7 @@ Usage:
     {py} tools/a_share/stock_quote.py --code 300502 --start 20260101 --end 20260710
     {py} tools/a_share/stock_quote.py --code 300502 --adjust qfq
     {py} tools/a_share/stock_quote.py --code 300502 --source sina
+    {py} tools/a_share/stock_quote.py --code 300502 --source tencent
     {py} tools/a_share/stock_quote.py --realtime 300502   # 实时行情快照
 """
 
@@ -35,6 +38,41 @@ try:
     from tools.common import sector_screen
 except ImportError:  # sector_screen 缺失时 --auto-peers 不可用，其余不受影响
     sector_screen = None
+
+try:
+    from tools.common import source_router
+except ImportError:  # source_router 缺失时退化为「仅东财单源」，工具仍可取数
+    source_router = None
+
+# ---------------------------------------------------------------------------
+# 东财请求闸门（方案 §4 #3）：装载 host 过滤 hook，业务逻辑零改写
+# ---------------------------------------------------------------------------
+try:
+    from tools.common import em_gate as _em_gate
+except ImportError:  # 闸门模块缺失时降级为不装载，工具仍可正常取数（fail-open）
+    _em_gate = None
+
+
+# 闸门拒绝时的替代命令（方案 §3.4：降级必须自带可执行的替代命令）。
+# ``{symbol}`` 由 em_gate 从命令行参数解析后替换，解析不到时替换为 <代码>。
+_FALLBACK_CMD = "python tools/a_share/stock_quote.py --code {symbol} --source sina"
+
+
+def _install_em_gate() -> None:
+    """装载东方财富请求闸门（fail-open：装载失败不中断数据获取）。
+
+    闸门是保护层（跨进程最小间隔 / 滑窗预算 / 封禁短路），并在闸门拒绝时输出
+    统一降级载荷（方案 §3.4：``success=false`` + ``meta.gate`` + 可执行
+    ``fallback_cmd``，绝不伪造 ``success=true``）；任何导入或装载异常都只打印
+    一条 warning，绝不影响业务取数与参数解析。
+    """
+    if _em_gate is None:
+        print("[warn] tools.common.em_gate 不可用，已跳过东财闸门装载", file=sys.stderr)
+        return
+    try:
+        _em_gate.install_cli(tool="stock_quote", fallback_cmd=_FALLBACK_CMD)
+    except Exception as exc:  # 闸门故障不得导致数据获取不可用（fail-open）
+        print(f"[warn] em_gate.install_cli() 失败，已跳过东财闸门: {exc}", file=sys.stderr)
 
 # ---------------------------------------------------------------------------
 # 导入 akshare
@@ -186,6 +224,61 @@ def get_quote_sina(symbol: str, start_date: str, end_date: str, adjust: str = ""
                 else:
                     val = round(val, 2)
             # 日期转字符串
+            if col == "date" and hasattr(val, "strftime"):
+                val = val.strftime("%Y-%m-%d")
+            r[col] = val
+        records.append(r)
+
+    return {"records": records, "count": len(records)}
+
+
+def get_quote_tencent(symbol: str, start_date: str, end_date: str, adjust: str = "") -> dict:
+    """从腾讯证券获取日线行情（方案 §6 新增回退源）。
+
+    字段集与东财 / 新浪**不同**：腾讯仅提供 ``date / open / close / high / low /
+    volume`` 六列（volume 单位为**手**），不含涨跌幅 / 涨跌额 / 振幅 / 换手率 /
+    成交额。该差异与既有「换源则字段集随之变化」的契约一致（东财与新浪的字段集
+    本就不同），调用方应据 ``meta.routing.source`` 判断字段完整性。
+
+    Args:
+        symbol: 6 位股票代码（内部转换为 ``sh/sz/bj`` 前缀，与新浪分支同规则）。
+        start_date: 开始日期（``YYYYMMDD``）。
+        end_date: 结束日期（``YYYYMMDD``）。
+        adjust: 复权方式（``""`` / ``qfq`` / ``hfq``）。
+
+    Returns:
+        ``{"records": [...], "count": int}``；无数据时 ``records`` 为空列表。
+
+    Note:
+        腾讯接口把成交量列命名为 ``amount``。实测交叉验证（``sh600519``
+        2026-09-17）：腾讯 ``amount`` = 17554，同新浪 ``volume`` = 1755380 股
+        = 17553.8 手，即**腾讯的 amount 实为成交量且单位为手**，故此处重命名为
+        ``volume`` 并保持手为单位，与新浪分支（股 → 手）口径一致。
+    """
+    tx_symbol = _ensure_sina_symbol(symbol)
+    df = ak.stock_zh_a_hist_tx(
+        symbol=tx_symbol,
+        start_date=start_date,
+        end_date=end_date,
+        adjust=adjust,
+    )
+    if df.empty:
+        return {"records": [], "count": 0}
+
+    df = df.rename(columns={"amount": "volume"})
+    keep = [
+        col
+        for col in ("date", "open", "close", "high", "low", "volume")
+        if col in df.columns
+    ]
+
+    records = []
+    for _, row in df[keep].iterrows():
+        r = {}
+        for col in keep:
+            val = row[col]
+            if isinstance(val, float):
+                val = round(val, 2)
             if col == "date" and hasattr(val, "strftime"):
                 val = val.strftime("%Y-%m-%d")
             r[col] = val
@@ -500,6 +593,8 @@ def cmd_realtime(code: str) -> None:
 # ---------------------------------------------------------------------------
 
 def main():
+    # 首行装载东财闸门：跨进程限流 / 预算 / 封禁短路（fail-open，装载失败不阻断取数）
+    _install_em_gate()
     parser = argparse.ArgumentParser(
         description="A 股行情数据查询工具",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -524,8 +619,9 @@ def main():
                         choices=["", "qfq", "hfq"],
                         help='复权方式: ""-不复权, qfq-前复权, hfq-后复权 (默认不复权)')
     parser.add_argument("--source", type=str, default="eastmoney", metavar="SOURCE",
-                        choices=["eastmoney", "sina"],
-                        help='数据源: eastmoney-东方财富, sina-新浪 (默认 eastmoney)')
+                        choices=["eastmoney", "tencent", "sina"],
+                        help='起点数据源: eastmoney-东方财富, tencent-腾讯, sina-新浪 '
+                             '(默认 eastmoney；其后按路由表回退 东财→腾讯→新浪)')
     parser.add_argument("--momentum", action="store_true",
                         help="计算动量与技术面指标（250日涨幅/SMR百分位/RSI50/MA50/MA200）")
     parser.add_argument("--realtime", type=str, default=None, nargs="?",
@@ -574,25 +670,29 @@ def main():
 
     code = args.code.zfill(6)
 
-    # Helper: try both sources with fallback
-    def fetch_with_fallback():
-        errors = []
-        # Try primary source first
-        if args.source == "eastmoney":
-            try:
-                return get_quote_eastmoney(code, start, end, args.adjust)
-            except Exception as e:
-                errors.append(f"EastMoney: {e}")
-        # Fallback to Sina
-        try:
-            return get_quote_sina(code, start, end, args.adjust)
-        except Exception as e:
-            errors.append(f"Sina: {e}")
-        # All failed
-        raise RuntimeError(" | ".join(errors))
+    # 数据源路由（方案 §6）：东财 → 腾讯 → 新浪，逐源回退；--source 为起点源
+    fetchers = {
+        "eastmoney": lambda: get_quote_eastmoney(code, start, end, args.adjust),
+        "tencent": lambda: get_quote_tencent(code, start, end, args.adjust),
+        "sina": lambda: get_quote_sina(code, start, end, args.adjust),
+    }
 
     try:
-        result = fetch_with_fallback()
+        if source_router is None:
+            # 路由模块缺失时退化为「仅东财单源」，保持工具可用（fail-open）
+            result = get_quote_eastmoney(code, start, end, args.adjust)
+            routing = None
+        else:
+            outcome = source_router.route(
+                "a_share_daily",
+                fetchers,
+                start_from=args.source,
+                tool="stock_quote",
+                params={"code": code},
+            )
+            result = outcome.value
+            routing = outcome.as_dict()
+
         output = {
             "success": True,
             "data": result["records"],
@@ -607,21 +707,30 @@ def main():
                 "timestamp": datetime.now().isoformat()
             }
         }
+        if routing is not None:
+            # source_actual：实际命中的源（--source 仅为起点，可能已回退）
+            output["meta"]["source_actual"] = routing["source"]
+            output["meta"]["routing"] = routing
         print(json.dumps(output, ensure_ascii=False, default=str))
 
     except Exception as e:
         error_msg = str(e)
         if "Connection" in error_msg or "RemoteDisconnected" in error_msg:
-            error_msg = f"网络连接失败 (EastMoney/Sina均不可达)"
+            error_msg = "网络连接失败 (东财/腾讯/新浪均不可达)"
+        error_meta = {
+            "tool": "stock_quote",
+            "code": code,
+            "timestamp": datetime.now().isoformat()
+        }
+        # 全源失败时附上方案 §3.4 要求的可执行替代命令（source_router 提供）
+        fallback = getattr(e, "fallback_cmd", "")
+        if fallback:
+            error_meta["fallback_cmd"] = fallback
         print(json.dumps({
             "success": False,
             "error": f"获取行情失败: {error_msg}",
             "detail": traceback.format_exc(),
-            "meta": {
-                "tool": "stock_quote",
-                "code": code,
-                "timestamp": datetime.now().isoformat()
-            }
+            "meta": error_meta
         }, ensure_ascii=False), file=sys.stderr)
         sys.exit(1)
 

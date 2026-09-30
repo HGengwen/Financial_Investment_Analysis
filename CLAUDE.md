@@ -187,6 +187,7 @@
 - **技能修改**：修改 `.trae/skills/` 下的技能文件即可生效，无需额外同步脚本
 - **配置文件**：`.env` 存放 API 密钥与工具参数（如 `FX_MAX_RECORDS_HARD_LIMIT`、`STOCK_CACHE_TTL_DAYS`、`ANYSEARCH_API_KEY`、`VOLC_AK/SK`、`EXA_API_KEY` 等），工具启动时自动加载；新增配置项同步写入 `.env.example`
 - **数据缓存**：三市场财务数据、A股代码/行业、板块截面均落地 `data/` 目录（TTL 内免网络调用，过期自动刷新，失败降级旧缓存 hit→refresh→stale）
+- **东财闸门（并发前置）**：并行启动多个子代理前先跑 `python tools/common/em_gate.py status`，读 `data.allowed` / `data.circuit`；`allowed=false` 或 `circuit=open` 时改串行或延后盘后。工具被闸门拒绝时统一输出 `success=false` + `meta.gate` + 可执行 `fallback_cmd`，不得伪造成功数据（详见 [AKShare东方财富反爬限流改进方案](docs/dev_docs/AKShare东方财富反爬限流改进方案.md) §3.3~§3.4）
 - **推送前**：询问用户是否需要推送到 GitHub；推送前务必 `git pull --rebase`
 - **文件落盘纪律**：修改既有文件一律走**确定性写入范式**，不依赖 `Edit` 工具单次调用——本项目多次出现「`Edit` 返回成功但**未落盘**」的静默失败。范式四步：① `read_bytes()` 读入并解码；② 断言**无 BOM**、行尾与目标一致；③ 断言**新串不存在**（防重复写入）、**锚点计数 = 1**（防误替换）；④ 写入后**立即回读断言**（字节数 / 行数 / 关键锚点）。整文件重写（`Write`）可能引入 **CRLF** 与**超长截断**（约 850~900 行以上易不落盘），须事后归一与校验；临时脚本一律用后即删。
 

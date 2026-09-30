@@ -531,6 +531,7 @@
 5. **不预设立场**：先摆数据 → 推逻辑 → 出结论
 6. **呈现正反两面**：每个核心判断附反面论据
 7. **诚实面对信息缺口**：宁可标注"数据不足"，不用推测填充
+8. **东财闸门自检（并发前置）** — 并行启动多个子代理前先跑 `python tools/common/em_gate.py status`，读 `data.allowed` / `data.circuit`；`allowed=false` 或 `circuit=open` 时改串行或延后盘后（详见 [AKShare东方财富反爬限流改进方案](../../docs/dev_docs/AKShare东方财富反爬限流改进方案.md) §3.3）
 
 ---
 

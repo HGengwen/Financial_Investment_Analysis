@@ -33,5 +33,8 @@ pytesseract     # OCR 文字识别（pdf_extract.py OCR 回退）
 pymupdf         # PDF 渲染为图片（pdf_extract.py OCR 回退，fitz 模块）
 pillow          # 图片处理（pdf_extract.py OCR 回退，PIL 模块）
 
+# --- 跨进程锁 / 并发控制 ---
+filelock        # 跨进程文件锁（common/em_gate.py 东财请求闸门全局限流）
+
 # --- 测试 ---
 pytest          # 单元/集成测试框架（tests/ 目录）

@@ -13,6 +13,9 @@
     - 任意两次 API 调用间隔至少 0.5 秒（_MIN_INTERVAL，模块级限流器）
     - 批量获取最多 5 个货币对（MAX_BATCH_SIZE），货币对间间隔至少 1 秒
     - 瞬时网络异常采用指数退避重试（默认 3 次，1/2/4 秒）
+    - 东财请求统一经 `tools/common/em_gate.py` 闸门节流（跨进程最小间隔 /
+      滑动窗口预算 / 封禁熔断）；`EM_GATE_ENABLED=0` 时闸门不装载，完全退化
+      为本工具自有节流
 
 数据源策略：
     - Akshare 优先：直连东方财富极小请求，失败（异常/空/区间无数据）时
@@ -59,6 +62,18 @@ logger = logging.getLogger(__name__)
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if load_dotenv is not None:
     load_dotenv(_PROJECT_ROOT / ".env", override=False)
+
+# 注入项目根目录到 sys.path，使 `from tools.common import em_gate` 在 CLI 直接运行时可用
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+# ---------------------------------------------------------------------------
+# 东财请求闸门（方案 §4 #2）：异常分类委托 em_gate + 直连东财请求走闸门 Session
+# ---------------------------------------------------------------------------
+try:
+    from tools.common import em_gate as _em_gate
+except ImportError:  # 闸门模块缺失时降级为本地异常分类与限流（fail-open）
+    _em_gate = None
 
 
 def _parse_int_env(var_name: str, default: int) -> int:
@@ -151,7 +166,8 @@ class _RateLimiter:
     """简单的全局最小间隔限流器，避免高频调用触发服务端限流。
 
     模块级单例 ``_RATE_LIMITER`` 在每次 API 调用前 ``wait()``，
-    确保任意两次调用间隔不小于 ``min_interval``。
+    确保任意两次调用间隔不小于 ``min_interval``。东财调用在闸门
+    （``tools/common/em_gate.py``）已生效时让位，避免双重节流。
     """
 
     def __init__(self, min_interval: float = _MIN_INTERVAL) -> None:
@@ -163,8 +179,19 @@ class _RateLimiter:
         self.min_interval: float = min_interval
         self._last: float = 0.0
 
-    def wait(self) -> None:
-        """阻塞至满足最小间隔要求。"""
+    def wait(self, *, covered_by_gate: bool = False) -> None:
+        """阻塞至满足最小间隔要求。
+
+        Args:
+            covered_by_gate: 本次调用是否为**已由东财闸门接管**的东财请求。
+                为 True 且闸门实际生效（``em_gate.is_active()``）时直接返回：
+                闸门已在传输层强制**跨进程**最小间隔，再叠一层进程内 sleep
+                属双重节流；闸门未生效时必须保留本地节流，否则退化为无节流
+                裸调。非东财调用（如 yfinance）恒为 False，始终保留本地节流。
+        """
+        if covered_by_gate and _em_gate is not None and _em_gate.is_active():
+            self._last = time.time()
+            return
         elapsed = time.time() - self._last
         if elapsed < self.min_interval:
             time.sleep(self.min_interval - elapsed)
@@ -176,10 +203,12 @@ _RATE_LIMITER = _RateLimiter()
 
 
 def _is_transient(exc: BaseException) -> bool:
-    """判断异常是否为可重试的瞬时网络异常。
+    """判断异常是否为可重试的瞬时网络异常（委托 ``em_gate.is_transient``）。
 
     仅对 ``requests`` 网络类异常（连接中断、超时、代理错误、5xx 等）重试；
     非网络异常（如无效代码的 KeyError、参数错误）不重试，直接抛出由兜底处理。
+    判定实现已迁至 ``tools/common/em_gate.py`` 共享（方案 §4 #2），此处保留
+    私有符号名以零改动全部调用点；闸门模块不可用时回退到本地等价实现。
 
     Args:
         exc: 捕获到的异常。
@@ -187,6 +216,8 @@ def _is_transient(exc: BaseException) -> bool:
     Returns:
         True 表示可重试的瞬时网络异常。
     """
+    if _em_gate is not None:
+        return _em_gate.is_transient(exc)
     if requests is None:
         return False
     # ConnectionError / Timeout / HTTPError / ProxyError 均为 RequestException 子类
@@ -194,11 +225,13 @@ def _is_transient(exc: BaseException) -> bool:
 
 
 def _is_ban_signal(exc: BaseException) -> bool:
-    """判断异常是否为服务端封禁（限流拉黑）信号。
+    """判断异常是否为服务端封禁（限流拉黑）信号（委托 ``em_gate``）。
 
     东方财富对高频调用会临时封禁 IP，典型表现为 ``RemoteDisconnected``
     （连接被服务端直接断开）。封禁期间重试毫无意义且会延长封禁时长，
-    因此识别到该信号时立即放弃重试、直接回退下一数据源。
+    因此识别到该信号时立即放弃重试、直接回退下一数据源。判定实现已迁至
+    ``tools/common/em_gate.py`` 共享（方案 §4 #2）；闸门模块不可用时回退到
+    本地等价实现。
 
     Args:
         exc: 捕获到的异常。
@@ -206,20 +239,21 @@ def _is_ban_signal(exc: BaseException) -> bool:
     Returns:
         True 表示疑似服务端封禁信号。
     """
+    if _em_gate is not None:
+        return _em_gate.is_ban_signal(exc)
     if requests is None:
         return False
     # RemoteDisconnected 是 ConnectionError 子类，需在通用网络异常判定前识别
-    if isinstance(exc, requests.exceptions.ConnectionError):
-        # 优先按具体异常类判断（type(exc).__name__ 仅返回 "ConnectionError"，无法识别子类）
-        try:
-            from http.client import RemoteDisconnected
-        except ImportError:  # pragma: no cover - 标准库模块，理论上不会缺失
-            RemoteDisconnected = None  # type: ignore[assignment, misc]
-        if RemoteDisconnected is not None and isinstance(exc, RemoteDisconnected):
-            return True
-        # 回退：异常消息文本匹配（覆盖被 requests 包装但保留原文的场景）
-        if "Remote end closed connection" in str(exc):
-            return True
+    # （可能被 requests 包装，也可能被裸抛出，故不局限于 ConnectionError 分支）
+    try:
+        from http.client import RemoteDisconnected
+    except ImportError:  # pragma: no cover - 标准库模块，理论上不会缺失
+        RemoteDisconnected = None  # type: ignore[assignment, misc]
+    if RemoteDisconnected is not None and isinstance(exc, RemoteDisconnected):
+        return True
+    # 回退：异常消息文本匹配（覆盖被 requests 包装但保留原文的场景）
+    if "Remote end closed connection" in str(exc):
+        return True
     # HTTP 403 通常也表示服务端拒绝（限流/风控）
     if isinstance(exc, requests.exceptions.HTTPError):
         if getattr(exc.response, "status_code", None) == 403:
@@ -359,8 +393,8 @@ def _default_akshare_call(ak_symbol: str) -> pd.DataFrame:
 
     采用轻量直连东方财富的小请求（``lmt=_SMALL_LMT``）替代 akshare 原生
     ``lmt=50000`` 的批量大请求，以降低被限流概率；调用前经 ``_RATE_LIMITER``
-    限流，瞬时网络异常由 ``_call_with_retry`` 指数退避重试。日期区间过滤由
-    调用方在客户端完成。
+    限流（闸门生效时让位），瞬时网络异常由 ``_call_with_retry`` 指数退避重试。
+    日期区间过滤由调用方在客户端完成。
 
     Args:
         ak_symbol: Akshare 外汇代码，例如 "USDCNH"。
@@ -368,7 +402,8 @@ def _default_akshare_call(ak_symbol: str) -> pd.DataFrame:
     Returns:
         原始 DataFrame（最近 ``_SMALL_LMT`` 条日线）。
     """
-    _RATE_LIMITER.wait()
+    # 东财请求：闸门生效时让位（闸门已在传输层跨进程节流），否则保留本地节流
+    _RATE_LIMITER.wait(covered_by_gate=True)
     return _call_with_retry(
         lambda: _eastmoney_hist_small(ak_symbol), "akshare", ak_symbol
     )
@@ -919,8 +954,29 @@ def cmd_fetch(
         }
 
 
+def _install_em_gate() -> None:
+    """装载东方财富请求闸门（fail-open：装载失败不中断数据获取）。
+
+    闸门在 ``requests.sessions.Session.request`` 上装载 host 过滤 hook，
+    使 ``_eastmoney_hist_small`` 的直连东财请求自动纳入跨进程最小间隔 /
+    滑动窗口预算 / 封禁熔断；yfinance 等非东财域名完全透传。此处只装
+    transport hook（``install()``）而不装进程级降级兜底（``install_cli()``）：
+    闸门拒绝会被 ``_fetch_with_akshare`` 的兜底 catch 转为 ``FetchResult``
+    失败并自然回退 yfinance，无需在进程退出时重复输出降级载荷。任何装载
+    异常都只记一条 warning，绝不影响取数。
+    """
+    if _em_gate is None:
+        return
+    try:
+        _em_gate.install()
+    except Exception as exc:  # noqa: BLE001  闸门故障不得导致取数不可用
+        logger.warning("[em_gate] 闸门装载失败，已跳过（不影响取数）：%s", exc)
+
+
 def main() -> None:
     """命令行入口。"""
+    _install_em_gate()
+
     parser = argparse.ArgumentParser(
         description="国际主要货币汇率获取工具（Akshare 优先，yfinance 回退）",
         formatter_class=argparse.RawDescriptionHelpFormatter,
